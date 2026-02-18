@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             RoleAndUserSeeder::class,
             SubjectSeeder::class,
             LevelSeeder::class,
+            QuestionSeeder::class,
             // Tambahkan seeder lain di sini jika ada (misal: ExamSeeder)
         ]);
     }

@@ -2,10 +2,7 @@
 
 namespace App\Enums;
 
-use Filament\Support\Contracts\HasColor;
-use Filament\Support\Contracts\HasLabel;
-
-enum ExamStatus: string implements HasColor, HasLabel
+enum ExamStatus: string
 {
     case Draft = 'draft';
     case Published = 'published';

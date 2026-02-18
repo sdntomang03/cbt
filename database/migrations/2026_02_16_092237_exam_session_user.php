@@ -20,6 +20,9 @@ return new class extends Migration
             $table->dateTime('started_at')->nullable(); // Waktu siswa klik "Mulai"
             $table->dateTime('finished_at')->nullable(); // Waktu siswa selesai
             $table->decimal('score', 5, 2)->nullable();
+            $table->boolean('is_locked')->default(false);
+            // Atau simpan jumlah pelanggaran di server
+            $table->integer('violation_count')->default(0);
             $table->timestamps();
         });
     }

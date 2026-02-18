@@ -17,6 +17,8 @@ class ExamSessionUser extends Pivot
         'score',
         'started_at',
         'finished_at',
+        'is_locked',       // <--- Tambahan
+        'violation_count',  // <--- Tambahan
         'answers',      // Jika masih pakai backup JSON
     ];
 

@@ -52,8 +52,9 @@ class StudentExamController extends Controller
             return redirect()->route('student.dashboard')->with('info', 'Anda sudah menyelesaikan ujian ini.');
         }
 
-        // 2. Set Waktu Mulai jika status masih 'not_started'
-        if ($pivot->status === 'not_started' || $pivot->started_at === null) {
+        // 2. LOGIKA WAKTU MULAI (DIPERBAIKI)
+        // Hanya update ke DB jika started_at BENAR-BENAR KOSONG (null)
+        if ($pivot->started_at === null) {
             $user->examSessions()->updateExistingPivot($session->id, [
                 'started_at' => $now,
                 'status' => 'ongoing',
@@ -61,7 +62,14 @@ class StudentExamController extends Controller
             ]);
             $startTime = $now;
         } else {
+            // Jika sudah ada isinya, JANGAN UPDATE 'started_at' lagi.
+            // Gunakan waktu yang sudah tersimpan di DB.
             $startTime = \Carbon\Carbon::parse($pivot->started_at)->timezone('Asia/Jakarta');
+
+            // Optional: Fix status jika datanya tidak konsisten (ada waktu tapi status not_started)
+            if ($pivot->status === 'not_started') {
+                $user->examSessions()->updateExistingPivot($session->id, ['status' => 'ongoing']);
+            }
         }
 
         // 3. Perhitungan Deadline
