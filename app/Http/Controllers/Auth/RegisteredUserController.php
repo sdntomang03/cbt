@@ -42,11 +42,11 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
         $user->assignRole('siswa');
-        $sessionIds = ExamSession::pluck('id');
+        $firstSessionId = ExamSession::value('id');
 
-        // Jika ada sesi ujian, hubungkan user ini ke tabel pivot (exam_session_user)
-        if ($sessionIds->count() > 0) {
-            $user->examSessions()->attach($sessionIds);
+        // Jika ada minimal 1 sesi ujian di database, hubungkan user
+        if ($firstSessionId) {
+            $user->examSessions()->attach($firstSessionId);
         }
         event(new Registered($user));
         Auth::login($user);

@@ -100,9 +100,37 @@ class StudentExamController extends Controller
             return $this->forceFinish($session);
         }
 
-        $questions = Question::where('exam_id', $exam_id)
-            ->with(['options', 'matches']) // Load matches yang baru
-            ->get();
+        $questionsQuery = Question::where('exam_id', $exam_id)
+            ->with(['options', 'matches']);
+
+        // CEK CONFIG: Jika random_question aktif, acak urutan soal
+        if ($session->exam->random_question) {
+            // Gunakan inRandomOrder() agar acak, atau inRandomSeed(auth()->id())
+            // agar urutan tetap konsisten bagi user tersebut jika halaman direfresh
+            $questionsQuery->inRandomOrder(Auth::id());
+        }
+
+        $questions = $questionsQuery->get();
+
+        // CEK CONFIG: Jika random_answer aktif, acak pilihan jawaban secara konsisten
+        if ($session->exam->random_answer) {
+            $questions->map(function ($question) use ($user) {
+                // Gunakan ID User + ID Soal sebagai Seed agar hasil acaknya
+                // unik per siswa per soal, tapi tetap sama jika di-refresh.
+                $seed = $user->id + $question->id;
+
+                // Kita acak menggunakan PHP native shuffle dengan seed manual
+                $optionsArray = $question->options->all();
+                srand($seed); // Atur bibit pengacak
+                shuffle($optionsArray); // Acak array
+                srand(); // Reset bibit pengacak ke default agar tidak merusak proses lain
+
+                // Set kembali ke relasi model
+                $question->setRelation('options', collect($optionsArray));
+
+                return $question;
+            });
+        }
         $existingAnswers = StudentAnswer::where('exam_session_id', $session->id)
             ->where('user_id', $user->id)
             ->pluck('answer', 'question_id')
