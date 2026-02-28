@@ -496,7 +496,51 @@
                         };
                     },
 
-                    renderMath() { if (typeof renderMathInElement === 'function') { const area = document.getElementById('question-viewport'); if(area) { renderMathInElement(area, { delimiters: [ {left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}, {left: '\\(', right: '\\)', display: false}, {left: '\\[', right: '\\]', display: true} ], throwOnError : false }); } } },
+                    renderMath() {
+                        // 1. RENDER RUMUS DARI TOMBOL MATH SUNEDITOR (Tag span data-exp)
+                        if (typeof window.katex !== 'undefined') {
+                            document.querySelectorAll('.__se__katex').forEach(el => {
+                                let exp = el.getAttribute('data-exp');
+                                if (exp) {
+                                    // --- PROSES PENCUCIAN KARAKTER ---
+                                    let decodedExp = exp
+                                        .replace(/&gt;/g, '>')
+                                        .replace(/&lt;/g, '<')
+                                        .replace(/&amp;/g, '&')
+                                        .replace(/&quot;/g, '"')
+                                        .replace(/&#39;/g, "'")
+                                        .replace(/&nbsp;/g, ' ')
+                                        .replace(/\u00A0/g, ' ')
+                                        .replace(/<br\s*\/?>/gi, '\n');
+
+                                    try {
+                                        window.katex.render(decodedExp, el, {
+                                            throwOnError: false,
+                                            displayMode: el.style.display === 'block' || el.tagName === 'DIV'
+                                        });
+                                    } catch (e) {
+                                        console.error("Gagal render KaTeX:", e);
+                                    }
+                                }
+                            });
+                        }
+
+                        // 2. RENDER RUMUS KETIKAN MANUAL (Auto-Render $$...$$)
+                        if (typeof renderMathInElement === 'function') {
+                            const area = document.getElementById('question-viewport');
+                            if(area) {
+                                renderMathInElement(area, {
+                                    delimiters: [
+                                        {left: '$$', right: '$$', display: true},
+                                        {left: '$', right: '$', display: false},
+                                        {left: '\\(', right: '\\)', display: false},
+                                        {left: '\\[', right: '\\]', display: true}
+                                    ],
+                                    throwOnError : false
+                                });
+                            }
+                        }
+                    },
                     seededRandom(seed) { let t = seed += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; },
                     shuffleArray(array, seedSuffix) { let m = array.length, t, i, seed = this.userId + seedSuffix; while (m) { let r = this.seededRandom(seed + m); i = Math.floor(r * m--); t = array[m]; array[m] = array[i]; array[i] = t; } return array; },
                     shuffleQuestions() { this.questions = this.shuffleArray(this.questions, '_EXAM_ORDER_' + '{{ $exam->id }}'); },
