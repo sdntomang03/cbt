@@ -49,13 +49,15 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @forelse($sessions as $session)
                 <div
-                    class="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100 hover:border-indigo-100 transition-all hover-lift group relative overflow-hidden">
+                    class="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100 hover:border-indigo-100 transition-all hover-lift group relative flex flex-col h-full">
 
-                    <div
-                        class="absolute -right-6 -top-6 w-24 h-24 bg-slate-50 rounded-full group-hover:bg-indigo-50 transition-colors">
+                    <div class="absolute inset-0 overflow-hidden rounded-[2.5rem] pointer-events-none">
+                        <div
+                            class="absolute -right-6 -top-6 w-24 h-24 bg-slate-50 rounded-full group-hover:bg-indigo-50 transition-colors">
+                        </div>
                     </div>
 
-                    <div class="flex justify-between items-start mb-6 relative z-10">
+                    <div class="flex justify-between items-start mb-6 relative z-50">
                         <div class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border
                             {{ now()->between($session->start_time, $session->end_time)
                                 ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
@@ -76,9 +78,19 @@
                                 class="text-slate-300 hover:text-slate-600 transition">
                                 <i class="fas fa-ellipsis-v"></i>
                             </button>
-                            <div x-show="open" x-transition
-                                class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-20"
-                                x-cloak>
+
+                            <div x-show="open" x-transition:enter="transition ease-out duration-100"
+                                x-transition:enter-start="transform opacity-0 scale-95"
+                                x-transition:enter-end="transform opacity-100 scale-100"
+                                x-transition:leave="transition ease-in duration-75"
+                                x-transition:leave-start="transform opacity-100 scale-100"
+                                x-transition:leave-end="transform opacity-0 scale-95"
+                                class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50 origin-top-right">
+
+                                <a href="{{ route('admin.exam-sessions.students.index', $session->id) }}"
+                                    class="block px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-indigo-600">
+                                    <i class="fas fa-users mr-2"></i> Kelola Peserta
+                                </a>
                                 <a href="#" @click.prevent="editSession({{ $session }})"
                                     class="block px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-indigo-600">
                                     <i class="fas fa-edit mr-2"></i> Edit Sesi
@@ -95,52 +107,66 @@
                         </div>
                     </div>
 
-                    <div class="mb-6 relative z-10">
-                        <h3 class="font-black text-xl text-slate-800 mb-1 leading-tight">{{ $session->title }}</h3>
+                    <div class="mb-6 relative z-10 flex-1">
+                        <h3 class="font-black text-xl text-slate-800 mb-1 leading-tight">{{ $session->session_name }}
+                        </h3>
                         <p class="text-sm font-bold text-indigo-500 mb-4">{{ $session->exam->title }}</p>
 
-                        <div class="space-y-3">
+                        <div class="space-y-4">
                             <div class="flex items-center gap-3 text-sm font-semibold text-slate-500">
                                 <div
-                                    class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
-                                    <i class="fas fa-calendar-day"></i>
+                                    class="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500 shadow-sm border border-emerald-100 shrink-0">
+                                    <i class="fas fa-calendar-plus"></i>
                                 </div>
-                                <span>{{ $session->start_time->format('d M Y') }}</span>
+                                <div class="flex flex-col">
+                                    <span
+                                        class="text-[10px] font-black uppercase tracking-wider text-slate-400 leading-none mb-1">Mulai</span>
+                                    <span class="text-slate-700 leading-none">{{ $session->start_time->format('d M Y,
+                                        H:i') }} WIB</span>
+                                </div>
                             </div>
+
                             <div class="flex items-center gap-3 text-sm font-semibold text-slate-500">
                                 <div
-                                    class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
-                                    <i class="fas fa-clock"></i>
+                                    class="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-500 shadow-sm border border-rose-100 shrink-0">
+                                    <i class="fas fa-calendar-check"></i>
                                 </div>
-                                <span>{{ $session->start_time->format('H:i') }} - {{ $session->end_time->format('H:i')
-                                    }}</span>
+                                <div class="flex flex-col">
+                                    <span
+                                        class="text-[10px] font-black uppercase tracking-wider text-slate-400 leading-none mb-1">Berakhir</span>
+                                    <span class="text-slate-700 leading-none">{{ $session->end_time->format('d M Y,
+                                        H:i') }} WIB</span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div
-                        class="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center justify-between group-hover:border-indigo-100 transition-colors">
-                        <div>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Token Akses
-                            </p>
-                            <div class="font-mono font-black text-2xl text-slate-800 tracking-widest"
-                                id="token-{{ $session->id }}">
-                                {{ $session->token }}
+                    <div class="mt-auto pt-4 relative z-10 border-t border-slate-50">
+                        <div
+                            class="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center justify-between group-hover:border-indigo-100 transition-colors">
+                            <div>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Token
+                                    Akses</p>
+                                <div class="font-mono font-black text-2xl text-slate-800 tracking-widest"
+                                    id="token-{{ $session->id }}">
+                                    {{ $session->token ?? '------' }}
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button @click="copyToken({{ $session->id }})"
+                                    class="w-10 h-10 rounded-xl bg-white text-slate-400 hover:text-indigo-600 shadow-sm hover:shadow-md transition flex items-center justify-center border border-slate-100"
+                                    title="Salin Token">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <button @click="regenerateToken({{ $session->id }})"
+                                    class="w-10 h-10 rounded-xl bg-white text-slate-400 hover:text-orange-500 shadow-sm hover:shadow-md transition flex items-center justify-center border border-slate-100"
+                                    title="Acak Ulang Token">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
                             </div>
                         </div>
-                        <div class="flex gap-2">
-                            <button @click="copyToken('{{ $session->token }}')"
-                                class="w-10 h-10 rounded-xl bg-white text-slate-400 hover:text-indigo-600 shadow-sm hover:shadow-md transition flex items-center justify-center border border-slate-100"
-                                title="Salin Token">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                            <button @click="regenerateToken({{ $session->id }})"
-                                class="w-10 h-10 rounded-xl bg-white text-slate-400 hover:text-orange-500 shadow-sm hover:shadow-md transition flex items-center justify-center border border-slate-100"
-                                title="Acak Ulang Token">
-                                <i class="fas fa-sync-alt"></i>
-                            </button>
-                        </div>
                     </div>
+
                 </div>
                 @empty
                 <div class="col-span-full flex flex-col items-center justify-center py-20 text-center">
@@ -187,7 +213,8 @@
                             :disabled="isEdit">
                             <option value="">-- Pilih Ujian --</option>
                             @foreach($exams as $exam)
-                            <option value="{{ $exam->id }}">{{ $exam->title }} ({{ $exam->duration }} Menit)</option>
+                            <option value="{{ $exam->id }}">{{ $exam->title }} ({{ $exam->duration_minutes }} Menit)
+                            </option>
                             @endforeach
                         </select>
                     </div>
@@ -246,13 +273,12 @@
                 editSession(session) {
                     this.isEdit = true;
                     this.currentId = session.id;
-                    // Format datetime untuk input HTML5 (YYYY-MM-DDTHH:mm)
                     let start = new Date(session.start_time).toISOString().slice(0, 16);
                     let end = new Date(session.end_time).toISOString().slice(0, 16);
 
                     this.form = {
                         exam_id: session.exam_id,
-                        session_name: session.title,
+                        session_name: session.session_name,
                         start_time: start,
                         end_time: end
                     };
@@ -278,7 +304,7 @@
                                 icon: 'success', title: 'Berhasil!',
                                 text: 'Data sesi berhasil disimpan.',
                                 timer: 1500, showConfirmButton: false
-                            }).then(() => location.reload()); // Reload untuk update data
+                            }).then(() => location.reload());
                         })
                         .catch(err => {
                             console.error(err);
@@ -296,12 +322,15 @@
                     });
                 },
 
-                copyToken(token) {
+                // FITUR COPY TOKEN
+                copyToken(id) {
+                    const token = document.getElementById(`token-${id}`).innerText.trim();
                     navigator.clipboard.writeText(token);
                     const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
                     Toast.fire({ icon: 'success', title: 'Token disalin: ' + token });
                 },
 
+                // FITUR RESET TOKEN
                 regenerateToken(id) {
                     Swal.fire({
                         title: 'Acak Ulang Token?', text: "Token lama tidak akan bisa digunakan lagi.",
@@ -310,7 +339,6 @@
                         if (result.isConfirmed) {
                             axios.post(`/admin/exam-sessions/${id}/regenerate-token`)
                                 .then(res => {
-                                    // Update DOM token secara langsung tanpa reload
                                     document.getElementById(`token-${id}`).innerText = res.data.token;
                                     Swal.fire({ icon: 'success', title: 'Token Baru: ' + res.data.token, timer: 1500, showConfirmButton: false });
                                 });

@@ -22,7 +22,14 @@ class ExamSession extends Model
     public function students()
     {
         return $this->belongsToMany(User::class, 'exam_session_user')
-            ->withPivot(['status', 'started_at', 'finished_at', 'score'])
+            ->withPivot([
+                'status',
+                'started_at',
+                'finished_at',
+                'score',
+                'violation_count', // <- TAMBAHKAN INI
+                'is_locked',        // <- TAMBAHKAN INI
+            ])
             ->withTimestamps();
     }
 

@@ -2,29 +2,47 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
-class ExamSessionUser extends Pivot
+class ExamSessionUser extends Model
 {
-    // Karena ini Pivot Table, kita extend 'Pivot' bukan 'Model'
+    use HasFactory;
 
     protected $table = 'exam_session_user';
 
     protected $fillable = [
         'exam_session_id',
         'user_id',
-        'status',      // not_started, ongoing, completed
-        'score',
+        'status',
         'started_at',
         'finished_at',
-        'is_locked',       // <--- Tambahan
-        'violation_count',  // <--- Tambahan
-        'answers',      // Jika masih pakai backup JSON
+        'score',
+        'violation_count',
+        'is_locked',
     ];
 
     protected $casts = [
+        'is_locked' => 'boolean',       // Penting agar Javascript baca true/false
+        'violation_count' => 'integer',
         'started_at' => 'datetime',
         'finished_at' => 'datetime',
-        'score' => 'float',
     ];
+
+    /**
+     * Relasi ke ExamSession (Sesi Ujian)
+     * Ini yang dicari oleh whereHas('session')
+     */
+    public function session()
+    {
+        return $this->belongsTo(ExamSession::class, 'exam_session_id');
+    }
+
+    /**
+     * Relasi ke User (Siswa)
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 }

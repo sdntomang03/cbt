@@ -1,5 +1,7 @@
 <x-app-layout>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
         body {
             font-family: 'Nunito', sans-serif;
@@ -12,6 +14,10 @@
 
         .hover-lift:hover {
             transform: translateY(-4px);
+        }
+
+        [x-cloak] {
+            display: none !important;
         }
     </style>
 
@@ -42,7 +48,6 @@
             </div>
         </div>
     </div>
-
 
     <div class="min-h-screen py-10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -109,7 +114,7 @@
                         <div class="flex justify-between items-start mb-6">
                             <span
                                 class="bg-slate-50 text-slate-500 text-[10px] font-black px-3 py-1.5 rounded-lg border border-slate-100 uppercase tracking-wider">
-                                {{ $session->title }}
+                                {{ $session->session_name }}
                             </span>
 
                             @if($session->user_status == 'completed')
@@ -136,14 +141,15 @@
                         </div>
 
                         <div class="mb-8">
+
                             <h3
                                 class="text-xl font-black text-slate-800 leading-snug mb-3 group-hover:text-indigo-600 transition-colors line-clamp-2">
                                 {{ $session->exam->title }}
                             </h3>
                             <div class="flex items-center gap-4 text-xs font-bold text-slate-400">
                                 <div class="flex items-center gap-1.5">
-                                    <i class="fas fa-stopwatch text-indigo-400"></i> {{ $session->exam->duration }}
-                                    Menit
+                                    <i class="fas fa-stopwatch text-indigo-400"></i> {{ $session->exam->duration_minutes
+                                    }} Menit
                                 </div>
                                 <div class="flex items-center gap-1.5">
                                     <i class="fas fa-file-alt text-indigo-400"></i> {{ $session->exam->questions_count
@@ -163,7 +169,8 @@
                                         <span
                                             class="text-[9px] font-black text-slate-400 uppercase tracking-wide">Mulai</span>
                                         <span class="text-xs font-bold text-slate-700">
-                                            {{ $session->start_time->translatedFormat('d M, H:i') }}
+                                            {{ \Carbon\Carbon::parse($session->start_time)->translatedFormat('d M, H:i')
+                                            }}
                                         </span>
                                     </div>
                                 </div>
@@ -181,7 +188,8 @@
                                         <span
                                             class="text-[9px] font-black text-slate-400 uppercase tracking-wide">Selesai</span>
                                         <span class="text-xs font-bold text-slate-700">
-                                            {{ $session->end_time->translatedFormat('d M, H:i') }}
+                                            {{ \Carbon\Carbon::parse($session->end_time)->translatedFormat('d M, H:i')
+                                            }}
                                         </span>
                                     </div>
                                 </div>
@@ -205,7 +213,7 @@
                             </a>
                             @else
                             <div x-data="{
-                                    startsAt: new Date('{{ $session->start_time->toIso8601String() }}'),
+                                    startsAt: new Date('{{ \Carbon\Carbon::parse($session->start_time)->toIso8601String() }}'),
                                     now: new Date()
                                 }" class="text-center w-full">
 
@@ -216,7 +224,8 @@
                                     </button>
                                 </template>
 
-                                <template x-if="now > new Date('{{ $session->end_time->toIso8601String() }}')">
+                                <template
+                                    x-if="now > new Date('{{ \Carbon\Carbon::parse($session->end_time)->toIso8601String() }}')">
                                     <button disabled
                                         class="w-full bg-rose-50 text-rose-400 py-4 rounded-2xl font-black cursor-not-allowed border border-rose-100 flex items-center justify-center gap-2">
                                         <i class="fas fa-times-circle"></i> Ujian Berakhir
@@ -261,6 +270,42 @@
                     this.dateString = this.serverTime.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
                 }
             }));
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            @if(session('error'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Akses Ditolak!',
+                    text: @json(session('error')),
+                    confirmButtonText: 'Mengerti',
+                    confirmButtonColor: '#ef4444',
+                    background: '#fff',
+                    allowOutsideClick: false
+                });
+            @endif
+
+            @if(session('success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: @json(session('success')),
+                    confirmButtonText: 'Tutup',
+                    confirmButtonColor: '#10b981',
+                    timer: 4000,
+                    timerProgressBar: true
+                });
+            @endif
+
+            @if(session('info'))
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Informasi',
+                    text: @json(session('info')),
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#3b82f6'
+                });
+            @endif
         });
     </script>
 </x-app-layout>

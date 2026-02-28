@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Enums\ExamStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Exam extends Model
 {
@@ -16,9 +15,10 @@ class Exam extends Model
         return $this->belongsTo(User::class, 'teacher_id');
     }
 
-    public function questions(): HasMany
+    public function questions()
     {
-        return $this->hasMany(Question::class);
+        // Ini artinya tabel 'questions' punya kolom 'exam_id'
+        return $this->hasMany(Question::class, 'exam_id');
     }
 
     protected function casts(): array

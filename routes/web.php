@@ -52,10 +52,9 @@ Route::middleware(['auth', 'role:admin|guru'])
         Route::post('exam-sessions/{exam_session}/regenerate-token', [ExamSessionController::class, 'regenerateToken'])
             ->name('exam-sessions.regenerate-token');
 
-        Route::get('exam-sessions/{exam_session}/students', [ExamSessionController::class, 'studentIndex'])->name('exam-sessions.students');
+        Route::get('exam-sessions/{exam_session}/students', [ExamSessionController::class, 'studentIndex'])->name('exam-sessions.students.index');
         Route::post('exam-sessions/{exam_session}/students', [ExamSessionController::class, 'studentStore'])->name('exam-sessions.students.store');
         Route::delete('exam-sessions/{exam_session}/students/{user}', [ExamSessionController::class, 'studentDestroy'])->name('exam-sessions.students.destroy');
-
     });
 
 // --- GROUP SISWA ---
@@ -65,5 +64,27 @@ Route::middleware(['auth', 'role:siswa'])->group(function () {
     Route::post('/exam/save-answer', [StudentExamController::class, 'saveAnswer'])->name('student.exam.save');
     // routes/web.php
     Route::post('/exam/{exam}/finish', [StudentExamController::class, 'finish'])->name('student.exam.finish');
+    Route::post('/exam/record-violation', [StudentExamController::class, 'recordViolation'])->name('student.exam.violation');
+});
+
+use App\Http\Controllers\ProctorController;
+
+// ... (kode Anda sebelumnya)
+
+// --- GROUP PROKTOR / MONITORING ---
+// Anda bisa menyesuaikan middleware rolenya, misal: 'role:admin|guru|proktor'
+Route::middleware(['auth', 'role:admin|guru'])->prefix('proctor')->name('proctor.')->group(function () {
+
+    // Daftar Sesi Ujian Hari Ini
+    Route::get('/sessions', [ProctorController::class, 'index'])->name('index');
+
+    // Halaman Monitoring Real-time
+    Route::get('/sessions/{exam_session}/monitor', [ProctorController::class, 'show'])->name('monitor');
+
+    // Aksi Pengawas
+    Route::post('/sessions/{exam_session}/unlock/{student}', [ProctorController::class, 'unlock'])->name('unlock');
+    Route::post('/sessions/{exam_session}/force-finish/{student}', [ProctorController::class, 'forceFinish'])->name('force-finish');
+    Route::post('/sessions/{exam_session}/reset/{student}', [ProctorController::class, 'reset'])->name('reset');
+
 });
 require __DIR__.'/auth.php';

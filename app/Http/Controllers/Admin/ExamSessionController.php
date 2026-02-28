@@ -50,7 +50,6 @@ class ExamSessionController extends Controller
             'start_time' => $validated['start_time'],
             'end_time' => $validated['end_time'],
             'token' => strtoupper(Str::random(6)), // Generate Token 6 Karakter Unik
-            'status' => 'published', // Default status langsung aktif sesuai jadwal
         ]);
 
         // 3. Return JSON response karena view menggunakan Axios
@@ -77,7 +76,7 @@ class ExamSessionController extends Controller
         // 2. Update Database
         // Note: exam_id biasanya tidak diubah saat edit untuk menjaga integritas data peserta
         $examSession->update([
-            'title' => $validated['session_name'],
+            'session_name' => $validated['session_name'],
             'start_time' => $validated['start_time'],
             'end_time' => $validated['end_time'],
         ]);

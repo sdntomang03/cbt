@@ -74,7 +74,7 @@
                                                 {{ $exam->slug }}</div>
                                             <div class="mt-2 text-xs text-gray-500 flex items-center gap-1">
                                                 <i class="fas fa-layer-group text-indigo-400"></i>
-                                                {{ $exam->questions_count ?? 0 }} Soal
+                                                {{ $exam->questions()->count() }} Soal
                                             </div>
                                         </div>
                                     </div>

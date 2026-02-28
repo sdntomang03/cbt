@@ -192,7 +192,8 @@
                                         class="mt-4 p-4 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-start gap-3">
                                         <div
                                             class="shrink-0 w-6 h-6 bg-indigo-200 text-indigo-700 rounded-lg flex items-center justify-center text-xs">
-                                            <i class="fas fa-key"></i></div>
+                                            <i class="fas fa-key"></i>
+                                        </div>
                                         <div>
                                             <p class="text-[10px] font-black text-indigo-400 uppercase mb-1">Kunci
                                                 Jawaban</p>
