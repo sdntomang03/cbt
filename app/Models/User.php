@@ -8,9 +8,14 @@ use Illuminate\Foundation\Auth\User as Authenticatable; // WAJIB ADA
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
+// TAMBAHKAN TRAIT MULTI-TENANT DI SINI JIKA SUDAH DIBUAT
+// use App\Traits\BelongsToSchool;
+
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory, HasRoles, Notifiable; // WAJIB ADA HasRoles
+    use HasFactory, HasRoles, Notifiable;
+    // Jika Trait BelongsToSchool sudah dibuat di langkah sebelumnya, nyalakan baris di bawah ini:
+    // use BelongsToSchool;
 
     protected $guarded = ['id'];
 
@@ -30,7 +35,14 @@ class User extends Authenticatable implements MustVerifyEmail
     public function examSessions()
     {
         return $this->belongsToMany(ExamSession::class, 'exam_session_user')
-            ->withPivot(['status', 'started_at', 'finished_at', 'score'])
+            ->withPivot([
+                'status',
+                'started_at',
+                'finished_at',
+                'score',
+                'violation_count', // <--- WAJIB ADA UNTUK MONITORING PROKTOR
+                'is_locked',        // <--- WAJIB ADA UNTUK MONITORING PROKTOR
+            ])
             ->withTimestamps();
     }
 }
