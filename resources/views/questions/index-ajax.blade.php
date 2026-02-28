@@ -414,26 +414,48 @@
             imageWidth: '100%'
         },
 
-        init() { this.fetchQuestions(); },
+       init() { this.fetchQuestions(); },
 
-        // 1. TAMBAHKAN FUNGSI INI
-        renderMath() {
+        // 1. TAMBAHKAN FUNGSI PENYULAP RUMUS INI
+    renderMath() {
             if (typeof window.katex === 'undefined') return;
 
-            // Cari semua elemen span buatan SunEditor yang memiliki rumus
+            // 1. RENDER RUMUS DARI TOMBOL MATH SUNEDITOR
             document.querySelectorAll('.__se__katex').forEach(el => {
-                const exp = el.getAttribute('data-exp');
+                let exp = el.getAttribute('data-exp');
                 if (exp) {
-                    // Render rumus tersebut ke dalam span
-                    window.katex.render(exp, el, {
-                        throwOnError: false,
-                        displayMode: el.style.display === 'block'
-                    });
+                    try {
+                        // Terkadang karakter '>' berubah menjadi '&gt;' di HTML, kita kembalikan
+                        let txt = document.createElement("textarea");
+                        txt.innerHTML = exp;
+                        let decodedExp = txt.value;
+
+                        window.katex.render(decodedExp, el, {
+                            throwOnError: false,
+                            displayMode: el.style.display === 'block'
+                        });
+                    } catch (e) {
+                        console.error("Gagal render KaTeX span:", e);
+                    }
                 }
             });
+
+            // 2. RENDER RUMUS DARI TEKS BIASA (COPY-PASTE)
+            // Menggunakan ekstensi Auto-Render
+            if (typeof renderMathInElement !== 'undefined') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: "$$", right: "$$", display: true}, // Mode blok
+                        {left: "\\[", right: "\\]", display: true}, // Mode blok alternatif
+                        {left: "$", right: "$", display: false}, // Mode sebaris (inline)
+                        {left: "\\(", right: "\\)", display: false} // Mode sebaris alternatif
+                    ],
+                    throwOnError: false
+                });
+            }
         },
 
-        // 2. UBAH FETCH QUESTIONS UNTUK MEMANGGIL RENDER MATH
+        // 2. UBAH FUNGSI FETCH UNTUK MEMANGGIL PENYULAP TADI
         fetchQuestions() {
             this.isLoading = true;
             axios.get(`/admin/exams/${examId}/questions`)
@@ -441,8 +463,8 @@
                     this.questions = res.data.questions;
                     Alpine.store('examData').count = this.questions.length;
 
-                    // Tunggu DOM (HTML) selesai di-update oleh Alpine,
-                    // baru jalankan auto-render
+                    // PENTING: Tunggu Alpine selesai mencetak soal ke layar (DOM),
+                    // baru jalankan fungsi penyulap KaTeX
                     this.$nextTick(() => {
                         this.renderMath();
                     });
