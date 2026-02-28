@@ -58,7 +58,7 @@ Route::middleware(['auth', 'role:admin|guru'])
     });
 
 // --- GROUP SISWA ---
-Route::middleware(['auth', 'role:siswa'])->group(function () {
+Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
     Route::get('/siswa', [StudentExamController::class, 'index'])->name('student.dashboard');
     Route::get('/exam/{exam}/run', [StudentExamController::class, 'run'])->name('student.exam.run');
     Route::post('/exam/save-answer', [StudentExamController::class, 'saveAnswer'])->name('student.exam.save');
