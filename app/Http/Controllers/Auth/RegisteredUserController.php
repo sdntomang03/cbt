@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\ExamSession;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -41,6 +42,12 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
         $user->assignRole('siswa');
+        $sessionIds = ExamSession::pluck('id');
+
+        // Jika ada sesi ujian, hubungkan user ini ke tabel pivot (exam_session_user)
+        if ($sessionIds->count() > 0) {
+            $user->examSessions()->attach($sessionIds);
+        }
         event(new Registered($user));
         Auth::login($user);
 

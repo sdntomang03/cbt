@@ -9,6 +9,9 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Models\User;
+use Illuminate\Auth\Events\Verified;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -39,9 +42,36 @@ Route::middleware('auth')->group(function () {
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
 
-    Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
-        ->middleware(['signed', 'throttle:6,1'])
-        ->name('verification.verify');
+    // Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
+    //     ->middleware(['signed', 'throttle:6,1'])
+    //     ->name('verification.verify');
+
+    Route::get('verify-email/{id}/{hash}', function (Request $request, $id, $hash) {
+        // 1. Cari user berdasarkan ID di URL
+        $user = User::findOrFail($id);
+
+        // 2. Pastikan hash-nya benar (pengaman agar URL tidak bisa ditebak)
+        if (! hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
+            abort(403, 'Link verifikasi tidak valid atau sudah kedaluwarsa.');
+        }
+
+        // 3. Jika sudah pernah verifikasi sebelumnya
+        if ($user->hasVerifiedEmail()) {
+            return redirect()->route('login')->with('status', 'Email sudah terverifikasi sebelumnya. Silakan masuk.');
+        }
+
+        // 4. Proses Verifikasi
+        if ($user->markEmailAsVerified()) {
+            event(new Verified($user));
+        }
+
+        // 5. Bebas Pilih: Mau diarahkan ke halaman login, atau langsung di-login-kan otomatis?
+        // Di sini kita login-kan otomatis agar siswa tidak perlu repot mengetik password lagi
+        Auth::login($user);
+
+        return redirect()->route('dashboard');
+
+    })->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
 
     Route::post('email/verification-notification', [EmailVerificationNotificationController::class, 'store'])
         ->middleware('throttle:6,1')

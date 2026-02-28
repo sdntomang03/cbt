@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ExamSessionController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\ImageUploadController;
+use App\Http\Controllers\ProctorController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QuestionAjaxController;
 use App\Http\Controllers\Student\StudentExamController;
@@ -67,11 +68,6 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
     Route::post('/exam/record-violation', [StudentExamController::class, 'recordViolation'])->name('student.exam.violation');
 });
 
-use App\Http\Controllers\ProctorController;
-
-// ... (kode Anda sebelumnya)
-
-// --- GROUP PROKTOR / MONITORING ---
 // Anda bisa menyesuaikan middleware rolenya, misal: 'role:admin|guru|proktor'
 Route::middleware(['auth', 'role:admin|guru'])->prefix('proctor')->name('proctor.')->group(function () {
 
