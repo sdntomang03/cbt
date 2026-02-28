@@ -416,16 +416,39 @@
 
         init() { this.fetchQuestions(); },
 
+        // 1. TAMBAHKAN FUNGSI INI
+        renderMath() {
+            if (typeof window.katex === 'undefined') return;
+
+            // Cari semua elemen span buatan SunEditor yang memiliki rumus
+            document.querySelectorAll('.__se__katex').forEach(el => {
+                const exp = el.getAttribute('data-exp');
+                if (exp) {
+                    // Render rumus tersebut ke dalam span
+                    window.katex.render(exp, el, {
+                        throwOnError: false,
+                        displayMode: el.style.display === 'block'
+                    });
+                }
+            });
+        },
+
+        // 2. UBAH FETCH QUESTIONS UNTUK MEMANGGIL RENDER MATH
         fetchQuestions() {
             this.isLoading = true;
             axios.get(`/admin/exams/${examId}/questions`)
                 .then(res => {
                     this.questions = res.data.questions;
                     Alpine.store('examData').count = this.questions.length;
+
+                    // Tunggu DOM (HTML) selesai di-update oleh Alpine,
+                    // baru jalankan auto-render
+                    this.$nextTick(() => {
+                        this.renderMath();
+                    });
                 })
                 .finally(() => this.isLoading = false);
         },
-
         // --- MODAL CONTROLS ---
         openModal() {
             this.isEditMode = false;
@@ -487,27 +510,64 @@
         },
 
         // --- CRUD OPERATIONS ---
+        // --- CRUD OPERATIONS ---
         saveQuestion() {
-            // Validasi Sederhana
-            // Karena pakai x-model, this.form.content otomatis terisi dari component editor
+            // 1. Validasi Sederhana
             if (!this.form.content || this.form.content === '<p><br></p>') {
                 return Swal.fire({ icon: 'warning', title: 'Oops!', text: 'Isi pertanyaan dulu!' });
             }
 
-            // Validasi Matching: Pastikan tidak kosong
             if (this.form.type === 'matching') {
                 let valid = this.form.options.some(o => o.premise_text && o.target_text);
                 if(!valid) return Swal.fire({ icon: 'warning', title: 'Oops!', text: 'Isi minimal satu pasang soal menjodohkan!' });
             }
 
             this.isSaving = true;
+
+            // 2. Fungsi Pembersih KaTeX
+            // Membersihkan tag <math> di dalam span KaTeX agar payload aman dikirim
+            const cleanKatexHtml = (htmlString) => {
+                if (!htmlString || typeof htmlString !== 'string') return htmlString;
+
+                let tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlString;
+
+                tempDiv.querySelectorAll('.__se__katex').forEach(span => {
+                    span.innerHTML = ''; // Kosongkan isinya, pertahankan atributnya
+                });
+
+                return tempDiv.innerHTML;
+            };
+
+            // 3. Gandakan data form (payload) dan bersihkan sebelum dikirim
+            let payload = {
+                type: this.form.type,
+                subject_id: this.form.subject_id,
+                level_id: this.form.level_id,
+                content: cleanKatexHtml(this.form.content),
+                options: []
+            };
+
+            // Bersihkan teks pada opsi jawaban (untuk pilihan ganda, mencocokkan, dll)
+            if (this.form.options && this.form.options.length > 0) {
+                payload.options = this.form.options.map(opt => {
+                    let cleanOpt = { ...opt };
+                    if (cleanOpt.option_text) cleanOpt.option_text = cleanKatexHtml(cleanOpt.option_text);
+                    if (cleanOpt.premise_text) cleanOpt.premise_text = cleanKatexHtml(cleanOpt.premise_text);
+                    if (cleanOpt.target_text) cleanOpt.target_text = cleanKatexHtml(cleanOpt.target_text);
+                    return cleanOpt;
+                });
+            }
+
+            // 4. Proses Pengiriman via Axios
             const url = this.isEditMode
                 ? `/admin/questions/${this.currentId}`
                 : `/admin/exams/${examId}/questions`;
 
             const method = this.isEditMode ? 'put' : 'post';
 
-            axios[method](url, this.form)
+            // Kirim 'payload' yang sudah bersih, BUKAN 'this.form'
+            axios[method](url, payload)
                 .then(() => {
                     this.closeModal();
                     this.fetchQuestions();
