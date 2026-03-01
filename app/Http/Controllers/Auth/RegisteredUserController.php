@@ -45,7 +45,13 @@ class RegisteredUserController extends Controller
         ]);
         $user->assignRole('siswa');
         $firstSessionId = ExamSession::value('id');
+        // Asumsi Anda mengambil school_id dari user yang sedang login atau dari form
+        $schoolId = auth()->user()->school_id; // Atau sesuaikan dengan sumber data Anda
 
+        // Menyisipkan data ke tabel pivot exam_session_user
+        $user->examSessions()->attach($request->exam_session_id, [
+            'school_id' => $schoolId,
+        ]);
         // Jika ada minimal 1 sesi ujian di database, hubungkan user
         if ($firstSessionId) {
             $user->examSessions()->attach($firstSessionId);
