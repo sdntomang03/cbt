@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\ExamSession;
+use App\Models\School;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -28,7 +29,7 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request): RedirectResponse
+   public function store(Request $request): RedirectResponse
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -37,23 +38,33 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        // Ambil ID sekolah pertama dari database. Jika kosong, gunakan angka 1.
+        $schoolId = School::value('id') ?? 1;
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'username' => $request->username, // Gunakan username dari request
+            'username' => $request->username,
             'password' => Hash::make($request->password),
-            'school_id' => 1, // Atur school_id ke null saat pendaftaran
+            'school_id' => $schoolId, // Gunakan variabel $schoolId
         ]);
+
         $user->assignRole('siswa');
+
         $firstSessionId = ExamSession::value('id');
 
-        // Jika ada minimal 1 sesi ujian di database, hubungkan user
+        // Hubungkan user dengan sesi ujian dan sertakan school_id untuk tabel pivot
         if ($firstSessionId) {
-            $user->examSessions()->attach($firstSessionId);
+            $user->examSessions()->attach($firstSessionId, [
+                'school_id' => $schoolId
+            ]);
         }
+
         event(new Registered($user));
+
         Auth::login($user);
 
         return redirect(route('dashboard', absolute: false));
     }
+}
 }
