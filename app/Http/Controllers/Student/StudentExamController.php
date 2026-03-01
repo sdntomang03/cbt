@@ -56,12 +56,26 @@ class StudentExamController extends Controller
         $examUser = \App\Models\ExamSessionUser::where('exam_session_id', $session->id)
             ->where('user_id', $user->id)
             ->firstOrFail();
+        if (request()->ajax()) {
+            return response()->json([
+                'status' => $pivot->status,
+                'is_locked' => (bool) $examUser->is_locked,
+            ]);
+        }
+        // ----------------------------------------------------
+
+        // BLOKIR 1: Jika terkunci
         if ($examUser->is_locked) {
+            session()->forget('verified_exam_'.$exam_id);
+
             return redirect()->route('student.dashboard')->with('error', 'AKSES DITOLAK: Ujian Anda telah dikunci karena pelanggaran.');
         }
-        // 1. Cek jika sudah benar-benar selesai
+
+        // BLOKIR 2: KUNCI UTAMA JIKA SUDAH SELESAI
         if ($pivot->status === 'completed' || $pivot->finished_at !== null) {
-            return redirect()->route('student.dashboard')->with('info', 'Anda sudah menyelesaikan ujian ini.');
+            session()->forget('verified_exam_'.$exam_id);
+
+            return redirect()->route('student.dashboard')->with('info', 'Ujian ini telah ditutup atau sudah Anda selesaikan.');
         }
 
         // 2. LOGIKA WAKTU MULAI (DIPERBAIKI)
