@@ -60,6 +60,8 @@ Route::middleware(['auth', 'role:admin|guru'])
         Route::post('exam-sessions/{exam_session}/students', [ExamSessionController::class, 'studentStore'])->name('exam-sessions.students.store');
         Route::delete('exam-sessions/{examSession}/students/mass-destroy', [ExamSessionController::class, 'destroyMass'])
             ->name('exam-sessions.students.destroyMass');
+        Route::get('/exams/{exam}/export', [ExamController::class, 'exportGrades'])->name('exams.export');
+
     });
 
 // --- GROUP SISWA ---
@@ -70,6 +72,16 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
     // routes/web.php
     Route::post('/exam/{exam}/finish', [StudentExamController::class, 'finish'])->name('student.exam.finish');
     Route::post('/exam/record-violation', [StudentExamController::class, 'recordViolation'])->name('student.exam.violation');
+    // Pastikan berada di dalam middleware yang melindungi route untuk siswa
+    Route::middleware(['auth'])->group(function () {
+        // 1. Route untuk MENAMPILKAN halaman verifikasi token
+        Route::get('/exam/{exam}/verify', [StudentExamController::class, 'showVerifyPage'])
+            ->name('student.exam.verify.show');
+
+        // 2. Route untuk MEMPROSES token (saat form disubmit)
+        Route::post('/exam/{exam}/verify', [StudentExamController::class, 'processToken'])
+            ->name('student.exam.verify.process');
+    });
 });
 
 // Anda bisa menyesuaikan middleware rolenya, misal: 'role:admin|guru|proktor'
@@ -91,7 +103,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
 
     // Route khusus Import Excel (Harus diletakkan DI ATAS route resource)
     Route::post('/users/import', [UserController::class, 'importExcel'])->name('users.import');
-
+    Route::get('/users/download-template', [UserController::class, 'downloadTemplate'])->name('users.download-template');
     // Route CRUD otomatis (index, create, store, edit, update, destroy)
     Route::resource('users', UserController::class);
 

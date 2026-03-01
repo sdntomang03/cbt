@@ -15,7 +15,7 @@
 
                     @hasanyrole('admin|guru')
                     <x-nav-link :href="route('admin.exams.index')" :active="request()->routeIs('admin.exams.*')">
-                        {{ __('Bank Soal') }}
+                        {{ __('Ujian') }}
                     </x-nav-link>
                     <x-nav-link :href="route('admin.exam-sessions.index')"
                         :active="request()->routeIs('admin.exam-sessions.*')">

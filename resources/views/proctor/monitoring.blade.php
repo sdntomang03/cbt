@@ -16,6 +16,20 @@
         .transition-all {
             transition: all 0.3s ease;
         }
+
+        /* Custom Scrollbar untuk Dropdown Multi-Select */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
     </style>
 
     <div class="min-h-screen py-10" x-data="proctorMonitor()">
@@ -47,24 +61,51 @@
                 <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
 
                     @if(auth()->user()->hasRole('admin'))
-                    <select x-model="selectedSchool"
-                        class="w-full sm:w-auto bg-slate-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 py-3 pl-4 pr-10 text-slate-600 cursor-pointer">
-                        <option value="">Semua Sekolah</option>
-                        @foreach($schools as $school)
-                        <option value="{{ $school->id }}">{{ $school->name }}</option>
-                        @endforeach
-                    </select>
+                    <div class="relative w-full sm:w-auto" x-data="{ openSchool: false }">
+                        <button @click="openSchool = !openSchool"
+                            class="w-full sm:w-48 bg-slate-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 py-3 px-4 text-slate-600 flex justify-between items-center shadow-sm">
+                            <span class="truncate pr-2"
+                                x-text="selectedSchools.length > 0 ? selectedSchools.length + ' Sekolah Dipilih' : 'Semua Sekolah'"></span>
+                            <i class="fas fa-chevron-down text-slate-400 text-xs transition-transform"
+                                :class="openSchool ? 'rotate-180' : ''"></i>
+                        </button>
+
+                        <div x-show="openSchool" @click.outside="openSchool = false" x-transition x-cloak
+                            class="absolute z-50 mt-2 w-64 bg-white border border-slate-200 rounded-xl shadow-xl max-h-64 overflow-y-auto custom-scrollbar right-0 sm:left-0 sm:right-auto origin-top">
+                            <div class="p-2 space-y-1">
+                                <label
+                                    class="flex items-center gap-3 p-2.5 hover:bg-slate-50 rounded-lg cursor-pointer transition">
+                                    <input type="checkbox" :checked="selectedSchools.length === 0"
+                                        @change="selectedSchools = []"
+                                        class="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer">
+                                    <span class="text-sm font-bold text-slate-700">Semua Sekolah</span>
+                                </label>
+
+                                <div class="border-t border-slate-100 my-1"></div>
+
+                                @foreach($schools as $school)
+                                <label
+                                    class="flex items-center gap-3 p-2.5 hover:bg-slate-50 rounded-lg cursor-pointer transition group">
+                                    <input type="checkbox" value="{{ $school->id }}" x-model="selectedSchools"
+                                        class="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer">
+                                    <span class="text-sm font-bold text-slate-600 group-hover:text-indigo-600">{{
+                                        $school->name }}</span>
+                                </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
                     @endif
 
                     <div class="relative w-full sm:w-56">
                         <i class="fas fa-search absolute left-4 top-3.5 text-slate-400"></i>
                         <input type="text" x-model="search" placeholder="Cari nama siswa..."
-                            class="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 text-slate-700">
+                            class="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 text-slate-700 shadow-sm">
                     </div>
 
                     <button @click="toggleAutoUpdate"
                         :class="isAutoUpdate ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-slate-200 text-slate-600 shadow-slate-200'"
-                        class="px-5 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2 whitespace-nowrap active:scale-95">
+                        class="px-5 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 w-full sm:w-auto">
                         <i class="fas" :class="isAutoUpdate ? 'fa-sync fa-spin' : 'fa-play'"></i>
                         <span x-text="isAutoUpdate ? 'Auto On' : 'Auto Off'"></span>
                     </button>
@@ -78,7 +119,7 @@
                             <tr
                                 class="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                                 <th class="p-4 pl-6 w-16 text-center">No</th>
-                                <th class="p-4">Nama Peserta</th>
+                                <th class="p-4">Nama Peserta & Sekolah</th>
                                 <th class="p-4">Status</th>
                                 <th class="p-4 text-center">Pelanggaran</th>
                                 <th class="p-4 text-center">Skor Akhir</th>
@@ -180,7 +221,7 @@
         function proctorMonitor() {
             return {
                 search: '',
-                selectedSchool: '', // State baru untuk filter dropdown sekolah
+                selectedSchools: [], // Mengubah string menjadi Array untuk Multi-Select
                 students: @json($students),
                 isAutoUpdate: true,
                 interval: null,
@@ -189,13 +230,15 @@
                     this.startInterval();
                 },
 
-                // Filter Ganda (Nama & Sekolah) di sisi Klien (Alpine)
+                // Filter Ganda (Nama & Multiple Sekolah)
                 get filteredStudents() {
                     return this.students.filter(s => {
                         const matchName = s.name.toLowerCase().includes(this.search.toLowerCase());
 
-                        // Periksa apakah siswa punya relasi school_id yang sesuai
-                        const matchSchool = this.selectedSchool === '' || (s.school && String(s.school.id) === String(this.selectedSchool));
+                        // Jika array kosong (Semua Sekolah), tampilkan semua.
+                        // Jika ada isinya, cek apakah ID sekolah siswa termasuk di dalam array tersebut
+                        const matchSchool = this.selectedSchools.length === 0 ||
+                            (s.school && this.selectedSchools.includes(String(s.school.id)));
 
                         return matchName && matchSchool;
                     });
@@ -220,8 +263,12 @@
                 },
 
                 handleAction(action, studentId) {
-                    // Penyesuaian endpoint API
-                    let url = `/admin/exam-sessions/{{ $examSession->id }}/${action}/${studentId}`;
+                    // 1. Sesuaikan penamaan aksi dengan route web.php Anda (forceFinish -> force-finish)
+                    let routeAction = action === 'forceFinish' ? 'force-finish' : action;
+
+                    // 2. Sesuaikan Prefix URL menjadi /proctor/sessions/...
+                    let url = `/proctor/sessions/{{ $examSession->id }}/${routeAction}/${studentId}`;
+
                     let title = action === 'reset' ? 'Reset Ujian?' : (action === 'unlock' ? 'Buka Kunci?' : 'Selesaikan Paksa?');
 
                     Swal.fire({
@@ -233,10 +280,14 @@
                         confirmButtonColor: action === 'reset' ? '#ef4444' : '#6366f1'
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            axios.post(url).then(() => {
+                            // 3. Tambahkan CSRF Token untuk keamanan ekstra agar tidak ditolak (Error 419)
+                            axios.post(url, {}, {
+                                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+                            }).then(() => {
                                 Swal.fire({icon: 'success', title: 'Berhasil!', timer: 1500, showConfirmButton: false});
                                 this.fetchData();
                             }).catch(err => {
+                                console.error(err);
                                 Swal.fire('Gagal', 'Terjadi kesalahan sistem.', 'error');
                             });
                         }

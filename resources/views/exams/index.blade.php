@@ -9,12 +9,26 @@
             </div>
 
             <div class="flex items-center gap-3">
+                @role('admin')
+                <div x-data="{ schoolId: '' }" class="flex items-center gap-2">
+                    <select x-model="schoolId" @change="window.location.search = 'school_id=' + schoolId"
+                        class="hidden lg:block w-48 py-2 pl-3 pr-10 bg-white border border-gray-200 rounded-xl text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm">
+                        <option value="">Semua Sekolah</option>
+                        @foreach($schools as $school)
+                        <option value="{{ $school->id }}" {{ request('school_id')==$school->id ? 'selected' : '' }}>
+                            {{ $school->name }}
+                        </option>
+                        @endforeach
+                    </select>
+                </div>
+                @endrole
+
                 <div class="relative hidden md:block">
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3">
                         <i class="fas fa-search text-gray-400"></i>
                     </span>
                     <input type="text"
-                        class="w-64 py-2 pl-10 pr-4 bg-white border border-gray-200 rounded-xl text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm"
+                        class="w-48 lg:w-64 py-2 pl-10 pr-4 bg-white border border-gray-200 rounded-xl text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm"
                         placeholder="Cari ujian...">
                 </div>
 
@@ -29,7 +43,7 @@
 
     <div class="py-8 bg-gray-50 min-h-screen">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-
+            {{-- Alert Success --}}
             @if(session('success'))
             <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)"
                 class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl mb-6 flex items-center justify-between shadow-sm">
@@ -37,13 +51,13 @@
                     <i class="fas fa-check-circle"></i>
                     <span>{{ session('success') }}</span>
                 </div>
-                <button @click="show = false" class="text-emerald-400 hover:text-emerald-600"><i
-                        class="fas fa-times"></i></button>
+                <button @click="show = false" class="text-emerald-400 hover:text-emerald-600">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
             @endif
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-[1.5rem] border border-gray-100">
-
                 @if($exams->count() > 0)
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
@@ -54,7 +68,7 @@
                                 <th class="px-6 py-4">Durasi</th>
                                 <th class="px-6 py-4">Status</th>
                                 <th class="px-6 py-4 text-center">Aksi Utama</th>
-                                <th class="px-6 py-4 text-right">Opsi</th>
+                                <th class="px-6 py-4 text-right">Opsi & Laporan</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-50">
@@ -71,7 +85,8 @@
                                             </div>
                                             <div
                                                 class="text-xs text-gray-400 font-mono bg-gray-100 inline-block px-1.5 py-0.5 rounded">
-                                                {{ $exam->slug }}</div>
+                                                {{ $exam->slug }}
+                                            </div>
                                             <div class="mt-2 text-xs text-gray-500 flex items-center gap-1">
                                                 <i class="fas fa-layer-group text-indigo-400"></i>
                                                 {{ $exam->questions()->count() }} Soal
@@ -114,8 +129,14 @@
                                     </a>
                                 </td>
                                 <td class="px-6 py-4 align-middle text-right">
-                                    <div
-                                        class="flex items-center justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                                    <div class="flex items-center justify-end gap-2">
+                                        {{-- Tombol Export Nilai (BARU) --}}
+                                        <a href="{{ route('admin.exams.export', ['exam' => $exam->id, 'school_id' => request('school_id')]) }}"
+                                            class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors"
+                                            title="Export Nilai ke Excel">
+                                            <i class="fas fa-file-excel"></i>
+                                        </a>
+
                                         <a href="{{ route('admin.exams.edit', $exam) }}"
                                             class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
                                             title="Edit Properti Ujian">
@@ -139,7 +160,7 @@
                         </tbody>
                     </table>
                 </div>
-
+                {{-- Pagination --}}
                 @if($exams->hasPages())
                 <div class="bg-gray-50 px-6 py-4 border-t border-gray-100">
                     {{ $exams->links() }}
@@ -147,6 +168,7 @@
                 @endif
 
                 @else
+                {{-- Empty State --}}
                 <div class="text-center py-16">
                     <div class="bg-gray-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
                         <i class="fas fa-clipboard-list text-4xl text-gray-300"></i>
@@ -159,7 +181,6 @@
                     </a>
                 </div>
                 @endif
-
             </div>
         </div>
     </div>

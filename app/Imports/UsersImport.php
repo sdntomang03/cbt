@@ -2,33 +2,48 @@
 
 namespace App\Imports;
 
-use App\Models\User;
+use App\Models\School;
+use App\Models\User; // Jangan lupa import model School
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
-use Maatwebsite\Excel\Concerns\ToModel;
+use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
-class UsersImport implements ToModel, WithHeadingRow
+class UsersImport implements ToCollection, WithHeadingRow
 {
-    public function model(array $row)
+    /**
+     * Menggunakan ToCollection agar kita bisa melakukan proses lanjutan
+     * (seperti assignRole) setelah User berhasil di-create.
+     */
+    public function collection(Collection $rows)
     {
-        // Opsional: Abaikan jika nama kosong
-        if (! isset($row['nama']) || ! isset($row['username'])) {
-            return null;
-        }
+        // Ambil school_id default untuk multi-tenancy
+        $schoolId = School::value('id') ?? 1;
 
-        // Cek apakah user sudah ada (berdasarkan username atau email)
-        $existingUser = User::where('username', $row['username'])->first();
-        if ($existingUser) {
-            return null; // Lewati jika sudah ada agar tidak error duplicate
-        }
+        foreach ($rows as $row) {
+            // Abaikan jika kolom nama atau username kosong
+            if (empty($row['nama']) || empty($row['username'])) {
+                continue;
+            }
 
-        return new User([
-            'name' => $row['nama'],
-            'username' => $row['username'], // Misal NISN untuk siswa
-            'email' => $row['email'] ?? null,
-            // Jika kolom password di excel kosong, set default ke '12345678'
-            'password' => Hash::make($row['password'] ?? '12345678'),
-            'role' => $row['role'] ?? 'siswa', // Default sebagai siswa
-        ]);
+            // Cek apakah user sudah ada (berdasarkan username)
+            $existingUser = User::where('username', $row['username'])->first();
+            if ($existingUser) {
+                continue; // Lewati baris ini jika user sudah ada
+            }
+
+            // 1. Simpan User ke database beserta school_id-nya
+            $user = User::create([
+                'name' => $row['nama'],
+                'username' => $row['username'], // Misal NISN untuk siswa
+                'email' => $row['email'] ?? null,
+                'password' => Hash::make($row['password'] ?? '12345678'),
+                'school_id' => $row['school_id'] ?? auth()->user()->school_id, // Wajib diisi agar tidak error 1364
+            ]);
+
+            // 2. Berikan Role menggunakan Spatie Permission
+            $roleName = ! empty($row['role']) ? strtolower($row['role']) : 'siswa';
+            $user->assignRole($roleName);
+        }
     }
 }

@@ -141,7 +141,6 @@
                         </div>
 
                         <div class="mb-8">
-
                             <h3
                                 class="text-xl font-black text-slate-800 leading-snug mb-3 group-hover:text-indigo-600 transition-colors line-clamp-2">
                                 {{ $session->exam->title }}
@@ -204,7 +203,8 @@
                                 <span class="text-2xl">{{ $session->user_score }}</span>
                             </div>
                             @elseif($session->is_open)
-                            <a href="{{ route('student.exam.run', $session->exam_id) }}"
+                            {{-- TAUTAN INI YANG DIUBAH: Mengarah langsung ke halaman verify token --}}
+                            <a href="{{ route('student.exam.verify.show', $session->exam_id) }}"
                                 class="group/btn relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-black rounded-2xl text-white bg-slate-900 hover:bg-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-200 shadow-xl shadow-slate-200 hover:shadow-indigo-200 transition-all active:scale-95">
                                 <span class="flex items-center gap-2">
                                     Mulai Mengerjakan <i

@@ -12,15 +12,25 @@
                 </div>
             </div>
 
-            <div class="flex gap-3" x-data>
+            <div class="flex flex-wrap items-center gap-3" x-data>
                 <button @click="$dispatch('open-import-modal')"
-                    class="bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 px-5 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shadow-sm">
-                    <i class="fas fa-file-excel text-emerald-500"></i> Import Excel
+                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 active:scale-95 shadow-sm">
+                    <i class="fas fa-file-excel text-emerald-500"></i>
+                    <span>Import Excel</span>
                 </button>
 
+                <a href="{{ route('admin.users.download-template') }}"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 text-slate-500 hover:text-emerald-600 rounded-xl font-medium text-sm transition-colors duration-200">
+                    <i class="fas fa-download"></i>
+                    <span>Download Format</span>
+                </a>
+
+                <div class="hidden md:block h-6 w-px bg-slate-200 mx-1"></div>
+
                 <a href="{{ route('admin.users.create') }}"
-                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-lg shadow-indigo-200 flex items-center gap-2">
-                    <i class="fas fa-plus"></i> Tambah User
+                    class="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm transition-all duration-200 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200 active:transform active:scale-95 shadow-md">
+                    <i class="fas fa-plus"></i>
+                    <span>Tambah User</span>
                 </a>
             </div>
         </div>

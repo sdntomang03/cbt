@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\UsersTemplateExport;
 use App\Http\Controllers\Controller;
 use App\Imports\UsersImport;
 use App\Models\School;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -156,5 +158,19 @@ class UserController extends Controller
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal import: '.$e->getMessage());
         }
+    }
+
+    public function downloadTemplate()
+    {
+        // Ambil school_id dari user yang sedang login (aktif)
+        $schoolId = Auth::user()->school_id;
+
+        // Pastikan user memiliki school_id (mencegah error jika Super Admin yang login tapi tidak punya sekolah)
+        if (! $schoolId) {
+            return back()->with('error', 'Anda tidak terikat dengan sekolah manapun.');
+        }
+
+        // Download file Excel
+        return Excel::download(new UsersTemplateExport($schoolId), 'format_import_user.xlsx');
     }
 }

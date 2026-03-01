@@ -39,6 +39,10 @@ class StudentExamController extends Controller
 
     public function run($exam_id)
     {
+        if (! session()->has('verified_exam_'.$exam_id)) {
+            return redirect()->route('student.exam.verify.show', $exam_id)
+                ->with('error', 'Akses Ditolak! Silakan masukkan Token Ujian terlebih dahulu.');
+        }
         $user = Auth::user();
         // Paksa timezone ke Jakarta agar sinkron dengan jadwal di database
         $now = \Carbon\Carbon::now('Asia/Jakarta');
@@ -305,6 +309,7 @@ class StudentExamController extends Controller
                 'score' => $finalScore,
             ]);
         }
+        session()->forget('verified_exam_'.$session->exam_id);
 
         return redirect()->route('student.dashboard')->with('success', 'Ujian berhasil dikumpulkan! Nilai Anda: '.$finalScore);
     }
@@ -343,5 +348,66 @@ class StudentExamController extends Controller
             'violation_count' => $newCount,
             'is_locked' => (bool) $isLocked,
         ]);
+    }
+
+    public function showVerifyPage($exam_id)
+    {
+        $user = Auth::user();
+
+        $session = ExamSession::where('exam_id', $exam_id)
+            ->whereHas('students', fn ($q) => $q->where('users.id', $user->id))
+            ->with('exam')
+            ->firstOrFail();
+
+        $pivot = $session->students()->where('users.id', $user->id)->first()->pivot;
+
+        // Cek jika akun terkunci
+        if ($pivot->is_locked) {
+            return redirect()->route('student.dashboard')->with('error', 'AKSES DITOLAK: Ujian Anda telah dikunci karena pelanggaran.');
+        }
+
+        // Cek jika ujian sudah selesai
+        if ($pivot->status === 'completed' || $pivot->finished_at !== null) {
+            return redirect()->route('student.dashboard')->with('info', 'Anda sudah menyelesaikan ujian ini.');
+        }
+
+        // Cek apakah jadwalnya sudah dibuka
+        $now = now();
+        if (! $now->between($session->start_time, $session->end_time)) {
+            return redirect()->route('student.dashboard')->with('error', 'Sesi ujian belum dibuka atau sudah ditutup.');
+        }
+
+        // Jika sudah pernah diverifikasi sebelumnya dan ujian masih 'ongoing', langsung lompat (opsional)
+        if (session()->has('verified_exam_'.$exam_id) && $pivot->status === 'ongoing') {
+            return redirect()->route('student.exam.run', $exam_id);
+        }
+
+        return view('student.exams.verify', compact('session'));
+    }
+
+    // =========================================================================
+    // FITUR BARU: Memproses Token
+    // =========================================================================
+    public function processToken(Request $request, $exam_id)
+    {
+        $request->validate([
+            'token' => 'required|string',
+        ]);
+
+        $user = Auth::user();
+
+        $session = ExamSession::where('exam_id', $exam_id)
+            ->whereHas('students', fn ($q) => $q->where('users.id', $user->id))
+            ->firstOrFail();
+
+        // Pengecekan Token (Case Insensitive / Mengabaikan huruf besar-kecil)
+        if (strtoupper(trim($request->token)) !== strtoupper(trim($session->token))) {
+            return back()->with('error', 'Token ujian tidak valid atau salah!');
+        }
+
+        // Simpan tanda (flag) di session browser agar bisa masuk ke method run()
+        session()->put('verified_exam_'.$exam_id, true);
+
+        return redirect()->route('student.exam.run', $exam_id);
     }
 }

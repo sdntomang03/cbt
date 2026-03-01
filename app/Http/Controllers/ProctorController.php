@@ -75,10 +75,12 @@ class ProctorController extends Controller
      */
     public function forceFinish(Request $request, ExamSession $examSession, User $student)
     {
+        // Cari data ujian siswa di sesi ini
         $examUser = ExamSessionUser::where('exam_session_id', $examSession->id)
             ->where('user_id', $student->id)
             ->firstOrFail();
 
+        // Jika status belum completed, ubah menjadi completed
         if ($examUser->status !== 'completed') {
             $examUser->update([
                 'status' => 'completed',
@@ -90,7 +92,12 @@ class ProctorController extends Controller
             // atau membiarkan Cron Job/Admin merekap nilainya nanti.
         }
 
-        return back()->with('success', "Ujian siswa {$student->name} berhasil diselesaikan paksa.");
+        // KUNCI PERBAIKANNYA DI SINI:
+        // Kembalikan respons dalam bentuk JSON agar dikenali oleh Axios / Alpine.js
+        return response()->json([
+            'success' => true,
+            'message' => "Ujian siswa {$student->name} berhasil diselesaikan paksa.",
+        ]);
     }
 
     /**
