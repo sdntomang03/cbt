@@ -116,11 +116,11 @@
     </style>
 
     {{-- ======================================================================= --}}
-    {{-- LOGIKA SERVER SIDE: BLOKIR JIKA DIKUNCI / SELESAI --}}
+    {{-- LOGIKA SERVER SIDE: JIKA DIKUNCI, JANGAN RENDER SOAL SAMA SEKALI --}}
     {{-- ======================================================================= --}}
 
     @if($pivot->is_locked)
-    {{-- TAMPILAN TERKUNCI PERMANEN --}}
+    {{-- TAMPILAN TERKUNCI PERMANEN (HANYA INI YANG DIRENDER) --}}
     <div
         class="fixed inset-0 bg-slate-900 z-[10000] p-10 text-white flex flex-col items-center justify-center text-center">
         <div class="bg-rose-600 w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-2xl">
@@ -146,36 +146,16 @@
         </div>
     </div>
 
-    @elseif($pivot->status === 'completed')
-    {{-- TAMPILAN JIKA DIPAKSA SELESAI OLEH PENGAWAS / WAKTU HABIS --}}
-    <div id="status-completed-marker"
-        class="fixed inset-0 bg-slate-900 z-[10000] p-10 text-white flex flex-col items-center justify-center text-center">
-        <div class="bg-indigo-600 w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-2xl">
-            <i class="fas fa-check-double text-4xl"></i>
-        </div>
-        <h1 class="text-4xl font-black mb-4 uppercase tracking-wider">UJIAN TELAH BERAKHIR</h1>
-        <p class="text-slate-300 max-w-xl text-lg mb-10 leading-relaxed">
-            Sesi ujian ini telah diselesaikan (waktu habis atau dihentikan Pengawas). Anda tidak dapat lagi mengubah
-            jawaban.
-        </p>
-        <div class="flex gap-4">
-            <a href="{{ route('student.dashboard') }}"
-                class="px-8 py-3.5 rounded-xl font-bold bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg transition hover:scale-105">
-                <i class="fas fa-home mr-2"></i> Kembali ke Dashboard
-            </a>
-        </div>
-    </div>
-
     @else
     {{-- =================================================================== --}}
-    {{-- TAMPILAN NORMAL (HANYA DIRENDER JIKA TIDAK DIKUNCI / BELUM SELESAI) --}}
+    {{-- TAMPILAN NORMAL (HANYA DIRENDER JIKA TIDAK DIKUNCI) --}}
     {{-- =================================================================== --}}
 
     <script>
         window.initialExamState = {
-            count: {{ (int) $pivot->violation_count }},
-            isLocked: false
-        };
+                count: {{ (int) $pivot->violation_count }},
+                isLocked: false // Karena masuk blok else, pasti false
+            };
     </script>
 
     <div x-data x-show="$store.examState.showWarning" x-cloak x-transition.opacity class="overlay-base bg-black/90">
@@ -205,8 +185,10 @@
             <i class="fas fa-lock text-4xl"></i>
         </div>
         <h1 class="text-4xl font-black mb-4 uppercase tracking-wider">UJIAN TERKUNCI</h1>
-        <p class="text-slate-300 max-w-xl text-lg mb-10 leading-relaxed">Anda baru saja melanggar aturan keamanan ke-3
-            kalinya. <br> Akses telah ditutup.</p>
+        <p class="text-slate-300 max-w-xl text-lg mb-10 leading-relaxed">
+            Anda baru saja melanggar aturan keamanan ke-3 kalinya. <br>
+            Akses telah ditutup.
+        </p>
         <button onclick="location.reload()"
             class="px-8 py-3.5 rounded-xl font-bold bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg transition hover:scale-105">
             <i class="fas fa-sync-alt mr-2"></i> Refresh Halaman
@@ -299,8 +281,8 @@
                                         <div class="match-column"><template x-for="m in q.matches" :key="'p-'+m.id">
                                                 <div class="match-item premise" :id="'premise-' + m.id"
                                                     @click="clickMatch(q.id, m.id, 'premise')"
-                                                    :class="matchState.activePremise === m.id ? 'selected' : ''">
-                                                    <span x-html="m.premise_text"></span>
+                                                    :class="matchState.activePremise === m.id ? 'selected' : ''"><span
+                                                        x-html="m.premise_text"></span>
                                                     <div class="match-dot dot-right"></div>
                                                 </div>
                                             </template></div>
@@ -344,27 +326,29 @@
         <div
             class="h-24 bg-white border-t border-slate-200 flex items-center justify-between px-8 sm:px-12 z-[100] shadow-[0_-5px_30px_rgba(0,0,0,0.03)]">
             <button @click="prevQuestion()" :disabled="currentIndex === 0"
-                class="px-8 py-3.5 rounded-2xl font-black bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200 transition-all flex items-center gap-3">
-                <i class="fas fa-arrow-left"></i> SEBELUMNYA
-            </button>
+                class="px-8 py-3.5 rounded-2xl font-black bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200 transition-all flex items-center gap-3"><i
+                    class="fas fa-arrow-left"></i> SEBELUMNYA</button>
             <button @click="nextQuestion()"
                 class="px-10 py-3.5 rounded-2xl font-black text-white shadow-xl transition-all flex items-center gap-3 hover:-translate-y-1"
-                :class="currentIndex === questions.length - 1 ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-indigo-600 hover:bg-indigo-700'">
-                <span x-text="currentIndex === questions.length - 1 ? 'SELESAI & KUMPULKAN' : 'SELANJUTNYA'"></span><i
+                :class="currentIndex === questions.length - 1 ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-indigo-600 hover:bg-indigo-700'"><span
+                    x-text="currentIndex === questions.length - 1 ? 'SELESAI & KUMPULKAN' : 'SELANJUTNYA'"></span><i
                     class="fas"
-                    :class="currentIndex === questions.length - 1 ? 'fa-check-double' : 'fa-arrow-right'"></i>
-            </button>
+                    :class="currentIndex === questions.length - 1 ? 'fa-check-double' : 'fa-arrow-right'"></i></button>
         </div>
         <form id="finish-form" action="{{ route('student.exam.finish', $exam->id) }}" method="POST"
             style="display: none;">@csrf</form>
     </div>
 
+    {{-- SCRIPT HANYA DIJALANKAN JIKA TIDAK TERKUNCI --}}
+    {{-- SCRIPT HANYA DIJALANKAN JIKA TIDAK TERKUNCI --}}
     <script>
+        // Variabel global pengaman antar-komponen
         window.isExitingExam = false;
-        window.isSystemPopup = false;
+        window.isSystemPopup = false; // Flag khusus saat pop-up kita sendiri sedang terbuka
 
         document.addEventListener('alpine:init', () => {
 
+                // 1. Store Pengaman
                 Alpine.store('examState', {
                     started: false,
                     showWarning: false,
@@ -391,18 +375,27 @@
                                 alert("Mohon izinkan akses Fullscreen untuk memulai ujian.");
                             });
                         } else {
+                            // Fallback jika browser tidak dukung fullscreen API
                             this.started = true;
                             this.monitorFocus();
                         }
                     },
 
                     monitorFocus() {
+                        // Event saat keluar fullscreen
                         document.addEventListener('fullscreenchange', () => {
-                            if (!document.fullscreenElement && this.started && !this.isLocked) this.evaluateViolation();
+                            if (!document.fullscreenElement && this.started && !this.isLocked) {
+                                this.evaluateViolation();
+                            }
                         });
+
+                        // Event saat pindah tab/aplikasi
                         window.addEventListener('blur', () => {
-                            if (this.started && !this.isLocked) this.evaluateViolation();
+                            if (this.started && !this.isLocked) {
+                                this.evaluateViolation();
+                            }
                         });
+
                         document.addEventListener('contextmenu', e => e.preventDefault());
                         document.addEventListener('keydown', e => {
                             if((e.ctrlKey||e.metaKey) && ['c','v','u','i'].includes(e.key)) e.preventDefault();
@@ -410,7 +403,10 @@
                     },
 
                     evaluateViolation() {
+                        // JIKA user sedang proses exit (submit) ATAU pop-up SweetAlert sistem sedang terbuka, abaikan!
                         if (window.isExitingExam || window.isSystemPopup) return;
+
+                        // Jeda sedikit untuk memastikan ini bukan blur palsu karena render browser
                         setTimeout(() => {
                             if (window.isExitingExam || window.isSystemPopup) return;
                             this.triggerViolation();
@@ -419,8 +415,9 @@
 
                     triggerViolation() {
                         if (this.showWarning || this.isLocked || this.isRequesting) return;
+
                         this.isRequesting = true;
-                        this.violationCount++;
+                        this.violationCount++; // Optimistic UI
 
                         if (this.violationCount >= this.maxViolations) {
                             this.isLocked = true;
@@ -430,7 +427,9 @@
                             this.showWarning = true;
                         }
 
-                        axios.post('{{ route("student.exam.violation") }}', { exam_id: '{{ $exam->id }}' })
+                        axios.post('{{ route("student.exam.violation") }}', {
+                            exam_id: '{{ $exam->id }}'
+                        })
                         .then(res => {
                             this.violationCount = res.data.violation_count;
                             if (res.data.is_locked) {
@@ -438,24 +437,33 @@
                                 this.started = false;
                                 this.showWarning = false;
                             }
-                        }).catch(e => console.error(e)).finally(() => { this.isRequesting = false; });
+                        })
+                        .catch(err => console.error(err))
+                        .finally(() => { this.isRequesting = false; });
                     },
 
                     resumeExam() {
                         if (this.isLocked) return;
                         const elem = document.documentElement;
+
+                        // Set sistem popup agar request fullscreen tidak mentrigger violation
                         window.isSystemPopup = true;
+
                         if (elem.requestFullscreen) {
                             elem.requestFullscreen().then(() => {
                                 setTimeout(() => window.isSystemPopup = false, 500);
-                            }).catch(() => { window.isSystemPopup = false; });
+                            }).catch(() => {
+                                window.isSystemPopup = false;
+                            });
                         } else {
                             window.isSystemPopup = false;
                         }
+
                         this.showWarning = false;
                     }
                 });
 
+                // 2. Runner Ujian
                 Alpine.data('examRunner', (questions, initialTime, existingAnswers, initialFlags, userId, config) => ({
                     questions: JSON.parse(JSON.stringify(questions)),
                     currentIndex: 0,
@@ -489,56 +497,56 @@
                     },
 
                     renderMath() {
+                        // 1. RENDER RUMUS DARI TOMBOL MATH SUNEDITOR (Tag span data-exp)
                         if (typeof window.katex !== 'undefined') {
                             document.querySelectorAll('.__se__katex').forEach(el => {
                                 let exp = el.getAttribute('data-exp');
                                 if (exp) {
-                                    let decodedExp = exp.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ').replace(/<br\s*\/?>/gi, '\n');
+                                    // --- PROSES PENCUCIAN KARAKTER ---
+                                    let decodedExp = exp
+                                        .replace(/&gt;/g, '>')
+                                        .replace(/&lt;/g, '<')
+                                        .replace(/&amp;/g, '&')
+                                        .replace(/&quot;/g, '"')
+                                        .replace(/&#39;/g, "'")
+                                        .replace(/&nbsp;/g, ' ')
+                                        .replace(/\u00A0/g, ' ')
+                                        .replace(/<br\s*\/?>/gi, '\n');
+
                                     try {
-                                        window.katex.render(decodedExp, el, { throwOnError: false, displayMode: el.style.display === 'block' || el.tagName === 'DIV' });
-                                    } catch (e) { console.error(e); }
+                                        window.katex.render(decodedExp, el, {
+                                            throwOnError: false,
+                                            displayMode: el.style.display === 'block' || el.tagName === 'DIV'
+                                        });
+                                    } catch (e) {
+                                        console.error("Gagal render KaTeX:", e);
+                                    }
                                 }
                             });
                         }
+
+                        // 2. RENDER RUMUS KETIKAN MANUAL (Auto-Render $$...$$)
                         if (typeof renderMathInElement === 'function') {
                             const area = document.getElementById('question-viewport');
-                            if(area) renderMathInElement(area, { delimiters: [ {left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false} ], throwOnError : false });
+                            if(area) {
+                                renderMathInElement(area, {
+                                    delimiters: [
+                                        {left: '$$', right: '$$', display: true},
+                                        {left: '$', right: '$', display: false},
+                                        {left: '\\(', right: '\\)', display: false},
+                                        {left: '\\[', right: '\\]', display: true}
+                                    ],
+                                    throwOnError : false
+                                });
+                            }
                         }
                     },
                     seededRandom(seed) { let t = seed += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; },
                     shuffleArray(array, seedSuffix) { let m = array.length, t, i, seed = this.userId + seedSuffix; while (m) { let r = this.seededRandom(seed + m); i = Math.floor(r * m--); t = array[m]; array[m] = array[i]; array[i] = t; } return array; },
                     shuffleQuestions() { this.questions = this.shuffleArray(this.questions, '_EXAM_ORDER_' + '{{ $exam->id }}'); },
                     shuffleOptions() { this.questions.forEach(q => { if(['single_choice','complex_choice', 'true_false', 'true_false_multi'].includes(q.type) && q.options) { q.options = this.shuffleArray(q.options, '_OPT_'+q.id); } }); },
-                    prepareMatchingTargets() { this.questions.forEach(q => { if (q.type === 'matching' && q.matches) { let targets = q.matches.map(m => ({ id: m.id, text: m.target_text })); targets = this.config.random_answer ? this.shuffleArray(targets, '_MATCH_' + q.id) : this.shuffleArray(targets, '_MATCH_DEFAULT_' + q.id); this.shuffledTargets[q.id] = targets; } }); },
-
-                    startTimer() {
-                        this.timerInterval = setInterval(() => {
-                            if (this.timeLeft > 0) {
-                                this.timeLeft--;
-
-                                // HEARTBEAT: Cek server secara diam-diam setiap 15 detik (Cegah terus lanjut jika dipaksa finish)
-                                if (this.timeLeft % 15 === 0) {
-                                    axios.get(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                                        .then(res => {
-                                            // Jika response HTML mengandung text UJIAN TELAH BERAKHIR / TERKUNCI
-                                            if (typeof res.data === 'string' && (res.data.includes('UJIAN TELAH BERAKHIR') || res.data.includes('id="status-completed-marker"'))) {
-                                                this.triggerForceEnd();
-                                            }
-                                        }).catch((err) => {
-                                            // Jika ditolak oleh Controller (misal HTTP 403 Forbidden)
-                                            if (err.response && (err.response.status === 403 || err.response.status === 401)) {
-                                                this.triggerForceEnd();
-                                            }
-                                        });
-                                }
-
-                            } else {
-                                clearInterval(this.timerInterval);
-                                this.forceSubmit();
-                            }
-                        }, 1000);
-                    },
-
+                    prepareMatchingTargets() { this.questions.forEach(q => { if (q.type === 'matching' && q.matches) { let targets = q.matches.map(m => ({ id: m.id, text: m.target_text })); if (this.config.random_answer) { targets = this.shuffleArray(targets, '_MATCH_' + q.id); } else { targets = this.shuffleArray(targets, '_MATCH_DEFAULT_' + q.id); } this.shuffledTargets[q.id] = targets; } }); },
+                    startTimer() { this.timerInterval = setInterval(() => { if (this.timeLeft > 0) this.timeLeft--; else { clearInterval(this.timerInterval); this.forceSubmit(); } }, 1000); },
                     formatTime(s) { return `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; },
                     formatType(t) { const m={'single_choice':'Pilihan Ganda','complex_choice':'Pilihan Kompleks','matching':'Menjodohkan','true_false':'Benar/Salah','essay':'Essay'}; return m[t] || 'Soal'; },
                     nextQuestion() { if(this.currentIndex < this.questions.length-1) this.currentIndex++; else this.finishExam(); },
@@ -558,45 +566,13 @@
                     saveAnswer(qId, val) {
                         if(val===undefined || window.isExitingExam) return;
                         this.answers[qId]=val;
-                        axios.post('{{ route("student.exam.save") }}', {exam_id:'{{$exam->id}}', question_id:qId, answer:val, is_doubtful:this.flags.includes(qId)})
-                        .then(res => {
-                            // Antisipasi jika respon controller menyatakan ujian telah usai
-                            if (res.data && res.data.status === 'completed') {
-                                this.triggerForceEnd();
-                            }
-                        })
-                        .catch(e => {
-                            // Tangkap jika controller memblokir penyimpanan (misal HTTP 403 / 401)
-                            if (e.response && (e.response.status === 403 || e.response.status === 401)) {
-                                this.triggerForceEnd();
-                            }
-                        });
-                    },
-
-                    triggerForceEnd() {
-                        if(window.isExitingExam) return;
-                        window.isExitingExam = true;
-                        window.isSystemPopup = true;
-                        clearInterval(this.timerInterval);
-
-                        Swal.fire({
-                            title: 'Akses Ditutup!',
-                            text: 'Sesi ujian Anda telah diakhiri oleh Pengawas atau sistem.',
-                            icon: 'warning',
-                            allowOutsideClick: false,
-                            allowEscapeKey: false,
-                            showConfirmButton: false,
-                            timer: 3000,
-                            timerProgressBar: true
-                        }).then(() => {
-                            // Muat ulang halaman, agar masuk ke blok @elseif($pivot->status === 'completed') di Blade
-                            window.location.reload();
-                        });
+                        axios.post('{{ route("student.exam.save") }}', {exam_id:'{{$exam->id}}', question_id:qId, answer:val, is_doubtful:this.flags.includes(qId)}).catch(e=>console.error(e));
                     },
 
                     finishExam() {
                         if(this.isSubmitting) return;
 
+                        // PASTIKAN popup tidak memicu pelanggaran saat muncul
                         window.isSystemPopup = true;
 
                         try { const q = this.questions[this.currentIndex]; if(this.answers[q.id]) this.saveAnswer(q.id, this.answers[q.id]); } catch(e){}
@@ -614,6 +590,7 @@
                                 if (result.isConfirmed) {
                                     this.forceSubmit();
                                 } else {
+                                    // Matikan flag popup jika batal
                                     setTimeout(() => window.isSystemPopup = false, 200);
                                 }
                             });
@@ -629,9 +606,11 @@
                     forceSubmit() {
                         this.isSubmitting = true;
                         window.isExitingExam = true;
+
                         this.clearLines();
                         clearInterval(this.timerInterval);
 
+                        // Matikan store agar berhenti memantau
                         if(Alpine.store('examState')) {
                             Alpine.store('examState').started = false;
                         }
