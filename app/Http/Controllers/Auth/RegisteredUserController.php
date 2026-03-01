@@ -42,6 +42,7 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'username' => $request->username, // Gunakan username dari request
             'password' => Hash::make($request->password),
+            'school_id' => 1, // Atur school_id ke null saat pendaftaran
         ]);
         $user->assignRole('siswa');
         $firstSessionId = ExamSession::value('id');
