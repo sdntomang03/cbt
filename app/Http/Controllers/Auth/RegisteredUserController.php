@@ -29,7 +29,7 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-   public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -56,7 +56,7 @@ class RegisteredUserController extends Controller
         // Hubungkan user dengan sesi ujian dan sertakan school_id untuk tabel pivot
         if ($firstSessionId) {
             $user->examSessions()->attach($firstSessionId, [
-                'school_id' => $schoolId
+                'school_id' => $schoolId,
             ]);
         }
 
@@ -66,5 +66,4 @@ class RegisteredUserController extends Controller
 
         return redirect(route('dashboard', absolute: false));
     }
-}
 }
