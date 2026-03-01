@@ -21,6 +21,7 @@ return new class extends Migration
             $table->dateTime('finished_at')->nullable(); // Waktu siswa selesai
             $table->decimal('score', 5, 2)->nullable();
             $table->boolean('is_locked')->default(false);
+            $table->foreignId('school_id')->constrained()->cascadeOnDelete();
             // Atau simpan jumlah pelanggaran di server
             $table->integer('violation_count')->default(0);
             $table->timestamps();

@@ -24,6 +24,9 @@
                     <x-nav-link :href="route('proctor.index')" :active="request()->routeIs('proctor.*')">
                         {{ __('Monitoring Ujian') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
+                        {{ __('Users') }}
+                    </x-nav-link>
                     @endhasanyrole
 
                     @role('siswa')

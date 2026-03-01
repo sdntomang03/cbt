@@ -12,7 +12,7 @@
                         class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all border flex items-center gap-2"
                         :class="opt.is_correct == 1 ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-slate-50 border-slate-100 text-slate-400'">
                         <i class="fas" :class="opt.is_correct == 1 ? 'fa-check-circle' : 'fa-circle'"></i>
-                        <span x-text="opt.is_correct == 1 ? 'KUNCI' : 'OPSI'"></span>
+                        <span x-text="opt.is_correct == 1 ? 'BENAR' : 'SALAH'"></span>
                     </button>
                 </div>
 

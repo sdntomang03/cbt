@@ -25,7 +25,7 @@
     <div class="min-h-screen py-10" x-data="sessionManager()">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
                 <div class="flex items-center gap-5">
                     <div
                         class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-cyan-200 rotate-3">
@@ -46,6 +46,48 @@
                 </button>
             </div>
 
+            <div
+                class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 mb-8 flex justify-between items-center">
+                <form method="GET" action="{{ route('admin.exam-sessions.index') }}"
+                    class="flex flex-wrap w-full md:max-w-3xl gap-3">
+
+                    @if(auth()->user()->hasRole('admin'))
+                    <div class="relative flex-1 min-w-[200px]">
+                        <select name="school_id" onchange="this.form.submit()"
+                            class="w-full bg-slate-50 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition py-2.5 pl-4 pr-8 font-bold text-slate-600">
+                            <option value="">-- Semua Sekolah --</option>
+                            @foreach($schools as $school)
+                            <option value="{{ $school->id }}" {{ request('school_id')==$school->id ? 'selected' : '' }}>
+                                {{ $school->name }}
+                            </option>
+                            @endforeach
+                        </select>
+                        <i
+                            class="fas fa-chevron-down absolute right-4 top-4 text-xs text-slate-400 pointer-events-none"></i>
+                    </div>
+                    @endif
+
+                    <div class="relative flex-1 min-w-[200px]">
+                        <i class="fas fa-search absolute left-4 top-3.5 text-slate-400"></i>
+                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama sesi..."
+                            class="w-full pl-11 pr-4 py-2.5 bg-slate-50 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition font-bold text-slate-600">
+                    </div>
+
+                    <button type="submit"
+                        class="bg-slate-900 text-white px-8 py-2.5 rounded-xl font-black shadow-lg shadow-slate-200 hover:bg-slate-800 transition bounce-active">
+                        Cari
+                    </button>
+
+                    @if(request('search') || request('school_id'))
+                    <a href="{{ route('admin.exam-sessions.index') }}"
+                        class="bg-rose-50 text-rose-500 px-4 py-2.5 rounded-xl font-bold hover:bg-rose-500 hover:text-white transition flex items-center bounce-active"
+                        title="Reset Filter">
+                        <i class="fas fa-times"></i>
+                    </a>
+                    @endif
+                </form>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @forelse($sessions as $session)
                 <div
@@ -57,7 +99,7 @@
                         </div>
                     </div>
 
-                    <div class="flex justify-between items-start mb-6 relative z-50">
+                    <div class="flex justify-between items-start mb-4 relative z-50">
                         <div class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border
                             {{ now()->between($session->start_time, $session->end_time)
                                 ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
@@ -108,9 +150,17 @@
                     </div>
 
                     <div class="mb-6 relative z-10 flex-1">
+                        @if(auth()->user()->hasRole('admin') && $session->school)
+                        <div
+                            class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center">
+                            <i class="fas fa-school mr-1.5 opacity-70"></i> {{ $session->school->name }}
+                        </div>
+                        @endif
+
                         <h3 class="font-black text-xl text-slate-800 mb-1 leading-tight">{{ $session->session_name }}
                         </h3>
-                        <p class="text-sm font-bold text-indigo-500 mb-4">{{ $session->exam->title }}</p>
+                        <p class="text-sm font-bold text-indigo-500 mb-4">{{ $session->exam->title ?? 'Ujian Dihapus' }}
+                        </p>
 
                         <div class="space-y-4">
                             <div class="flex items-center gap-3 text-sm font-semibold text-slate-500">
@@ -121,8 +171,8 @@
                                 <div class="flex flex-col">
                                     <span
                                         class="text-[10px] font-black uppercase tracking-wider text-slate-400 leading-none mb-1">Mulai</span>
-                                    <span class="text-slate-700 leading-none">{{ $session->start_time->format('d M Y,
-                                        H:i') }} WIB</span>
+                                    <span class="text-slate-700 leading-none">{{
+                                        \Carbon\Carbon::parse($session->start_time)->format('d M Y, H:i') }} WIB</span>
                                 </div>
                             </div>
 
@@ -134,8 +184,8 @@
                                 <div class="flex flex-col">
                                     <span
                                         class="text-[10px] font-black uppercase tracking-wider text-slate-400 leading-none mb-1">Berakhir</span>
-                                    <span class="text-slate-700 leading-none">{{ $session->end_time->format('d M Y,
-                                        H:i') }} WIB</span>
+                                    <span class="text-slate-700 leading-none">{{
+                                        \Carbon\Carbon::parse($session->end_time)->format('d M Y, H:i') }} WIB</span>
                                 </div>
                             </div>
                         </div>
@@ -322,7 +372,6 @@
                     });
                 },
 
-                // FITUR COPY TOKEN
                 copyToken(id) {
                     const token = document.getElementById(`token-${id}`).innerText.trim();
                     navigator.clipboard.writeText(token);
@@ -330,7 +379,6 @@
                     Toast.fire({ icon: 'success', title: 'Token disalin: ' + token });
                 },
 
-                // FITUR RESET TOKEN
                 regenerateToken(id) {
                     Swal.fire({
                         title: 'Acak Ulang Token?', text: "Token lama tidak akan bisa digunakan lagi.",

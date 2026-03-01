@@ -41,6 +41,7 @@ class QuestionSeeder extends Seeder
             'exam_id' => $exam->id,
             'session_name' => 'Sesi Uji Coba - Kelas A',
             'token' => 'ABC123', // Token untuk masuk ujian
+            'school_id' => 1, // Pastikan sekolah dengan ID 1 ada
             'start_time' => now()->subMinutes(10), // Mulai 10 menit lalu
             'end_time' => now()->addHours(3),    // Selesai 3 jam lagi
         ]);
@@ -56,6 +57,7 @@ class QuestionSeeder extends Seeder
             'score' => 0,
             'is_locked' => false,      // Default tidak terkunci
             'violation_count' => 0,    // Default 0 pelanggaran
+            'school_id' => 1,          // Default sekolah ID (misalnya 1)
             'created_at' => now(),
             'updated_at' => now(),
         ]);

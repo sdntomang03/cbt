@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ExamSession;
 use App\Models\ExamSessionUser;
+use App\Models\School;
 use App\Models\StudentAnswer;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -28,18 +29,27 @@ class ProctorController extends Controller
     /**
      * Halaman Monitoring (Dashboard Pengawas) untuk sesi tertentu.
      */
-    public function show(ExamSession $examSession)
+    public function show(Request $request, ExamSession $examSession)
     {
-        $students = $examSession->students()->orderBy('name', 'asc')->get();
+        // 1. Ambil data siswa beserta status ujian (pivot) DAN asal sekolahnya
+        $students = $examSession->students()
+            ->with('school') // Wajib agar nama sekolah muncul di tabel Alpine JS
+            ->orderBy('name', 'asc')
+            ->get();
 
-        // Jika dipanggil via AJAX (Auto Update)
-        if (request()->ajax()) {
+        // 2. LOGIKA LIVE UPDATE (AJAX)
+        // Jika Alpine JS melakukan fetch data setiap 5 detik, kirimkan JSON
+        if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
                 'students' => $students,
             ]);
         }
 
-        return view('proctor.monitoring', compact('examSession', 'students'));
+        // 3. Ambil data sekolah khusus untuk filter Super Admin
+        $schools = auth()->user()->hasRole('admin') ? School::orderBy('name')->get() : [];
+
+        // 4. Tampilkan view pertama kali dimuat
+        return view('proctor.monitoring', compact('examSession', 'students', 'schools'));
     }
 
     /**

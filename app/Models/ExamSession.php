@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToSchool;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ExamSession extends Model
 {
+    use BelongsToSchool, HasFactory;
+
     protected $guarded = ['id'];
 
     protected $casts = [
@@ -37,5 +41,11 @@ class ExamSession extends Model
     public function isOpen()
     {
         return now()->between($this->start_time, $this->end_time);
+    }
+
+    // Relasi ke tabel School (Sekolah)
+    public function school()
+    {
+        return $this->belongsTo(School::class);
     }
 }

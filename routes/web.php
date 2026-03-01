@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\ExamSessionController;
+use App\Http\Controllers\Admin\SchoolController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\ImageUploadController;
 use App\Http\Controllers\ProctorController;
@@ -35,7 +37,8 @@ Route::middleware(['auth', 'role:admin|guru'])
     ->prefix('admin')
     ->name('admin.') // Prefix nama route jadi 'admin.exams.index', dll
     ->group(function () {
-
+        // Manajemen Sekolah (CRUD AJAX)
+        Route::resource('schools', SchoolController::class)->except(['create', 'show', 'edit']);
         // 1. Manajemen Ujian (Bank Soal)
         Route::resource('exams', ExamController::class);
 
@@ -55,7 +58,8 @@ Route::middleware(['auth', 'role:admin|guru'])
 
         Route::get('exam-sessions/{exam_session}/students', [ExamSessionController::class, 'studentIndex'])->name('exam-sessions.students.index');
         Route::post('exam-sessions/{exam_session}/students', [ExamSessionController::class, 'studentStore'])->name('exam-sessions.students.store');
-        Route::delete('exam-sessions/{exam_session}/students/{user}', [ExamSessionController::class, 'studentDestroy'])->name('exam-sessions.students.destroy');
+        Route::delete('exam-sessions/{examSession}/students/mass-destroy', [ExamSessionController::class, 'destroyMass'])
+            ->name('exam-sessions.students.destroyMass');
     });
 
 // --- GROUP SISWA ---
@@ -81,6 +85,15 @@ Route::middleware(['auth', 'role:admin|guru'])->prefix('proctor')->name('proctor
     Route::post('/sessions/{exam_session}/unlock/{student}', [ProctorController::class, 'unlock'])->name('unlock');
     Route::post('/sessions/{exam_session}/force-finish/{student}', [ProctorController::class, 'forceFinish'])->name('force-finish');
     Route::post('/sessions/{exam_session}/reset/{student}', [ProctorController::class, 'reset'])->name('reset');
+
+});
+Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
+
+    // Route khusus Import Excel (Harus diletakkan DI ATAS route resource)
+    Route::post('/users/import', [UserController::class, 'importExcel'])->name('users.import');
+
+    // Route CRUD otomatis (index, create, store, edit, update, destroy)
+    Route::resource('users', UserController::class);
 
 });
 require __DIR__.'/auth.php';

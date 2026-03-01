@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('exam_sessions', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('school_id')->constrained()->cascadeOnDelete();
             $table->foreignId('exam_id')->constrained()->onDelete('cascade');
             $table->string('session_name'); // Misal: "Sesi 1 (Kelas X-A)"
             $table->string('token', 6)->nullable();

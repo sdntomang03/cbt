@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToSchool;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable; // WAJIB ADA
@@ -13,7 +14,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory, HasRoles, Notifiable;
+    use BelongsToSchool, HasFactory, HasRoles,Notifiable;
     // Jika Trait BelongsToSchool sudah dibuat di langkah sebelumnya, nyalakan baris di bawah ini:
     // use BelongsToSchool;
 
@@ -44,5 +45,10 @@ class User extends Authenticatable implements MustVerifyEmail
                 'is_locked',        // <--- WAJIB ADA UNTUK MONITORING PROKTOR
             ])
             ->withTimestamps();
+    }
+
+    public function school()
+    {
+        return $this->belongsTo(School::class);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\ExamSession;
+use App\Models\School;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -14,18 +15,30 @@ class ExamSessionController extends Controller
     /**
      * Menampilkan daftar sesi ujian.
      */
-    public function index()
+    public function index(Request $request)
     {
-        // Ambil data sesi, urutkan dari yang terbaru, paginate 10 per halaman
-        // Eager load 'exam' agar tidak N+1 query
-        $sessions = ExamSession::with('exam')->latest()->paginate(10);
+        // Pastikan model ExamSession memiliki relasi ke 'school' dan 'exam'
+        $query = ExamSession::with(['exam', 'school']);
 
-        // Ambil data ujian untuk dropdown di modal (hanya yang statusnya published/aktif)
-        // Sesuaikan 'status' dengan kolom di tabel exams Anda, jika tidak ada hapus where-nya
+        // 1. Filter Dropdown: HANYA berlaku untuk Super Admin
+        if (auth()->user()->hasRole('admin') && $request->filled('school_id')) {
+            $query->where('school_id', $request->school_id);
+        }
+
+        // 2. Fitur Pencarian Teks (Berdasarkan nama sesi)
+        if ($request->filled('search')) {
+            $query->where('session_name', 'like', '%'.$request->search.'%');
+        }
+
+        $sessions = $query->latest()->paginate(12)->withQueryString();
+
+        // 3. Kirim data daftar sekolah ke layar (Hanya dikirim jika admin)
+        $schools = auth()->user()->hasRole('admin') ? School::orderBy('name')->get() : [];
+
+        // 4. Ambil data ujian untuk form modal (Create/Edit)
         $exams = Exam::latest()->get();
 
-        // Return ke view admin/session/index.blade.php
-        return view('admin.sessions.index', compact('sessions', 'exams'));
+        return view('admin.sessions.index', compact('sessions', 'schools', 'exams'));
     }
 
     /**
@@ -121,22 +134,33 @@ class ExamSessionController extends Controller
         ]);
     }
 
-    public function studentIndex(ExamSession $examSession)
+    public function studentIndex(Request $request, ExamSession $examSession)
     {
         // Ambil siswa yang SUDAH terdaftar di sesi ini
-        $enrolledStudents = $examSession->students()->get();
-
-        // Ambil ID siswa yang sudah terdaftar untuk exclude
+        $enrolledStudents = $examSession->students()->with('school')->get();
         $enrolledIds = $enrolledStudents->pluck('id')->toArray();
 
-        // Ambil siswa yang BELUM terdaftar (Role siswa/user)
-        // Sesuaikan query 'role' dengan sistem role Anda (misal Spatie atau kolom biasa)
-        $availableStudents = User::role('siswa') // Gunakan scope 'role' milik Spatie
-            ->whereNotIn('id', $enrolledIds)
-            ->orderBy('name')
-            ->get();
+        // Query dasar untuk siswa yang BELUM terdaftar
+        $query = User::role('siswa')->whereNotIn('id', $enrolledIds)->with('school');
 
-        return view('admin.sessions.students', compact('examSession', 'enrolledStudents', 'availableStudents'));
+        // LOGIKA FILTER SEKOLAH
+        if (auth()->user()->hasRole('admin')) {
+            // Jika Super Admin memilih sekolah di dropdown
+            if ($request->filled('school_id')) {
+                $query->where('school_id', $request->school_id);
+            }
+            // Jika tidak memilih (kosong), akan menampilkan semua siswa lintas sekolah
+        } else {
+            // Jika Admin Biasa / Guru, KUNCI hanya boleh melihat siswanya sendiri
+            $query->where('school_id', $examSession->school_id);
+        }
+
+        $availableStudents = $query->orderBy('name')->get();
+
+        // Kirim daftar sekolah untuk dropdown HANYA jika Super Admin
+        $schools = auth()->user()->hasRole('admin') ? School::orderBy('name')->get() : [];
+
+        return view('admin.sessions.students', compact('examSession', 'enrolledStudents', 'availableStudents', 'schools'));
     }
 
     /**
@@ -144,13 +168,25 @@ class ExamSessionController extends Controller
      */
     public function studentStore(Request $request, ExamSession $examSession)
     {
+        // 1. Validasi input
         $request->validate([
             'student_ids' => 'required|array',
             'student_ids.*' => 'exists:users,id',
         ]);
 
-        // Gunakan syncWithoutDetaching agar data siswa lain tidak terhapus
-        $examSession->students()->syncWithoutDetaching($request->student_ids);
+        // 2. Ambil ID Sekolah dari sesi ujian ini
+        $schoolId = $examSession->school_id;
+
+        // 3. Siapkan data pivot yang menyertakan school_id
+        $syncData = [];
+        foreach ($request->student_ids as $studentId) {
+            $syncData[$studentId] = [
+                'school_id' => $schoolId, // <--- INI KUNCI JAWABANNYA
+            ];
+        }
+
+        // 4. Masukkan ke database (Gunakan syncWithoutDetaching agar siswa yang sudah ada tidak terhapus)
+        $examSession->students()->syncWithoutDetaching($syncData);
 
         return back()->with('success', 'Siswa berhasil ditambahkan ke sesi ujian.');
     }
@@ -163,5 +199,18 @@ class ExamSessionController extends Controller
         $examSession->students()->detach($user->id);
 
         return back()->with('success', 'Siswa dihapus dari sesi.');
+    }
+
+    public function destroyMass(Request $request, ExamSession $examSession)
+    {
+        $request->validate([
+            'student_ids' => 'required|array',
+            'student_ids.*' => 'exists:users,id',
+        ]);
+
+        // Hapus relasi siswa yang dipilih dari sesi ujian ini
+        $examSession->students()->detach($request->student_ids);
+
+        return redirect()->back()->with('success', count($request->student_ids).' siswa berhasil dikeluarkan dari sesi ujian.');
     }
 }
