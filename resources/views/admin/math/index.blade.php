@@ -12,10 +12,39 @@
             </a>
         </div>
 
+        {{-- Alert Success --}}
         @if(session('success'))
-        <div
-            class="bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 p-4 rounded-r-xl mb-8 font-bold shadow-sm">
-            <i class="fas fa-check-circle mr-2"></i> {{ session('success') }}
+        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
+            x-transition:leave="transition ease-in duration-300"
+            x-transition:leave-start="opacity-100 transform translate-x-0"
+            x-transition:leave-end="opacity-0 transform translate-x-8"
+            class="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-xl shadow-sm flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-check-circle text-emerald-500 text-xl"></i>
+                <p class="text-emerald-700 font-bold">{{ session('success') }}</p>
+            </div>
+            <button @click="show = false"
+                class="text-emerald-400 hover:text-emerald-700 transition w-8 h-8 rounded-full flex items-center justify-center hover:bg-emerald-100">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        @endif
+
+        {{-- Alert Error --}}
+        @if(session('error'))
+        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 7000)"
+            x-transition:leave="transition ease-in duration-300"
+            x-transition:leave-start="opacity-100 transform translate-x-0"
+            x-transition:leave-end="opacity-0 transform translate-x-8"
+            class="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl shadow-sm flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-exclamation-circle text-rose-500 text-xl"></i>
+                <p class="text-rose-700 font-bold">{{ session('error') }}</p>
+            </div>
+            <button @click="show = false"
+                class="text-rose-400 hover:text-rose-700 transition w-8 h-8 rounded-full flex items-center justify-center hover:bg-rose-100">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
         @endif
 
