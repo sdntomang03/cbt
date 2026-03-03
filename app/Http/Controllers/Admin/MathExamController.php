@@ -1,0 +1,157 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\MathExam;
+use App\Models\MathExamQuestion;
+use App\Models\School;
+use App\Models\User; // Pastikan model School dipanggil
+use Illuminate\Http\Request;
+
+class MathExamController extends Controller
+{
+    public function index()
+    {
+        // Gunakan withCount('examUsers') untuk menghitung jumlah siswa yang ikut ujian ini
+        $exams = MathExam::withCount('examUsers')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('admin.math.index', compact('exams'));
+    }
+
+    public function create()
+    {
+        // Ambil data siswa beserta relasi sekolahnya
+        $students = User::role('siswa')->with('school')->orderBy('name')->get();
+
+        // Ambil data sekolah untuk dropdown filter
+        $schools = School::orderBy('name')->get();
+
+        return view('admin.math.create', compact('students', 'schools'));
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'student_ids' => 'required|array|min:1',
+            'student_ids.*' => 'exists:users,id',
+            'types' => 'required|array|min:1',
+            'digits' => 'required|array',
+            'total_questions' => 'required|integer|min:1|max:200',
+            'duration_minutes' => 'required|integer|min:1',
+        ]);
+
+        // 1. BUAT PENGATURAN UJIAN (HANYA 1 KALI)
+        $exam = MathExam::create([
+            'title' => $request->title,
+            'types' => $request->types,
+            'digits' => $request->digits,
+            'total_questions' => $request->total_questions,
+            'duration_minutes' => $request->duration_minutes,
+        ]);
+
+        $selectedTypes = $request->types;
+        $allQuestionsData = [];
+        $examUsersData = [];
+
+        // 2. LOOPING UNTUK SETIAP SISWA
+        foreach ($request->student_ids as $studentId) {
+
+            // Siapkan data untuk tabel Sesi Siswa (math_exam_users)
+            $examUsersData[] = [
+                'math_exam_id' => $exam->id,
+                'student_id' => $studentId,
+                'status' => 'not_started',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+
+            // Siapkan soal acak untuk siswa ini
+            for ($i = 0; $i < $request->total_questions; $i++) {
+                $currentType = $selectedTypes[array_rand($selectedTypes)];
+                $currentDigit = $request->digits[$currentType] ?? 1;
+
+                $min = $currentDigit == 1 ? 1 : pow(10, $currentDigit - 1);
+                $max = pow(10, $currentDigit) - 1;
+
+                $n1 = rand($min, $max);
+                $n2 = rand($min, $max);
+                $correct = 0;
+                $operator = '';
+
+                switch ($currentType) {
+                    case 'addition':
+                        $operator = '+';
+                        $correct = $n1 + $n2;
+                        break;
+                    case 'subtraction':
+                        $operator = '-';
+                        if ($n1 < $n2) {
+                            $temp = $n1;
+                            $n1 = $n2;
+                            $n2 = $temp;
+                        }
+                        $correct = $n1 - $n2;
+                        break;
+                    case 'multiplication':
+                        $operator = 'x';
+                        $correct = $n1 * $n2;
+                        break;
+                    case 'division':
+                        $operator = ':';
+                        $divMin = $currentDigit == 1 ? 2 : pow(10, $currentDigit - 1);
+                        $divMax = pow(10, $currentDigit) - 1;
+                        $correct = rand($divMin, $divMax);
+                        $n2 = rand(2, ($currentDigit == 1 ? 9 : 15));
+                        $n1 = $correct * $n2;
+                        break;
+                }
+
+                $allQuestionsData[] = [
+                    'math_exam_id' => $exam->id,
+                    'student_id' => $studentId, // <--- Relasi ke siswa sesuai ide Anda
+                    'num1' => $n1,
+                    'num2' => $n2,
+                    'operator' => $operator,
+                    'correct_answer' => $correct,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+
+        // 3. SIMPAN SEMUA DATA KE DATABASE SEKALIGUS
+        \App\Models\MathExamUser::insert($examUsersData);
+
+        foreach (array_chunk($allQuestionsData, 500) as $chunk) {
+            MathExamQuestion::insert($chunk);
+        }
+
+        $countStudents = count($request->student_ids);
+
+        return redirect()->back()->with('success', "Ujian '{$exam->title}' berhasil dibuat untuk $countStudents siswa!");
+    }
+
+    // Menampilkan Rekap Daftar Nilai Siswa
+    public function show($id)
+    {
+        // Ambil data Master Ujian beserta Sesi Siswanya (lengkap dengan data siswa dan sekolah)
+        $exam = MathExam::with(['examUsers.student.school'])->findOrFail($id);
+
+        // Pisahkan data untuk menghitung statistik (Hanya yang sudah selesai)
+        $completedUsers = $exam->examUsers->where('status', 'completed');
+
+        $stats = [
+            'total_students' => $exam->examUsers->count(),
+            'completed_count' => $completedUsers->count(),
+            'average_score' => $completedUsers->count() > 0 ? round($completedUsers->avg('score'), 2) : 0,
+            'highest_score' => $completedUsers->count() > 0 ? $completedUsers->max('score') : 0,
+            'lowest_score' => $completedUsers->count() > 0 ? $completedUsers->min('score') : 0,
+        ];
+
+        return view('admin.math.show', compact('exam', 'stats'));
+    }
+}

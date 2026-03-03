@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\ExamSession;
 use App\Models\ExamSessionUser;
 use App\Models\Question;
-use App\Models\School;
 use App\Models\StudentAnswer;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -32,25 +31,149 @@ class ProctorController extends Controller
      */
     public function show(Request $request, ExamSession $examSession)
     {
-        // 1. Ambil data siswa beserta status ujian (pivot) DAN asal sekolahnya
+        // 1. --- [AUTO-SWEEP / PENYAPU OTOMATIS] ---
+        // Mencari siswa offline yang waktunya sudah habis dan menutup paksa ujiannya.
+        $now = \Carbon\Carbon::now('Asia/Jakarta');
+        $durationMinutes = (int) $examSession->exam->duration_minutes;
+        $sessionEnd = \Carbon\Carbon::parse($examSession->end_time)->timezone('Asia/Jakarta');
+
+        $ongoingStudents = $examSession->students()->wherePivot('status', 'ongoing')->get();
+
+        foreach ($ongoingStudents as $student) {
+            if ($student->pivot->started_at) {
+                $startedAt = \Carbon\Carbon::parse($student->pivot->started_at)->timezone('Asia/Jakarta');
+                $personalDeadline = $startedAt->copy()->addMinutes($durationMinutes);
+
+                // Real deadline adalah waktu tersingkat antara durasi siswa vs jadwal akhir sesi
+                $realDeadline = $personalDeadline->min($sessionEnd);
+
+                // Jika waktu sekarang melebihi deadline (diberi toleransi telat 1 menit)
+                if ($now->greaterThan($realDeadline->addMinutes(1))) {
+                    // Panggil fungsi skoring dan penutupan
+                    $this->forceFinishLogic($examSession, $student);
+                }
+            }
+        }
+        // ------------------------------------------
+
+        // 2. Ambil data siswa beserta status ujian (setelah disapu bersih) DAN asal sekolahnya
         $students = $examSession->students()
-            ->with('school') // Wajib agar nama sekolah muncul di tabel Alpine JS
+            ->with('school')
             ->orderBy('name', 'asc')
             ->get();
 
-        // 2. LOGIKA LIVE UPDATE (AJAX)
-        // Jika Alpine JS melakukan fetch data setiap 5 detik, kirimkan JSON
+        // 3. LOGIKA LIVE UPDATE (AJAX)
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
                 'students' => $students,
             ]);
         }
 
-        // 3. Ambil data sekolah khusus untuk filter Super Admin
-        $schools = auth()->user()->hasRole('admin') ? School::orderBy('name')->get() : [];
+        // 4. Ambil data sekolah khusus untuk filter Super Admin
+        $schools = auth()->user()->hasRole('admin') ? \App\Models\School::orderBy('name')->get() : [];
 
-        // 4. Tampilkan view pertama kali dimuat
+        // 5. Tampilkan view pertama kali dimuat
         return view('proctor.monitoring', compact('examSession', 'students', 'schools'));
+    }
+
+    /**
+     * Fungsi Helper Private untuk menghitung nilai dan menutup sesi
+     * Digunakan oleh fitur Auto-Sweep dan tombol manual Selesaikan Paksa.
+     */
+    private function forceFinishLogic(ExamSession $examSession, User $student)
+    {
+        $examUser = \App\Models\ExamSessionUser::where('exam_session_id', $examSession->id)
+            ->where('user_id', $student->id)
+            ->first();
+
+        if ($examUser && $examUser->status !== 'completed') {
+
+            $answers = \App\Models\StudentAnswer::where('exam_session_id', $examSession->id)
+                ->where('user_id', $student->id)
+                ->with(['question.options', 'question.matches'])
+                ->get();
+
+            $totalScore = 0;
+            $totalQuestions = \App\Models\Question::where('exam_id', $examSession->exam_id)->count();
+
+            foreach ($answers as $ans) {
+                $q = $ans->question;
+                $poin = 0;
+                $studentAns = $ans->answer;
+
+                // Decode JSON untuk jawaban array
+                if (is_string($studentAns) && in_array($q->type, ['complex_choice', 'matching', 'true_false', 'true_false_multi'])) {
+                    $decoded = json_decode($studentAns, true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $studentAns = $decoded;
+                    }
+                }
+
+                // LOGIKA SKORING
+                if ($q->type === 'single_choice') {
+                    $correctOption = $q->options->where('is_correct', true)->first();
+                    if ($correctOption && $studentAns == $correctOption->id) {
+                        $poin = 1;
+                    }
+                } elseif ($q->type === 'complex_choice') {
+                    $correctIds = $q->options->where('is_correct', true)->pluck('id')->sort()->values()->toArray();
+                    $studentIds = is_array($studentAns) ? $studentAns : [];
+                    sort($studentIds);
+                    if ($correctIds == $studentIds) {
+                        $poin = 1;
+                    }
+                } elseif (in_array($q->type, ['true_false', 'true_false_multi'])) {
+                    $correctCount = 0;
+                    $totalOptions = $q->options->count();
+                    $userAnswers = is_array($studentAns) ? $studentAns : [];
+                    foreach ($q->options as $opt) {
+                        $expectedKey = $opt->is_correct ? 'benar' : 'salah';
+                        $userValue = isset($userAnswers[$opt->id]) ? strtolower($userAnswers[$opt->id]) : null;
+                        if ($userValue === $expectedKey) {
+                            $correctCount++;
+                        }
+                    }
+                    if ($totalOptions > 0) {
+                        $poin = $correctCount / $totalOptions;
+                    }
+                } elseif ($q->type === 'matching') {
+                    $matches = is_array($studentAns) ? $studentAns : [];
+                    $totalPairs = $q->matches->count();
+                    $correctPairs = 0;
+                    if ($totalPairs > 0) {
+                        foreach ($matches as $premiseId => $targetId) {
+                            if ($premiseId == $targetId) {
+                                $correctPairs++;
+                            }
+                        }
+                        $poin = $correctPairs / $totalPairs;
+                    }
+                } elseif ($q->type === 'essay') {
+                    $correctRaw = $q->options->first()->option_text ?? '';
+                    $cleanCorrect = trim(strip_tags(html_entity_decode($correctRaw)));
+                    $cleanUser = trim(strip_tags($studentAns));
+                    if (strcasecmp($cleanCorrect, $cleanUser) === 0) {
+                        $poin = 1;
+                    } elseif (is_numeric($cleanCorrect) && is_numeric($cleanUser)) {
+                        if ((float) $cleanCorrect === (float) $cleanUser) {
+                            $poin = 1;
+                        }
+                    }
+                }
+
+                $ans->update(['score' => $poin]);
+                $totalScore += $poin;
+            }
+
+            $finalScore = ($totalQuestions > 0) ? ($totalScore / $totalQuestions) * 100 : 0;
+
+            // Perbarui status menjadi completed
+            $examUser->update([
+                'status' => 'completed',
+                'finished_at' => \Carbon\Carbon::now('Asia/Jakarta'),
+                'score' => round($finalScore, 2),
+            ]);
+        }
     }
 
     /**

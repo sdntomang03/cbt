@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ExamSessionController;
+use App\Http\Controllers\Admin\MathExamController;
 use App\Http\Controllers\Admin\SchoolController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ExamController;
@@ -61,7 +62,10 @@ Route::middleware(['auth', 'role:admin|guru'])
         Route::delete('exam-sessions/{examSession}/students/mass-destroy', [ExamSessionController::class, 'destroyMass'])
             ->name('exam-sessions.students.destroyMass');
         Route::get('/exams/{exam}/export', [ExamController::class, 'exportGrades'])->name('exams.export');
-
+        Route::get('/math-exams', [MathExamController::class, 'index'])->name('math.index');
+        Route::get('/math-exams/create', [MathExamController::class, 'create'])->name('math.create');
+        Route::post('/math-exams/store', [MathExamController::class, 'store'])->name('math.store');
+        Route::get('/math-exams/{id}/show', [MathExamController::class, 'show'])->name('math.show');
     });
 
 // --- GROUP SISWA ---
@@ -82,6 +86,17 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
         Route::post('/exam/{exam}/verify', [StudentExamController::class, 'processToken'])
             ->name('student.exam.verify.process');
     });
+    // Daftar Ujian Matematika Siswa
+    Route::get('/math-exams', [\App\Http\Controllers\Student\MathExamController::class, 'index'])
+        ->name('student.math.index');
+
+    // Ujian Matematika Berjalan & Submit
+    Route::get('/math-exam/{id}/run', [\App\Http\Controllers\Student\MathExamController::class, 'run'])
+        ->name('student.math.run');
+
+    Route::post('/math-exam/{id}/submit', [\App\Http\Controllers\Student\MathExamController::class, 'submit'])
+        ->name('student.math.submit');
+
 });
 
 // Anda bisa menyesuaikan middleware rolenya, misal: 'role:admin|guru|proktor'
