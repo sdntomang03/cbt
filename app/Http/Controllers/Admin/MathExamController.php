@@ -164,4 +164,18 @@ class MathExamController extends Controller
 
         return redirect()->route('admin.math.index')->with('success', 'Ujian beserta seluruh data nilai siswa berhasil dihapus.');
     }
+
+    // Menampilkan Lembar Jawaban Detail per Siswa
+    public function showStudentResult($examUserId)
+    {
+        // Cari data Sesi Ujian Siswa
+        $examUser = \App\Models\MathExamUser::with(['exam', 'student.school'])->findOrFail($examUserId);
+
+        // Ambil semua soal yang dikerjakan oleh siswa ini pada ujian ini
+        $questions = \App\Models\MathExamQuestion::where('math_exam_id', $examUser->math_exam_id)
+            ->where('student_id', $examUser->student_id)
+            ->get();
+
+        return view('admin.math.student_result', compact('examUser', 'questions'));
+    }
 }

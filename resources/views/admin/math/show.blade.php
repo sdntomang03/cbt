@@ -143,6 +143,11 @@
                                 @else
                                 <span class="text-slate-300 font-bold text-xl">-</span>
                                 @endif
+                                <a href="{{ route('admin.math.student_result', $user->id) }}"
+                                    class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-500 hover:bg-indigo-500 hover:text-white transition-colors"
+                                    title="Lihat Lembar Jawaban">
+                                    <i class="fas fa-search"></i>
+                                </a>
                             </td>
                         </tr>
                         @empty
