@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\MathExam;
 use App\Models\MathExamQuestion;
+use App\Models\MathExamUser;
 use App\Models\School;
 use App\Models\User; // Pastikan model School dipanggil
 use Illuminate\Http\Request;
@@ -169,13 +170,13 @@ class MathExamController extends Controller
     public function showStudentResult($examUserId)
     {
         // Cari data Sesi Ujian Siswa
-        $examUser = \App\Models\MathExamUser::with(['exam', 'student.school'])->findOrFail($examUserId);
+        $examUser = MathExamUser::with(['exam', 'student.school'])->findOrFail($examUserId);
 
         // Ambil semua soal yang dikerjakan oleh siswa ini pada ujian ini
-        $questions = \App\Models\MathExamQuestion::where('math_exam_id', $examUser->math_exam_id)
+        $questions = MathExamQuestion::where('math_exam_id', $examUser->math_exam_id)
             ->where('student_id', $examUser->student_id)
             ->get();
 
-        return view('admin.math.student_result', compact('examUser', 'questions'));
+        return view('admin.math.result', compact('examUser', 'questions'));
     }
 }
