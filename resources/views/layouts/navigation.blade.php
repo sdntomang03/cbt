@@ -27,11 +27,17 @@
                     <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
                         {{ __('Users') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('admin.math.index')" :active="request()->routeIs('admin.math.*')">
+                        {{ __('Math Exams') }}
+                    </x-nav-link>
                     @endhasanyrole
 
                     @role('siswa')
                     <x-nav-link :href="route('student.dashboard')" :active="request()->routeIs('student.dashboard')">
                         {{ __('Ruang Ujian') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('student.math.index')" :active="request()->routeIs('student.math.index')">
+                        {{ __('Latihan Hitung') }}
                     </x-nav-link>
                     @endrole
                 </div>

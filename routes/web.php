@@ -66,6 +66,7 @@ Route::middleware(['auth', 'role:admin|guru'])
         Route::get('/math-exams/create', [MathExamController::class, 'create'])->name('math.create');
         Route::post('/math-exams/store', [MathExamController::class, 'store'])->name('math.store');
         Route::get('/math-exams/{id}/show', [MathExamController::class, 'show'])->name('math.show');
+        Route::delete('/math-exams/{id}', [MathExamController::class, 'destroy'])->name('math.destroy');
     });
 
 // --- GROUP SISWA ---

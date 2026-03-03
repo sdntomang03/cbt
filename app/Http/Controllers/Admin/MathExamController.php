@@ -154,4 +154,14 @@ class MathExamController extends Controller
 
         return view('admin.math.show', compact('exam', 'stats'));
     }
+
+    public function destroy($id)
+    {
+        $exam = MathExam::findOrFail($id);
+
+        // Hapus ujian. (Otomatis menghapus data di tabel math_exam_users & math_exam_questions berkat cascade)
+        $exam->delete();
+
+        return redirect()->route('admin.math.index')->with('success', 'Ujian beserta seluruh data nilai siswa berhasil dihapus.');
+    }
 }

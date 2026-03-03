@@ -78,12 +78,24 @@
                                 </span>
                             </td>
 
-                            <td class="p-5 text-center">
-                                <button
-                                    class="bg-slate-100 hover:bg-indigo-100 text-slate-500 hover:text-indigo-600 px-4 py-2 rounded-xl font-bold text-xs transition-colors"
-                                    title="Lihat Nilai Siswa (Fitur Menyusul)">
-                                    Lihat Nilai
-                                </button>
+                            <td class="p-5">
+                                <div class="flex items-center justify-center gap-2">
+                                    <a href="{{ route('admin.math.show', $exam->id) }}"
+                                        class="bg-slate-100 hover:bg-indigo-500 text-slate-500 hover:text-white px-4 py-2 rounded-xl font-bold text-xs transition-all shadow-sm">
+                                        <i class="fas fa-list-ol mr-1"></i> Rekap
+                                    </a>
+
+                                    <form action="{{ route('admin.math.destroy', $exam->id) }}" method="POST"
+                                        onsubmit="return confirm('AWAS! Yakin ingin menghapus ujian ini? Seluruh data soal dan nilai siswa terkait akan terhapus permanen.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit"
+                                            class="bg-rose-50 hover:bg-rose-500 text-rose-500 hover:text-white w-8 h-8 rounded-xl flex items-center justify-center transition-all shadow-sm"
+                                            title="Hapus Ujian">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         @empty
