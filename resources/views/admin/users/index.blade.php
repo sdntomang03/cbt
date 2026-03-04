@@ -1,4 +1,12 @@
 <x-app-layout>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
+
     <x-slot name="header">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-4">
@@ -12,7 +20,7 @@
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-3" x-data>
+            <div class="flex flex-wrap items-center gap-3">
                 <button @click="$dispatch('open-import-modal')"
                     class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 active:scale-95 shadow-sm">
                     <i class="fas fa-file-excel text-emerald-500"></i>
@@ -36,7 +44,7 @@
         </div>
     </x-slot>
 
-    <div class="py-8 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6" x-data="{ importModal: false }"
+    <div class="py-8 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6" x-data="userManager()"
         @open-import-modal.window="importModal = true">
 
         {{-- Alert Success --}}
@@ -75,51 +83,62 @@
         </div>
         @endif
 
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
-                <form method="GET" action="{{ route('admin.users.index') }}"
-                    class="flex flex-wrap w-full md:max-w-4xl gap-3">
+        <div
+            class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
 
-                    {{-- DROPDOWN FILTER SEKOLAH (MUNCUL HANYA UNTUK ROLE ADMIN) --}}
-                    @if(auth()->user()->hasRole('admin'))
-                    <div class="relative flex-1 min-w-[200px]">
-                        <select name="school_id" onchange="this.form.submit()"
-                            class="w-full bg-slate-50 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition py-2.5 pl-4 pr-10 font-bold text-slate-600 appearance-none">
-                            <option value="">-- Semua Sekolah --</option>
-                            @foreach($schools as $school)
-                            <option value="{{ $school->id }}" {{ request('school_id')==$school->id ? 'selected' : '' }}>
-                                {{ $school->name }}
-                            </option>
-                            @endforeach
-                        </select>
-                        <i
-                            class="fas fa-chevron-down absolute right-4 top-4 text-xs text-slate-400 pointer-events-none"></i>
-                    </div>
-                    @endif
+            <div class="flex items-center gap-2 w-full md:w-auto">
+                <button x-show="selected.length > 0" x-cloak @click="deleteSelected()"
+                    class="bg-rose-500 hover:bg-rose-600 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-sm flex items-center gap-2 whitespace-nowrap active:scale-95">
+                    <i class="fas fa-trash-alt"></i> Hapus (<span x-text="selected.length"></span>)
+                </button>
 
-                    {{-- INPUT PENCARIAN --}}
-                    <div class="relative flex-[2] min-w-[250px]">
-                        <i class="fas fa-search absolute left-4 top-3.5 text-slate-400"></i>
-                        <input type="text" name="search" value="{{ request('search') }}"
-                            placeholder="Cari nama atau username/NISN..."
-                            class="w-full pl-11 pr-4 py-2.5 bg-slate-50 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition font-bold text-slate-600">
-                    </div>
-
-                    <button type="submit"
-                        class="bg-slate-900 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-slate-800 transition shadow-lg shadow-slate-200">
-                        Cari
-                    </button>
-
-                    {{-- TOMBOL RESET --}}
-                    @if(request('search') || request('school_id'))
-                    <a href="{{ route('admin.users.index') }}"
-                        class="bg-rose-50 text-rose-500 px-4 py-2.5 rounded-xl font-bold hover:bg-rose-500 hover:text-white transition flex items-center shadow-sm"
-                        title="Bersihkan Filter">
-                        <i class="fas fa-times"></i>
-                    </a>
-                    @endif
-                </form>
+                <button x-show="selected.length > 0" x-cloak @click="downloadSelected()"
+                    class="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-sm flex items-center gap-2 whitespace-nowrap active:scale-95">
+                    <i class="fas fa-file-export"></i> Download (<span x-text="selected.length"></span>)
+                </button>
             </div>
+
+            <form method="GET" action="{{ route('admin.users.index') }}"
+                class="flex flex-wrap w-full md:max-w-3xl gap-3 justify-end">
+
+                {{-- DROPDOWN FILTER SEKOLAH --}}
+                @if(auth()->user()->hasRole('admin'))
+                <div class="relative flex-1 min-w-[200px] md:max-w-[250px]">
+                    <select name="school_id" onchange="this.form.submit()"
+                        class="w-full bg-slate-50 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition py-2.5 pl-4 pr-10 font-bold text-slate-600 appearance-none">
+                        <option value="">-- Semua Sekolah --</option>
+                        @foreach($schools as $school)
+                        <option value="{{ $school->id }}" {{ request('school_id')==$school->id ? 'selected' : '' }}>
+                            {{ $school->name }}
+                        </option>
+                        @endforeach
+                    </select>
+                    <i
+                        class="fas fa-chevron-down absolute right-4 top-4 text-xs text-slate-400 pointer-events-none"></i>
+                </div>
+                @endif
+
+                {{-- INPUT PENCARIAN --}}
+                <div class="relative flex-[2] min-w-[250px] md:max-w-[300px]">
+                    <i class="fas fa-search absolute left-4 top-3.5 text-slate-400"></i>
+                    <input type="text" name="search" value="{{ request('search') }}"
+                        placeholder="Cari nama atau username..."
+                        class="w-full pl-11 pr-4 py-2.5 bg-slate-50 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition font-bold text-slate-600">
+                </div>
+
+                <button type="submit"
+                    class="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-slate-800 transition shadow-lg shadow-slate-200">
+                    Cari
+                </button>
+
+                @if(request('search') || request('school_id'))
+                <a href="{{ route('admin.users.index') }}"
+                    class="bg-rose-50 text-rose-500 px-4 py-2.5 rounded-xl font-bold hover:bg-rose-500 hover:text-white transition flex items-center shadow-sm"
+                    title="Bersihkan Filter">
+                    <i class="fas fa-times"></i>
+                </a>
+                @endif
+            </form>
         </div>
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -127,6 +146,10 @@
                 <table class="w-full text-left text-sm whitespace-nowrap">
                     <thead class="bg-slate-50/50 text-slate-500 text-xs uppercase font-black tracking-wider">
                         <tr>
+                            <th class="px-6 py-4 w-12 text-center">
+                                <input type="checkbox" x-model="selectAll"
+                                    class="rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 cursor-pointer">
+                            </th>
                             <th class="px-6 py-4">Nama & Email</th>
                             <th class="px-6 py-4">Username / NISN</th>
                             <th class="px-6 py-4">Nama Sekolah</th>
@@ -137,8 +160,12 @@
                     <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
 
                         @forelse($users as $user)
-
-                        <tr class="hover:bg-slate-50/50 transition">
+                        <tr class="hover:bg-slate-50/50 transition"
+                            :class="{'bg-indigo-50/50': selected.includes('{{ $user->id }}')}">
+                            <td class="px-6 py-4 text-center">
+                                <input type="checkbox" x-model="selected" value="{{ $user->id }}"
+                                    class="rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 cursor-pointer">
+                            </td>
                             <td class="px-6 py-4">
                                 <div class="font-bold text-slate-900 text-base">{{ $user->name }}</div>
                                 <div class="text-xs text-slate-500">{{ $user->email ?? '-' }}</div>
@@ -146,7 +173,6 @@
                             <td class="px-6 py-4 font-mono text-indigo-600 bg-indigo-50/30 rounded">{{ $user->username
                                 }}</td>
                             <td class="px-6 py-4">
-
                                 <div class="text-xs text-slate-500">{{ $user->school->name ?? '-' }}</div>
                             </td>
                             <td class="px-6 py-4 text-center">
@@ -179,7 +205,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="4" class="px-6 py-12 text-center text-slate-400 font-bold">
+                            <td colspan="6" class="px-6 py-12 text-center text-slate-400 font-bold">
                                 <i class="fas fa-inbox text-4xl mb-3 opacity-20 block"></i> Tidak ada data user
                                 ditemukan.
                             </td>
@@ -236,4 +262,94 @@
         </div>
 
     </div>
+
+    <script>
+        // Setup CSRF Token untuk Axios
+        let token = document.head.querySelector('meta[name="csrf-token"]');
+        if (token && window.axios) {
+            axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
+        }
+
+        function userManager() {
+            return {
+                importModal: false,
+                selected: [],
+                // Mengambil semua ID user yang ditampilkan di halaman ini saja (karena ada pagination)
+                userIdsOnPage: @json($users->pluck('id')->toArray()),
+
+                // Computed / Getter untuk Select All
+                get selectAll() {
+                    return this.userIdsOnPage.length > 0 && this.selected.length === this.userIdsOnPage.length;
+                },
+                set selectAll(value) {
+                    if (value) {
+                        // Ubah jadi string karena value dari input checkbox HTML ditangkap sebagai string
+                        this.selected = this.userIdsOnPage.map(String);
+                    } else {
+                        this.selected = [];
+                    }
+                },
+
+                // Fungsi Hapus Banyak
+                deleteSelected() {
+                    if (this.selected.length === 0) return;
+
+                    Swal.fire({
+                        title: 'Hapus ' + this.selected.length + ' User?',
+                        text: "Data yang dipilih akan dihapus secara permanen!",
+                        icon: 'warning',
+                        background: '#1e293b', color: '#fff',
+                        showCancelButton: true,
+                        confirmButtonColor: '#f43f5e',
+                        cancelButtonColor: '#475569',
+                        confirmButtonText: 'Ya, Hapus Semua',
+                        cancelButtonText: 'Batal'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            axios.delete('/admin/users/bulk-delete', {
+                                data: { ids: this.selected }
+                            })
+                            .then(res => {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Terhapus!',
+                                    text: res.data.message || 'Data berhasil dihapus',
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    // Refresh halaman karena ini tabel blade php (bukan ajax fetch)
+                                    window.location.reload();
+                                });
+                            })
+                            .catch(err => {
+                                let errorMsg = 'Terjadi kesalahan saat menghapus data.';
+                                if (err.response && err.response.data && err.response.data.message) {
+                                    errorMsg = err.response.data.message;
+                                }
+                                Swal.fire('Gagal!', errorMsg, 'error');
+                                console.error(err);
+                            });
+                        }
+                    });
+                },
+
+                // Fungsi Download Banyak
+                downloadSelected() {
+                    if (this.selected.length === 0) return;
+
+                    Swal.fire({
+                        title: 'Menyiapkan Unduhan...',
+                        text: `Sedang memproses ${this.selected.length} data user.`,
+                        icon: 'info',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+
+                    // Mengirim ID sebagai parameter URL GET
+                    const idsParam = this.selected.join(',');
+                    window.location.href = `/admin/users/export-selected?ids=${idsParam}`;
+                }
+            }
+        }
+    </script>
 </x-app-layout>

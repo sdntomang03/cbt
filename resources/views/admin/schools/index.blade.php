@@ -31,6 +31,16 @@
                 </div>
 
                 <div class="flex items-center gap-3">
+                    <button x-show="selected.length > 0" x-cloak @click="deleteSelected()"
+                        class="bg-rose-500 hover:bg-rose-600 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-lg shadow-rose-200 flex items-center gap-2 whitespace-nowrap active:scale-95">
+                        <i class="fas fa-trash-alt"></i> Hapus (<span x-text="selected.length"></span>)
+                    </button>
+
+                    <button x-show="selected.length > 0" x-cloak @click="downloadSelected()"
+                        class="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-lg shadow-emerald-200 flex items-center gap-2 whitespace-nowrap active:scale-95">
+                        <i class="fas fa-file-export"></i> Download (<span x-text="selected.length"></span>)
+                    </button>
+
                     <div class="relative w-full md:w-64">
                         <i class="fas fa-search absolute left-4 top-3.5 text-slate-400"></i>
                         <input type="text" x-model="search" placeholder="Cari sekolah..."
@@ -49,7 +59,11 @@
                         <thead>
                             <tr
                                 class="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                <th class="p-4 pl-6 w-16 text-center">No</th>
+                                <th class="p-4 pl-6 w-12 text-center">
+                                    <input type="checkbox" x-model="selectAll"
+                                        class="rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 cursor-pointer">
+                                </th>
+                                <th class="p-4 w-16 text-center">No</th>
                                 <th class="p-4">Nama Sekolah</th>
                                 <th class="p-4">Domain/Subdomain</th>
                                 <th class="p-4 pr-6 text-right">Aksi</th>
@@ -57,14 +71,19 @@
                         </thead>
                         <tbody class="divide-y divide-slate-100 text-sm font-bold text-slate-700">
                             <tr x-show="filteredSchools.length === 0" x-cloak>
-                                <td colspan="4" class="p-10 text-center text-slate-400">
+                                <td colspan="5" class="p-10 text-center text-slate-400">
                                     <i class="fas fa-inbox text-3xl mb-3 opacity-30 block"></i>
                                     Tidak ada data sekolah ditemukan.
                                 </td>
                             </tr>
                             <template x-for="(school, index) in filteredSchools" :key="school.id">
-                                <tr class="hover:bg-slate-50/50 transition-colors">
-                                    <td class="p-4 pl-6 text-center text-slate-400" x-text="index + 1"></td>
+                                <tr class="hover:bg-slate-50/50 transition-colors"
+                                    :class="{'bg-indigo-50/50': selected.includes(school.id)}">
+                                    <td class="p-4 pl-6 text-center">
+                                        <input type="checkbox" x-model="selected" :value="school.id"
+                                            class="rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 cursor-pointer">
+                                    </td>
+                                    <td class="p-4 text-center text-slate-400" x-text="index + 1"></td>
                                     <td class="p-4">
                                         <div class="flex items-center gap-3">
                                             <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-sm border border-indigo-100 shrink-0"
@@ -155,6 +174,17 @@
     </div>
 
     <script>
+        // --- TAMBAHAN PENTING: Setup CSRF Token untuk Axios ---
+        // Pastikan di file layout utama Anda (contoh: resources/views/layouts/app.blade.php)
+        // terdapat tag <meta name="csrf-token" content="{{ csrf_token() }}"> di dalam <head>
+        let token = document.head.querySelector('meta[name="csrf-token"]');
+        if (token) {
+            axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
+        } else {
+            console.error('CSRF token tidak ditemukan. Pastikan ada tag meta csrf-token di head!');
+        }
+        // ------------------------------------------------------
+
         function schoolManager() {
             return {
                 schools: @json($schools),
@@ -164,10 +194,22 @@
                 isLoading: false,
                 form: { id: '', name: '', domain: '' },
                 errors: {},
+                selected: [],
 
                 get filteredSchools() {
                     if (this.search === '') return this.schools;
                     return this.schools.filter(s => s.name.toLowerCase().includes(this.search.toLowerCase()));
+                },
+
+                get selectAll() {
+                    return this.filteredSchools.length > 0 && this.selected.length === this.filteredSchools.length;
+                },
+                set selectAll(value) {
+                    if (value) {
+                        this.selected = this.filteredSchools.map(school => school.id);
+                    } else {
+                        this.selected = [];
+                    }
                 },
 
                 openModal(school = null) {
@@ -185,14 +227,12 @@
                     this.isModalOpen = false;
                 },
 
-                // Refresh Data Tabel via AJAX
                 fetchData() {
                     axios.get('{{ route('admin.schools.index') }}', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                         .then(res => { this.schools = res.data.schools; })
                         .catch(err => console.error(err));
                 },
 
-                // Simpan atau Edit
                 submitForm() {
                     this.isLoading = true;
                     this.errors = {};
@@ -203,7 +243,7 @@
                         .then(res => {
                             this.closeModal();
                             Swal.fire({ icon: 'success', title: 'Berhasil!', text: res.data.message, timer: 1500, showConfirmButton: false });
-                            this.fetchData(); // Reload tabel secara live
+                            this.fetchData();
                         })
                         .catch(err => {
                             if (err.response && err.response.status === 422) {
@@ -215,7 +255,6 @@
                         .finally(() => this.isLoading = false);
                 },
 
-                // Hapus Data
                 deleteSchool(id, name) {
                     Swal.fire({
                         title: 'Hapus ' + name + '?',
@@ -229,11 +268,70 @@
                             axios.delete(`/admin/schools/${id}`)
                                 .then(res => {
                                     Swal.fire({ icon: 'success', title: 'Terhapus!', text: res.data.message, timer: 1500, showConfirmButton: false });
-                                    this.fetchData(); // Reload tabel secara live
+                                    this.fetchData();
+                                    this.selected = this.selected.filter(selectedId => selectedId !== id);
                                 })
                                 .catch(err => Swal.fire('Gagal!', 'Terjadi kesalahan.', 'error'));
                         }
                     })
+                },
+
+                deleteSelected() {
+                    if (this.selected.length === 0) return;
+
+                    Swal.fire({
+                        title: 'Hapus ' + this.selected.length + ' Data?',
+                        text: "Semua data yang dipilih akan dihapus secara permanen!",
+                        icon: 'warning',
+                        background: '#1e293b', color: '#fff',
+                        showCancelButton: true,
+                        confirmButtonColor: '#f43f5e',
+                        cancelButtonColor: '#475569',
+                        confirmButtonText: 'Ya, Hapus Semua',
+                        cancelButtonText: 'Batal'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            axios.delete('/admin/schools/bulk-delete', {
+                                data: { ids: this.selected }
+                            })
+                            .then(res => {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Terhapus!',
+                                    text: res.data.message || 'Data berhasil dihapus',
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                });
+
+                                this.selected = [];
+                                this.fetchData();
+                            })
+                            .catch(err => {
+                                // --- TAMBAHAN PENTING: Tangkap pesan error spesifik dari server ---
+                                let errorMsg = 'Terjadi kesalahan saat menghapus data.';
+                                if (err.response && err.response.data && err.response.data.message) {
+                                    errorMsg = err.response.data.message; // Menampilkan pesan error asli dari backend
+                                }
+                                Swal.fire('Gagal!', errorMsg, 'error');
+                                console.error('Error Detail:', err.response || err);
+                            });
+                        }
+                    });
+                },
+
+                downloadSelected() {
+                    if (this.selected.length === 0) return;
+
+                    Swal.fire({
+                        title: 'Menyiapkan Unduhan...',
+                        text: `Sedang memproses ${this.selected.length} data sekolah.`,
+                        icon: 'info',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+
+                    const idsParam = this.selected.join(',');
+                    window.location.href = `/admin/schools/export?ids=${idsParam}`;
                 }
             }
         }

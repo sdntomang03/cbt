@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\UsersExport;
 use App\Exports\UsersTemplateExport;
 use App\Http\Controllers\Controller;
 use App\Imports\UsersImport;
@@ -172,5 +173,61 @@ class UserController extends Controller
 
         // Download file Excel
         return Excel::download(new UsersTemplateExport($schoolId), 'format_import_user.xlsx');
+    }
+
+    /**
+     * Menghapus banyak user sekaligus berdasarkan ID yang dipilih.
+     */
+    public function bulkDelete(Request $request)
+    {
+        // Validasi data yang dikirim
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:users,id',
+        ]);
+
+        try {
+            // (Opsional) Cegah user yang sedang login terhapus secara tidak sengaja
+            $idsToDelete = array_diff($request->ids, [auth()->id()]);
+
+            if (empty($idsToDelete)) {
+                return response()->json([
+                    'message' => 'Gagal: Anda tidak dapat menghapus akun Anda sendiri dari daftar.',
+                ], 422);
+            }
+
+            // Eksekusi hapus
+            $deletedCount = \App\Models\User::whereIn('id', $idsToDelete)->delete();
+
+            return response()->json([
+                'message' => $deletedCount.' data user berhasil dihapus.',
+            ]);
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Tangani error jika user masih berelasi dengan data lain (misal: nilai ujian)
+            if ($e->getCode() == '23000') {
+                return response()->json([
+                    'message' => 'Gagal! Beberapa user tidak dapat dihapus karena masih terhubung dengan data lain.',
+                ], 422);
+            }
+
+            return response()->json(['message' => 'Terjadi kesalahan pada server/database.'], 500);
+        }
+    }
+
+    public function exportSelected(Request $request)
+    {
+        // Ambil parameter ids dari URL
+        $idsString = $request->query('ids');
+
+        if (empty($idsString)) {
+            return back()->with('error', 'Tidak ada data user yang dipilih untuk didownload.');
+        }
+
+        // Pecah string "1,2,3" menjadi array [1, 2, 3]
+        $ids = explode(',', $idsString);
+
+        // Download menggunakan class Export (lihat langkah ke-3 di bawah)
+        return Excel::download(new UsersExport($ids), 'Data_User_Terpilih.xlsx');
     }
 }

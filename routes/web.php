@@ -39,8 +39,14 @@ Route::middleware(['auth', 'role:admin|guru'])
     ->name('admin.') // Prefix nama route jadi 'admin.exams.index', dll
     ->group(function () {
         // Manajemen Sekolah (CRUD AJAX)
+        // 1. Pindahkan route custom ke PALING ATAS
+        Route::get('/schools/export', [SchoolController::class, 'export'])->name('schools.export'); // Typo aschools saya perbaiki jadi schools
+        Route::delete('/schools/bulk-delete', [SchoolController::class, 'bulkDelete'])->name('schools.bulk-delete');
+
+        // 2. Route resource letakkan di BAWAH route custom
         Route::resource('schools', SchoolController::class)->except(['create', 'show', 'edit']);
-        // 1. Manajemen Ujian (Bank Soal)
+
+        // 3. Manajemen Ujian (Bank Soal)
         Route::resource('exams', ExamController::class);
 
         // 2. Manajemen Soal (AJAX)
@@ -117,7 +123,8 @@ Route::middleware(['auth', 'role:admin|guru'])->prefix('proctor')->name('proctor
 
 });
 Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
-
+    Route::delete('/users/bulk-delete', [UserController::class, 'bulkDelete'])->name('users.bulk-delete');
+    Route::get('/users/export-selected', [UserController::class, 'exportSelected'])->name('users.export-selected');
     // Route khusus Import Excel (Harus diletakkan DI ATAS route resource)
     Route::post('/users/import', [UserController::class, 'importExcel'])->name('users.import');
     Route::get('/users/download-template', [UserController::class, 'downloadTemplate'])->name('users.download-template');
