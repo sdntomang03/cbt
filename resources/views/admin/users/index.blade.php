@@ -21,7 +21,7 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-3">
-                <button @click="$dispatch('open-import-modal')"
+                <button x-data @click="$dispatch('buka-modal-import')"
                     class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 active:scale-95 shadow-sm">
                     <i class="fas fa-file-excel text-emerald-500"></i>
                     <span>Import Excel</span>
@@ -44,8 +44,7 @@
         </div>
     </x-slot>
 
-    <div class="py-8 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6" x-data="userManager()"
-        @open-import-modal.window="importModal = true">
+    <div class="py-8 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6" x-data="userManager()">
 
         {{-- Alert Success --}}
         @if(session('success'))
@@ -100,17 +99,14 @@
 
             <form method="GET" action="{{ route('admin.users.index') }}"
                 class="flex flex-wrap w-full md:max-w-3xl gap-3 justify-end">
-
-                {{-- DROPDOWN FILTER SEKOLAH --}}
                 @if(auth()->user()->hasRole('admin'))
                 <div class="relative flex-1 min-w-[200px] md:max-w-[250px]">
                     <select name="school_id" onchange="this.form.submit()"
                         class="w-full bg-slate-50 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition py-2.5 pl-4 pr-10 font-bold text-slate-600 appearance-none">
                         <option value="">-- Semua Sekolah --</option>
                         @foreach($schools as $school)
-                        <option value="{{ $school->id }}" {{ request('school_id')==$school->id ? 'selected' : '' }}>
-                            {{ $school->name }}
-                        </option>
+                        <option value="{{ $school->id }}" {{ request('school_id')==$school->id ? 'selected' : '' }}>{{
+                            $school->name }}</option>
                         @endforeach
                     </select>
                     <i
@@ -118,7 +114,6 @@
                 </div>
                 @endif
 
-                {{-- INPUT PENCARIAN --}}
                 <div class="relative flex-[2] min-w-[250px] md:max-w-[300px]">
                     <i class="fas fa-search absolute left-4 top-3.5 text-slate-400"></i>
                     <input type="text" name="search" value="{{ request('search') }}"
@@ -127,9 +122,7 @@
                 </div>
 
                 <button type="submit"
-                    class="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-slate-800 transition shadow-lg shadow-slate-200">
-                    Cari
-                </button>
+                    class="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-slate-800 transition shadow-lg shadow-slate-200">Cari</button>
 
                 @if(request('search') || request('school_id'))
                 <a href="{{ route('admin.users.index') }}"
@@ -158,7 +151,6 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
-
                         @forelse($users as $user)
                         <tr class="hover:bg-slate-50/50 transition"
                             :class="{'bg-indigo-50/50': selected.includes('{{ $user->id }}')}">
@@ -176,18 +168,14 @@
                                 <div class="text-xs text-slate-500">{{ $user->school->name ?? '-' }}</div>
                             </td>
                             <td class="px-6 py-4 text-center">
-                                @if($user->hasRole('admin'))
-                                <span
+                                @if($user->hasRole('admin')) <span
                                     class="bg-rose-100 text-rose-600 px-3 py-1 rounded-full text-xs font-black uppercase">Admin</span>
-                                @elseif($user->hasRole('guru'))
-                                <span
+                                @elseif($user->hasRole('guru')) <span
                                     class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-black uppercase">Guru</span>
-                                @else
-                                <span
+                                @else <span
                                     class="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-xs font-black uppercase">Siswa</span>
                                 @endif
                             </td>
-
                             <td class="px-6 py-4 text-right space-x-2">
                                 <a href="{{ route('admin.users.edit', $user->id) }}"
                                     class="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition">
@@ -220,51 +208,50 @@
             </div>
             @endif
         </div>
+    </div> {{-- ================= MODAL IMPORT (DIPISAHKAN DARI WRAPPER) ================= --}}
+    <div x-data="{ isModalOpen: false }" @buka-modal-import.window="isModalOpen = true" x-show="isModalOpen"
+        style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center p-4">
 
-        <div x-show="importModal" style="display: none;"
-            class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div x-show="importModal" x-transition.opacity class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
-                @click="importModal = false"></div>
+        <div x-show="isModalOpen" x-transition.opacity class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+            @click="isModalOpen = false"></div>
 
-            <div x-show="importModal" x-transition.scale.origin.bottom
-                class="bg-white rounded-[2rem] shadow-2xl max-w-md w-full relative z-10 overflow-hidden border-4 border-white">
-                <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                    <h3 class="font-black text-slate-800"><i class="fas fa-file-excel text-emerald-500 mr-2"></i> Import
-                        Data Excel</h3>
-                    <button @click="importModal = false"
-                        class="text-slate-400 hover:text-rose-500 w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm"><i
-                            class="fas fa-times"></i></button>
-                </div>
-
-                <form action="{{ route('admin.users.import') }}" method="POST" enctype="multipart/form-data"
-                    class="p-6 space-y-6">
-                    @csrf
-                    <div>
-                        <label class="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Pilih File
-                            (.xlsx, .xls)</label>
-                        <input type="file" name="file_excel" accept=".xlsx, .xls, .csv" required
-                            class="block w-full text-sm text-slate-500 file:mr-4 file:py-3 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 border border-slate-200 rounded-xl cursor-pointer bg-slate-50">
-                    </div>
-                    <div
-                        class="bg-amber-50 text-amber-700 p-4 rounded-xl text-xs font-bold leading-relaxed border border-amber-100">
-                        <i class="fas fa-info-circle mr-1"></i> Pastikan baris pertama Excel berisi tulisan persis
-                        seperti ini (huruf kecil):
-                        <span
-                            class="font-mono bg-white px-2 py-0.5 rounded text-amber-600 block mt-2 border border-amber-200">nama
-                            | username | email | password | role</span>
-                    </div>
-                    <button type="submit"
-                        class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-xl font-black transition shadow-lg shadow-emerald-200">
-                        <i class="fas fa-upload mr-2"></i> Mulai Proses Import
-                    </button>
-                </form>
+        <div x-show="isModalOpen" x-transition.scale.origin.bottom
+            class="bg-white rounded-[2rem] shadow-2xl max-w-md w-full relative z-10 overflow-hidden border-4 border-white">
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-black text-slate-800"><i class="fas fa-file-excel text-emerald-500 mr-2"></i> Import
+                    Data Excel</h3>
+                <button @click="isModalOpen = false"
+                    class="text-slate-400 hover:text-rose-500 w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm"><i
+                        class="fas fa-times"></i></button>
             </div>
-        </div>
 
+            <form action="{{ route('admin.users.import') }}" method="POST" enctype="multipart/form-data"
+                class="p-6 space-y-6">
+                @csrf
+                <div>
+                    <label class="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Pilih File
+                        (.xlsx, .xls)</label>
+                    <input type="file" name="file_excel" accept=".xlsx, .xls, .csv" required
+                        class="block w-full text-sm text-slate-500 file:mr-4 file:py-3 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 border border-slate-200 rounded-xl cursor-pointer bg-slate-50">
+                </div>
+                <div
+                    class="bg-amber-50 text-amber-700 p-4 rounded-xl text-xs font-bold leading-relaxed border border-amber-100">
+                    <i class="fas fa-info-circle mr-1"></i> Pastikan baris pertama Excel berisi tulisan persis seperti
+                    ini (huruf kecil):
+                    <span
+                        class="font-mono bg-white px-2 py-0.5 rounded text-amber-600 block mt-2 border border-amber-200">nama
+                        | username | email | password | role</span>
+                </div>
+                <button type="submit"
+                    class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-xl font-black transition shadow-lg shadow-emerald-200">
+                    <i class="fas fa-upload mr-2"></i> Mulai Proses Import
+                </button>
+            </form>
+        </div>
     </div>
+    {{-- ================= END MODAL ================= --}}
 
     <script>
-        // Setup CSRF Token untuk Axios
         let token = document.head.querySelector('meta[name="csrf-token"]');
         if (token && window.axios) {
             axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
@@ -272,80 +259,49 @@
 
         function userManager() {
             return {
-                importModal: false,
                 selected: [],
-                // Mengambil semua ID user yang ditampilkan di halaman ini saja (karena ada pagination)
                 userIdsOnPage: @json($users->pluck('id')->toArray()),
 
-                // Computed / Getter untuk Select All
                 get selectAll() {
                     return this.userIdsOnPage.length > 0 && this.selected.length === this.userIdsOnPage.length;
                 },
                 set selectAll(value) {
                     if (value) {
-                        // Ubah jadi string karena value dari input checkbox HTML ditangkap sebagai string
                         this.selected = this.userIdsOnPage.map(String);
                     } else {
                         this.selected = [];
                     }
                 },
 
-                // Fungsi Hapus Banyak
                 deleteSelected() {
                     if (this.selected.length === 0) return;
-
                     Swal.fire({
                         title: 'Hapus ' + this.selected.length + ' User?',
                         text: "Data yang dipilih akan dihapus secara permanen!",
                         icon: 'warning',
                         background: '#1e293b', color: '#fff',
                         showCancelButton: true,
-                        confirmButtonColor: '#f43f5e',
-                        cancelButtonColor: '#475569',
-                        confirmButtonText: 'Ya, Hapus Semua',
-                        cancelButtonText: 'Batal'
+                        confirmButtonColor: '#f43f5e', cancelButtonColor: '#475569',
+                        confirmButtonText: 'Ya, Hapus Semua', cancelButtonText: 'Batal'
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            axios.delete('/admin/users/bulk-delete', {
-                                data: { ids: this.selected }
-                            })
+                            axios.delete('/admin/users/bulk-delete', { data: { ids: this.selected } })
                             .then(res => {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Terhapus!',
-                                    text: res.data.message || 'Data berhasil dihapus',
-                                    timer: 1500,
-                                    showConfirmButton: false
-                                }).then(() => {
-                                    // Refresh halaman karena ini tabel blade php (bukan ajax fetch)
-                                    window.location.reload();
-                                });
+                                Swal.fire({ icon: 'success', title: 'Terhapus!', text: res.data.message || 'Data berhasil dihapus', timer: 1500, showConfirmButton: false })
+                                .then(() => { window.location.reload(); });
                             })
                             .catch(err => {
                                 let errorMsg = 'Terjadi kesalahan saat menghapus data.';
-                                if (err.response && err.response.data && err.response.data.message) {
-                                    errorMsg = err.response.data.message;
-                                }
+                                if (err.response && err.response.data && err.response.data.message) { errorMsg = err.response.data.message; }
                                 Swal.fire('Gagal!', errorMsg, 'error');
-                                console.error(err);
                             });
                         }
                     });
                 },
 
-                // Fungsi Download Banyak
                 downloadSelected() {
                     if (this.selected.length === 0) return;
-
-                    Swal.fire({
-                        title: 'Menyiapkan Unduhan...',
-                        text: `Sedang memproses ${this.selected.length} data user.`,
-                        icon: 'info',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-
-                    // Mengirim ID sebagai parameter URL GET
+                    Swal.fire({ title: 'Menyiapkan Unduhan...', text: `Sedang memproses ${this.selected.length} data user.`, icon: 'info', timer: 2000, showConfirmButton: false });
                     const idsParam = this.selected.join(',');
                     window.location.href = `/admin/users/export-selected?ids=${idsParam}`;
                 }
