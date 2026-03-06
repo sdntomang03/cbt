@@ -19,7 +19,9 @@
 
     @foreach($exam->examUsers->sortByDesc('score') as $index => $user)
     <tr>
-        <td style="text-align: center; border: 1px solid #000;">{{ $index + 1 }}</td>
+        <td style="text-align: center; border: 1px solid #000;">
+            {{ $loop->iteration }}
+        </td>
         <td style="border: 1px solid #000;">{{ $user->student->name ?? 'Siswa Terhapus' }}</td>
         <td style="border: 1px solid #000;">{{ $user->student->school->name ?? 'Pusat' }}</td>
         <td style="text-align: center; border: 1px solid #000;">
