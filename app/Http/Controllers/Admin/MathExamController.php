@@ -228,16 +228,9 @@ class MathExamController extends Controller
             $examUser->update([
                 'status' => 'not_started',
                 'score' => 0,
+                'started_at' => null,
+                'finished_at' => null,
             ]);
-
-            // 2. Kosongkan semua jawaban siswa di tabel soal
-            // PERHATIKAN: Jika error terjadi di sini, berarti nama kolomnya berbeda di database Anda
-            MathExamQuestion::where('math_exam_id', $examUser->math_exam_id)
-                ->where('student_id', $examUser->student_id)
-                ->update([
-                    'user_answer' => null,
-                    'is_correct' => null,
-                ]);
 
             return redirect()->back()->with('success', 'Ujian peserta berhasil direset.');
 
