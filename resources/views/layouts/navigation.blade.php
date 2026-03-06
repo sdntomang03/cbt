@@ -125,6 +125,10 @@
             <x-responsive-nav-link :href="route('student.dashboard')" :active="request()->routeIs('student.dashboard')">
                 {{ __('Ruang Ujian') }}
             </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('student.math.index')"
+                :active="request()->routeIs('student.math.index')">
+                {{ __('Latihan Hitung') }}
+            </x-responsive-nav-link>
             @endrole
         </div>
 
