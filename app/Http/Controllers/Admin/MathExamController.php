@@ -166,8 +166,8 @@ class MathExamController extends Controller
     // Menampilkan Rekap Daftar Nilai Siswa
     public function show($id)
     {
-        // Ambil data Master Ujian beserta Sesi Siswanya (lengkap dengan data siswa dan sekolah)
-        $exam = MathExam::with(['examUsers.student.school'])->findOrFail($id);
+        // PERHATIKAN BAGIAN INI: Tambahkan 'examUsers.questions' di dalam array
+        $exam = MathExam::with(['examUsers.student.school', 'questions'])->findOrFail($id);
 
         // Pisahkan data untuk menghitung statistik (Hanya yang sudah selesai)
         $completedUsers = $exam->examUsers->where('status', 'completed');
