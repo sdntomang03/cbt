@@ -72,14 +72,15 @@
         {{-- DASHBOARD ANALISIS PENGUASAAN KELAS PER JENIS SOAL --}}
         {{-- ================================================================= --}}
         @php
-        // Kumpulkan SEMUA pertanyaan dari SEMUA siswa yang mengikuti ujian ini
-        $allQuestions = $exam->examUsers->flatMap->questions;
+        // Ambil semua soal langsung dari relasi $exam->questions
+        $allQuestions = $exam->questions;
 
         // Hitung statistik per operator
         $classStats = collect(['+' => 'Penjumlahan', '-' => 'Pengurangan', 'x' => 'Perkalian', ':' => 'Pembagian'])
         ->map(function ($name, $op) use ($allQuestions) {
         $soal = $allQuestions->where('operator', $op);
         $total = $soal->count();
+
         if ($total === 0) return null; // Abaikan jika tipe ini tidak ada di ujian
 
         $benar = $soal->where('is_correct', true)->count();
@@ -119,7 +120,8 @@
                             {{ $stat->total }} soal</span>
                     </div>
                     <div class="w-full bg-black/10 h-2 rounded-full mt-4 overflow-hidden shadow-inner">
-                        <div class="{{ $stat->barColor }} h-2 rounded-full" style="width: {{ $stat->persen }}%"></div>
+                        <div class="{{ $stat->barColor }} h-2 rounded-full transition-all duration-1000"
+                            style="width: {{ $stat->persen }}%"></div>
                     </div>
                 </div>
                 @endforeach
