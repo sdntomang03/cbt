@@ -217,30 +217,33 @@ class MathExamController extends Controller
         return Excel::download(new MathExamRecapExport($id), $fileName);
     }
 
-    // Reset Ujian Siswa (Mengulang dari awal)
+    // Reset Ujian Siswa
     public function resetStudentExam($examUserId)
     {
-        // Cari data Sesi Ujian Siswa
-        $examUser = MathExamUser::findOrFail($examUserId);
+        try {
+            // Cari data Sesi Ujian Siswa
+            $examUser = MathExamUser::findOrFail($examUserId);
 
-        // 1. Kembalikan status menjadi not_started dan kosongkan nilai
-        $examUser->update([
-            'status' => 'not_started',
-            'score' => null, // atau null, sesuaikan dengan struktur database Anda
-            // Jika ada field waktu mulai/selesai, silakan di-uncomment:
-            'started_at' => null,
-            'finished_at' => null,
-        ]);
-
-        // 2. Kosongkan semua jawaban siswa di tabel soal untuk ujian ini
-        MathExamQuestion::where('math_exam_id', $examUser->math_exam_id)
-            ->where('student_id', $examUser->student_id)
-            ->update([
-                'user_answer' => null, // Hapus jawaban yang sudah diisi
-                'is_correct' => null,  // Hapus status benar/salah
-
+            // 1. Kembalikan status menjadi not_started dan kosongkan nilai
+            $examUser->update([
+                'status' => 'not_started',
+                'score' => 0,
             ]);
 
-        return redirect()->route('admin.math.index')->with('success', 'Berhasil menghapus data peserta ujian.');
+            // 2. Kosongkan semua jawaban siswa di tabel soal
+            // PERHATIKAN: Jika error terjadi di sini, berarti nama kolomnya berbeda di database Anda
+            MathExamQuestion::where('math_exam_id', $examUser->math_exam_id)
+                ->where('student_id', $examUser->student_id)
+                ->update([
+                    'user_answer' => null,
+                    'is_correct' => null,
+                ]);
+
+            return redirect()->back()->with('success', 'Ujian peserta berhasil direset.');
+
+        } catch (\Exception $e) {
+            // Jika terjadi Error 500, kita tangkap dan tampilkan pesan aslinya
+            return redirect()->back()->with('error', 'Gagal mereset! Pesan Error: '.$e->getMessage());
+        }
     }
 }

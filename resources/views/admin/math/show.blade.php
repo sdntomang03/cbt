@@ -203,23 +203,33 @@
                             </td>
 
                             <td class="p-5 text-center">
-                                @if($user->status === 'completed')
-                                <span
-                                    class="text-2xl font-black {{ $user->score >= 70 ? 'text-emerald-500' : 'text-rose-500' }}">{{
-                                    $user->score }}</span>
-                                @else
-                                <span class="text-slate-300 font-bold text-xl">-</span>
-                                @endif
-                                <a href="{{ route('admin.math.student_result', $user->id) }}"
-                                    class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-500 hover:bg-indigo-500 hover:text-white transition-colors"
-                                    title="Lihat Lembar Jawaban">
-                                    <i class="fas fa-search"></i>
-                                </a>
-                                <form action="{{ route('admin.math.resetStudent', $user->id) }}" method="POST"
-                                    onsubmit="return confirm('Yakin ingin mereset ujian siswa ini? Semua jawaban sebelumnya akan hilang.');">
-                                    @csrf
-                                    <button type="submit" class="btn btn-warning btn-sm">Reset Ujian</button>
-                                </form>
+                                <div class="mb-3">
+                                    @if($user->status === 'completed')
+                                    <span
+                                        class="text-2xl font-black {{ $user->score >= 70 ? 'text-emerald-500' : 'text-rose-500' }}">
+                                        {{ $user->score }}
+                                    </span>
+                                    @else
+                                    <span class="text-slate-300 font-bold text-xl">-</span>
+                                    @endif
+                                </div>
+
+                                <div class="flex items-center justify-center gap-2">
+                                    <a href="{{ route('admin.math.student_result', $user->id) }}"
+                                        class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-500 hover:bg-indigo-500 hover:text-white transition-colors"
+                                        title="Lihat Lembar Jawaban">
+                                        <i class="fas fa-search"></i>
+                                    </a>
+
+                                    <form action="{{ route('admin.math.resetStudent', $user->id) }}" method="POST"
+                                        class="m-0 p-0"
+                                        onsubmit="return confirm('Yakin ingin mereset ujian siswa ini? Semua jawaban sebelumnya akan hilang.');">
+                                        @csrf
+                                        <button type="submit" class="btn btn-warning btn-sm" title="Reset Ujian">
+                                            <i class="fas fa-undo"></i> Reset
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         @empty
