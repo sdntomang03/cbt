@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
+use function Symfony\Component\Clock\now;
+
 class UsersImport implements ToCollection, WithHeadingRow
 {
     /**
@@ -33,13 +35,19 @@ class UsersImport implements ToCollection, WithHeadingRow
             }
 
             // 1. Simpan User ke database beserta school_id-nya
-            $user = User::create([
-                'name' => $row['nama'],
-                'username' => $row['username'], // Misal NISN untuk siswa
-                'email' => $row['email'] ?? null,
-                'password' => Hash::make($row['password'] ?? '12345678'),
-                'school_id' => $row['school_id'] ?? auth()->user()->school_id, // Wajib diisi agar tidak error 1364
-            ]);
+            $user = User::updateOrCreate(
+                [
+                    'username' => $row['username'], // Kunci pencarian (Harus Unik)
+                ],
+                [
+                    'name' => $row['nama'],
+                    'email' => $row['email'] ?? null,
+                    // Jangan timpa password jika user sudah ada (kecuali diisi di excel)
+                    'password' => isset($row['password']) ? Hash::make($row['password']) : Hash::make('12345678'),
+                    'school_id' => $row['school_id'] ?? auth()->user()->school_id,
+                    'email_verified_at' => now(),
+                ]
+            );
 
             // 2. Berikan Role menggunakan Spatie Permission
             $roleName = ! empty($row['role']) ? strtolower($row['role']) : 'siswa';
