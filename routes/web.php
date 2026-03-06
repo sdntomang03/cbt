@@ -9,6 +9,7 @@ use App\Http\Controllers\ImageUploadController;
 use App\Http\Controllers\ProctorController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QuestionAjaxController;
+use App\Http\Controllers\Student\MathExamController as StudentMathExamController;
 use App\Http\Controllers\Student\StudentExamController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,111 +27,103 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// --- GROUP PROFILE (Bawaan Breeze/Jetstream) ---
+// ==================================================================
+// GROUP PROFILE (Bawaan Breeze/Jetstream)
+// ==================================================================
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// --- GROUP ADMIN & GURU ---
+// ==================================================================
+// GROUP ADMIN & GURU
+// ==================================================================
 Route::middleware(['auth', 'role:admin|guru'])
     ->prefix('admin')
-    ->name('admin.') // Prefix nama route jadi 'admin.exams.index', dll
+    ->name('admin.') // Menambahkan prefix 'admin.' pada semua name() di dalamnya
     ->group(function () {
-        // Manajemen Sekolah (CRUD AJAX)
-        // 1. Pindahkan route custom ke PALING ATAS
-        Route::get('/schools/export', [SchoolController::class, 'export'])->name('schools.export'); // Typo aschools saya perbaiki jadi schools
-        Route::delete('/schools/bulk-delete', [SchoolController::class, 'bulkDelete'])->name('schools.bulk-delete');
 
-        // 2. Route resource letakkan di BAWAH route custom
+        // --- 1. Manajemen Sekolah ---
+        Route::get('/schools/export', [SchoolController::class, 'export'])->name('schools.export');
+        Route::delete('/schools/bulk-delete', [SchoolController::class, 'bulkDelete'])->name('schools.bulk-delete');
         Route::resource('schools', SchoolController::class)->except(['create', 'show', 'edit']);
 
-        // 3. Manajemen Ujian (Bank Soal)
+        // --- 2. Manajemen Ujian (Bank Soal) ---
+        Route::get('/exams/{exam}/export', [ExamController::class, 'exportGrades'])->name('exams.export');
         Route::resource('exams', ExamController::class);
 
-        // 2. Manajemen Soal (AJAX)
+        // --- 3. Manajemen Soal (AJAX) ---
         Route::get('/exams/{exam}/questions', [QuestionAjaxController::class, 'index'])->name('ajax.questions.index');
         Route::post('/exams/{exam}/questions', [QuestionAjaxController::class, 'store'])->name('ajax.questions.store');
         Route::put('/questions/{question}', [QuestionAjaxController::class, 'update'])->name('ajax.questions.update');
         Route::delete('/questions/{question}', [QuestionAjaxController::class, 'destroy'])->name('ajax.questions.destroy');
 
-        // 3. Upload Gambar (Untuk Summernote/CKEditor)
+        // --- 4. Upload Gambar (Summernote/CKEditor) ---
         Route::post('/upload-image', [ImageUploadController::class, 'store'])->name('image.upload');
 
-        // 4. Manajemen Sesi Ujian (Jadwal) - INI YANG BARU
-        Route::resource('exam-sessions', ExamSessionController::class);
-        Route::post('exam-sessions/{exam_session}/regenerate-token', [ExamSessionController::class, 'regenerateToken'])
-            ->name('exam-sessions.regenerate-token');
-
+        // --- 5. Manajemen Sesi Ujian (Jadwal) ---
+        Route::post('exam-sessions/{exam_session}/regenerate-token', [ExamSessionController::class, 'regenerateToken'])->name('exam-sessions.regenerate-token');
         Route::get('exam-sessions/{exam_session}/students', [ExamSessionController::class, 'studentIndex'])->name('exam-sessions.students.index');
         Route::post('exam-sessions/{exam_session}/students', [ExamSessionController::class, 'studentStore'])->name('exam-sessions.students.store');
-        Route::delete('exam-sessions/{examSession}/students/mass-destroy', [ExamSessionController::class, 'destroyMass'])
-            ->name('exam-sessions.students.destroyMass');
-        Route::get('/exams/{exam}/export', [ExamController::class, 'exportGrades'])->name('exams.export');
+        Route::delete('exam-sessions/{examSession}/students/mass-destroy', [ExamSessionController::class, 'destroyMass'])->name('exam-sessions.students.destroyMass');
+        Route::resource('exam-sessions', ExamSessionController::class);
+
+        // --- 6. Ujian Matematika (Admin) ---
         Route::get('/math-exams', [MathExamController::class, 'index'])->name('math.index');
         Route::get('/math-exams/create', [MathExamController::class, 'create'])->name('math.create');
         Route::post('/math-exams/store', [MathExamController::class, 'store'])->name('math.store');
         Route::get('/math-exams/{id}/show', [MathExamController::class, 'show'])->name('math.show');
         Route::delete('/math-exams/{id}', [MathExamController::class, 'destroy'])->name('math.destroy');
         Route::get('/math-exams/result/{examUserId}', [MathExamController::class, 'showStudentResult'])->name('math.student_result');
+        // Export Excel
         Route::get('/math-exams/{id}/export-recap', [MathExamController::class, 'exportRecap'])->name('math.recap_export');
+        Route::get('/math-exams/result/{examUserId}/export', [MathExamController::class, 'exportStudentResult'])->name('math.student_result_export');
+
+        // --- 7. Manajemen Users ---
+        Route::delete('/users/bulk-delete', [UserController::class, 'bulkDelete'])->name('users.bulk-delete');
+        Route::get('/users/export-selected', [UserController::class, 'exportSelected'])->name('users.export-selected');
+        Route::post('/users/import', [UserController::class, 'importExcel'])->name('users.import');
+        Route::get('/users/download-template', [UserController::class, 'downloadTemplate'])->name('users.download-template');
+        Route::resource('users', UserController::class);
+
     });
 
-// --- GROUP SISWA ---
+// ==================================================================
+// GROUP PROCTOR / PENGAWAS
+// ==================================================================
+Route::middleware(['auth', 'role:admin|guru'])
+    ->prefix('proctor')
+    ->name('proctor.')
+    ->group(function () {
+        Route::get('/sessions', [ProctorController::class, 'index'])->name('index');
+        Route::get('/sessions/{exam_session}/monitor', [ProctorController::class, 'show'])->name('monitor');
+        Route::post('/sessions/{exam_session}/unlock/{student}', [ProctorController::class, 'unlock'])->name('unlock');
+        Route::post('/sessions/{exam_session}/force-finish/{student}', [ProctorController::class, 'forceFinish'])->name('force-finish');
+        Route::post('/sessions/{exam_session}/reset/{student}', [ProctorController::class, 'reset'])->name('reset');
+    });
+
+// ==================================================================
+// GROUP SISWA
+// ==================================================================
 Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
+
+    // --- 1. Dashboard Utama Siswa ---
     Route::get('/siswa', [StudentExamController::class, 'index'])->name('student.dashboard');
+
+    // --- 2. Ujian Biasa (Reguler) ---
+    Route::get('/exam/{exam}/verify', [StudentExamController::class, 'showVerifyPage'])->name('student.exam.verify.show');
+    Route::post('/exam/{exam}/verify', [StudentExamController::class, 'processToken'])->name('student.exam.verify.process');
     Route::get('/exam/{exam}/run', [StudentExamController::class, 'run'])->name('student.exam.run');
     Route::post('/exam/save-answer', [StudentExamController::class, 'saveAnswer'])->name('student.exam.save');
-    // routes/web.php
     Route::post('/exam/{exam}/finish', [StudentExamController::class, 'finish'])->name('student.exam.finish');
     Route::post('/exam/record-violation', [StudentExamController::class, 'recordViolation'])->name('student.exam.violation');
-    // Pastikan berada di dalam middleware yang melindungi route untuk siswa
-    Route::middleware(['auth'])->group(function () {
-        // 1. Route untuk MENAMPILKAN halaman verifikasi token
-        Route::get('/exam/{exam}/verify', [StudentExamController::class, 'showVerifyPage'])
-            ->name('student.exam.verify.show');
 
-        // 2. Route untuk MEMPROSES token (saat form disubmit)
-        Route::post('/exam/{exam}/verify', [StudentExamController::class, 'processToken'])
-            ->name('student.exam.verify.process');
-    });
-    // Daftar Ujian Matematika Siswa
-    Route::get('/math-exams', [\App\Http\Controllers\Student\MathExamController::class, 'index'])
-        ->name('student.math.index');
-
-    // Ujian Matematika Berjalan & Submit
-    Route::get('/math-exam/{id}/run', [\App\Http\Controllers\Student\MathExamController::class, 'run'])
-        ->name('student.math.run');
-
-    Route::post('/math-exam/{id}/submit', [\App\Http\Controllers\Student\MathExamController::class, 'submit'])
-        ->name('student.math.submit');
+    // --- 3. Ujian Matematika (Siswa) ---
+    Route::get('/math-exams', [StudentMathExamController::class, 'index'])->name('student.math.index');
+    Route::get('/math-exam/{id}/run', [StudentMathExamController::class, 'run'])->name('student.math.run');
+    Route::post('/math-exam/{id}/submit', [StudentMathExamController::class, 'submit'])->name('student.math.submit');
 
 });
 
-// Anda bisa menyesuaikan middleware rolenya, misal: 'role:admin|guru|proktor'
-Route::middleware(['auth', 'role:admin|guru'])->prefix('proctor')->name('proctor.')->group(function () {
-
-    // Daftar Sesi Ujian Hari Ini
-    Route::get('/sessions', [ProctorController::class, 'index'])->name('index');
-
-    // Halaman Monitoring Real-time
-    Route::get('/sessions/{exam_session}/monitor', [ProctorController::class, 'show'])->name('monitor');
-
-    // Aksi Pengawas
-    Route::post('/sessions/{exam_session}/unlock/{student}', [ProctorController::class, 'unlock'])->name('unlock');
-    Route::post('/sessions/{exam_session}/force-finish/{student}', [ProctorController::class, 'forceFinish'])->name('force-finish');
-    Route::post('/sessions/{exam_session}/reset/{student}', [ProctorController::class, 'reset'])->name('reset');
-
-});
-Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
-    Route::delete('/users/bulk-delete', [UserController::class, 'bulkDelete'])->name('users.bulk-delete');
-    Route::get('/users/export-selected', [UserController::class, 'exportSelected'])->name('users.export-selected');
-    // Route khusus Import Excel (Harus diletakkan DI ATAS route resource)
-    Route::post('/users/import', [UserController::class, 'importExcel'])->name('users.import');
-    Route::get('/users/download-template', [UserController::class, 'downloadTemplate'])->name('users.download-template');
-    // Route CRUD otomatis (index, create, store, edit, update, destroy)
-    Route::resource('users', UserController::class);
-
-});
 require __DIR__.'/auth.php';
