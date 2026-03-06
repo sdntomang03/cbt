@@ -240,6 +240,6 @@ class MathExamController extends Controller
                 'is_correct' => null,  // Hapus status benar/salah
             ]);
 
-        return redirect()->back()->with('success', 'Ujian peserta berhasil direset. Siswa dapat memulai ujian kembali dari awal.');
+        return redirect()->route('admin.math.index')->with('success', 'Berhasil menghapus data peserta ujian.');
     }
 }
