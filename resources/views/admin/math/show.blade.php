@@ -1,6 +1,40 @@
 <x-app-layout>
     <div class="py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        {{-- ================================================================= --}}
+        {{-- AREA NOTIFIKASI SUCCESS & ERROR --}}
+        {{-- ================================================================= --}}
+        @if(session('success'))
+        <div class="mb-8 p-4 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center gap-4 text-emerald-700 font-bold shadow-sm transition-all"
+            x-data="{ show: true }" x-show="show" x-transition>
+            <div
+                class="w-10 h-10 rounded-full bg-emerald-100 flex-shrink-0 flex items-center justify-center text-emerald-500">
+                <i class="fas fa-check"></i>
+            </div>
+            <div class="flex-1">
+                {{ session('success') }}
+            </div>
+            <button @click="show = false" class="text-emerald-400 hover:text-emerald-600 transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        @endif
 
+        @if(session('error'))
+        <div class="mb-8 p-4 rounded-2xl bg-rose-50 border border-rose-100 flex items-center gap-4 text-rose-700 font-bold shadow-sm transition-all"
+            x-data="{ show: true }" x-show="show" x-transition>
+            <div
+                class="w-10 h-10 rounded-full bg-rose-100 flex-shrink-0 flex items-center justify-center text-rose-500">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="flex-1">
+                {{ session('error') }}
+            </div>
+            <button @click="show = false" class="text-rose-400 hover:text-rose-600 transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        @endif
+        {{-- ================= END AREA NOTIFIKASI ========================= --}}
         <div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div class="flex items-center gap-4">
                 <a href="{{ route('admin.math.index') }}"
