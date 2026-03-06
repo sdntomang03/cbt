@@ -68,7 +68,65 @@
                 </div>
             </div>
         </div>
+        {{-- ================================================================= --}}
+        {{-- DASHBOARD ANALISIS PENGUASAAN KELAS PER JENIS SOAL --}}
+        {{-- ================================================================= --}}
+        @php
+        // Kumpulkan SEMUA pertanyaan dari SEMUA siswa yang mengikuti ujian ini
+        $allQuestions = $exam->examUsers->flatMap->questions;
 
+        // Hitung statistik per operator
+        $classStats = collect(['+' => 'Penjumlahan', '-' => 'Pengurangan', 'x' => 'Perkalian', ':' => 'Pembagian'])
+        ->map(function ($name, $op) use ($allQuestions) {
+        $soal = $allQuestions->where('operator', $op);
+        $total = $soal->count();
+        if ($total === 0) return null; // Abaikan jika tipe ini tidak ada di ujian
+
+        $benar = $soal->where('is_correct', true)->count();
+        $persen = round(($benar / $total) * 100);
+
+        // Tentukan warna tema kartu berdasarkan persentase
+        $theme = $persen >= 70 ? 'text-emerald-700 bg-emerald-50 border-emerald-200' :
+        ($persen >= 40 ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-rose-700 bg-rose-50 border-rose-200');
+        $barColor = $persen >= 70 ? 'bg-emerald-500' : ($persen >= 40 ? 'bg-amber-500' : 'bg-rose-500');
+        $icon = $op == '+' ? 'fa-plus' : ($op == '-' ? 'fa-minus' : ($op == 'x' ? 'fa-times' : 'fa-divide'));
+
+        return (object) [
+        'name' => $name, 'total' => $total, 'benar' => $benar, 'persen' => $persen,
+        'theme' => $theme, 'barColor' => $barColor, 'icon' => $icon
+        ];
+        })->filter();
+        @endphp
+
+        @if($classStats->count() > 0)
+        <div class="mb-8">
+            <h3 class="font-black text-lg text-slate-800 mb-4 px-2 flex items-center gap-2">
+                <i class="fas fa-microscope text-indigo-500"></i> Analisis Penguasaan Materi Kelas
+            </h3>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                @foreach($classStats as $stat)
+                <div
+                    class="p-5 rounded-2xl border-2 {{ $stat->theme }} flex flex-col relative overflow-hidden shadow-sm transition-transform hover:-translate-y-1">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-xs font-black uppercase tracking-wider opacity-80">{{ $stat->name }}</span>
+                        <div class="w-8 h-8 rounded-full bg-white/50 flex items-center justify-center">
+                            <i class="fas {{ $stat->icon }} opacity-70"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="text-4xl font-black">{{ $stat->persen }}%</span>
+                        <span class="block text-[10px] font-bold opacity-70 mt-1">Total Benar: {{ $stat->benar }} dari
+                            {{ $stat->total }} soal</span>
+                    </div>
+                    <div class="w-full bg-black/10 h-2 rounded-full mt-4 overflow-hidden shadow-inner">
+                        <div class="{{ $stat->barColor }} h-2 rounded-full" style="width: {{ $stat->persen }}%"></div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+        {{-- ================= END DASHBOARD ANALISIS ================= --}}
         <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
             <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                 <h3 class="font-black text-lg text-slate-800">Daftar Peserta & Nilai</h3>
