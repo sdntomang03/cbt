@@ -226,10 +226,10 @@ class MathExamController extends Controller
         // 1. Kembalikan status menjadi not_started dan kosongkan nilai
         $examUser->update([
             'status' => 'not_started',
-            'score' => 0, // atau null, sesuaikan dengan struktur database Anda
+            'score' => null, // atau null, sesuaikan dengan struktur database Anda
             // Jika ada field waktu mulai/selesai, silakan di-uncomment:
-            // 'started_at' => null,
-            // 'ended_at' => null,
+            'started_at' => null,
+            'finished_at' => null,
         ]);
 
         // 2. Kosongkan semua jawaban siswa di tabel soal untuk ujian ini
@@ -238,6 +238,7 @@ class MathExamController extends Controller
             ->update([
                 'user_answer' => null, // Hapus jawaban yang sudah diisi
                 'is_correct' => null,  // Hapus status benar/salah
+
             ]);
 
         return redirect()->route('admin.math.index')->with('success', 'Berhasil menghapus data peserta ujian.');
