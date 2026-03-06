@@ -47,7 +47,7 @@ class MathExamController extends Controller
             'duration_minutes' => 'required|integer|min:1',
         ]);
 
-        // 1. BUAT PENGATURAN UJIAN (HANYA 1 KALI)
+        // 1. BUAT PENGATURAN UJIAN
         $exam = MathExam::create([
             'title' => $request->title,
             'types' => $request->types,
@@ -57,13 +57,35 @@ class MathExamController extends Controller
         ]);
 
         $selectedTypes = $request->types;
+        $totalQuestions = $request->total_questions;
+        $totalTypes = count($selectedTypes);
+
+        // ====================================================================
+        // HITUNG KUOTA SOAL PER JENIS AGAR ADIL UNTUK SEMUA SISWA
+        // ====================================================================
+        $baseQuota = floor($totalQuestions / $totalTypes); // Kuota dasar per jenis
+        $remainder = $totalQuestions % $totalTypes; // Sisa soal jika tidak habis dibagi
+
+        // Array untuk menyimpan blueprint (cetak biru) urutan jenis soal
+        $examBlueprint = [];
+
+        foreach ($selectedTypes as $index => $type) {
+            // Jika ada sisa soal, berikan ke jenis-jenis pertama agar genap
+            $quota = $baseQuota + ($index < $remainder ? 1 : 0);
+
+            // Masukkan jenis soal ke blueprint sebanyak kuota-nya
+            for ($i = 0; $i < $quota; $i++) {
+                $examBlueprint[] = $type;
+            }
+        }
+        // ====================================================================
+
         $allQuestionsData = [];
         $examUsersData = [];
 
         // 2. LOOPING UNTUK SETIAP SISWA
         foreach ($request->student_ids as $studentId) {
 
-            // Siapkan data untuk tabel Sesi Siswa (math_exam_users)
             $examUsersData[] = [
                 'math_exam_id' => $exam->id,
                 'student_id' => $studentId,
@@ -72,9 +94,12 @@ class MathExamController extends Controller
                 'updated_at' => now(),
             ];
 
-            // Siapkan soal acak untuk siswa ini
-            for ($i = 0; $i < $request->total_questions; $i++) {
-                $currentType = $selectedTypes[array_rand($selectedTypes)];
+            // Acak urutan tipe soal khusus untuk siswa ini (agar urutan soal Siswa A & B beda)
+            $studentBlueprint = $examBlueprint;
+            shuffle($studentBlueprint);
+
+            // Siapkan soal berdasarkan blueprint yang sudah teracak
+            foreach ($studentBlueprint as $currentType) {
                 $currentDigit = $request->digits[$currentType] ?? 1;
 
                 $min = $currentDigit == 1 ? 1 : pow(10, $currentDigit - 1);
@@ -115,7 +140,7 @@ class MathExamController extends Controller
 
                 $allQuestionsData[] = [
                     'math_exam_id' => $exam->id,
-                    'student_id' => $studentId, // <--- Relasi ke siswa sesuai ide Anda
+                    'student_id' => $studentId,
                     'num1' => $n1,
                     'num2' => $n2,
                     'operator' => $operator,
@@ -126,11 +151,11 @@ class MathExamController extends Controller
             }
         }
 
-        // 3. SIMPAN SEMUA DATA KE DATABASE SEKALIGUS
+        // 3. SIMPAN SEMUA DATA KE DATABASE
         \App\Models\MathExamUser::insert($examUsersData);
 
         foreach (array_chunk($allQuestionsData, 500) as $chunk) {
-            MathExamQuestion::insert($chunk);
+            \App\Models\MathExamQuestion::insert($chunk);
         }
 
         $countStudents = count($request->student_ids);

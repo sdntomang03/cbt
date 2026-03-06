@@ -19,24 +19,9 @@
             </button>
         </div>
 
-        <div
-            class="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-100 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
-            <div class="absolute right-0 top-0 w-48 h-48 bg-indigo-50 rounded-bl-full -z-10 opacity-50"></div>
-
-            <div class="flex items-center gap-6">
-                <div
-                    class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-2xl border-4 border-white shadow-md">
-                    <i class="fas fa-user-graduate"></i>
-                </div>
-                <div>
-                    <h3 class="font-black text-2xl text-slate-800">{{ $examUser->student->name ?? 'Siswa Terhapus' }}
-                    </h3>
-                    <p class="text-sm font-bold text-indigo-500 uppercase tracking-wider">{{
-                        $examUser->student->school->name ?? 'Tanpa Sekolah' }}</p>
-                </div>
-            </div>
-
-            <div class="flex gap-4">
+        {{-- BLOK STATUS, NILAI & STATISTIK PER JENIS SOAL --}}
+        <div class="flex flex-col gap-4">
+            <div class="flex gap-4 justify-end">
                 <div class="bg-slate-50 border border-slate-100 px-6 py-3 rounded-2xl text-center">
                     <span class="block text-xs font-black text-slate-400 uppercase">Status</span>
                     <span class="font-bold text-slate-700">
@@ -51,6 +36,40 @@
                         $examUser->score ?? 0 }}</span>
                 </div>
             </div>
+
+            {{-- MENGHITUNG STATISTIK DARI $questions --}}
+            @php
+            $stats = collect(['+' => 'Tambah', '-' => 'Kurang', 'x' => 'Kali', ':' => 'Bagi'])->map(function ($name,
+            $op) use ($questions) {
+            $soalJenisIni = $questions->where('operator', $op);
+            $total = $soalJenisIni->count();
+            if ($total === 0) return null; // Abaikan jika jenis ujian ini tidak dipilih
+
+            $benar = $soalJenisIni->where('is_correct', true)->count();
+            $persen = round(($benar / $total) * 100);
+
+            return (object) [
+            'name' => $name,
+            'total' => $total,
+            'benar' => $benar,
+            'persen' => $persen,
+            'color' => $persen >= 70 ? 'text-emerald-600' : ($persen >= 40 ? 'text-amber-500' : 'text-rose-500')
+            ];
+            })->filter(); // Buang yang null
+            @endphp
+
+            {{-- TAMPILAN BADGE STATISTIK --}}
+            @if($stats->count() > 0)
+            <div class="flex flex-wrap gap-2 justify-end">
+                @foreach($stats as $s)
+                <div class="bg-white border border-slate-200 px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm"
+                    title="Benar {{ $s->benar }} dari {{ $s->total }} Soal">
+                    <span class="text-[10px] font-black uppercase text-slate-500">{{ $s->name }}</span>
+                    <span class="text-xs font-bold {{ $s->color }}">{{ $s->persen }}%</span>
+                </div>
+                @endforeach
+            </div>
+            @endif
         </div>
 
         <h3 class="font-black text-lg text-slate-700 mb-4 px-2">Lembar Koreksi ({{ $questions->count() }} Soal)</h3>
