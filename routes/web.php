@@ -76,6 +76,8 @@ Route::middleware(['auth', 'role:admin|guru'])
         Route::get('/math-exams/{id}/show', [MathExamController::class, 'show'])->name('math.show');
         Route::delete('/math-exams/{id}', [MathExamController::class, 'destroy'])->name('math.destroy');
         Route::get('/math-exams/result/{examUserId}', [MathExamController::class, 'showStudentResult'])->name('math.student_result');
+        Route::post('/math/reset/{examUserId}', [MathExamController::class, 'resetStudentExam'])
+            ->name('math.resetStudent');
         // Export Excel
         Route::get('/math-exams/{id}/export-recap', [MathExamController::class, 'exportRecap'])->name('math.recap_export');
         Route::get('/math-exams/result/{examUserId}/export', [MathExamController::class, 'exportStudentResult'])->name('math.student_result_export');

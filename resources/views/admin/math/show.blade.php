@@ -215,6 +215,11 @@
                                     title="Lihat Lembar Jawaban">
                                     <i class="fas fa-search"></i>
                                 </a>
+                                <form action="{{ route('admin.math.resetStudent', $user->id) }}" method="POST"
+                                    onsubmit="return confirm('Yakin ingin mereset ujian siswa ini? Semua jawaban sebelumnya akan hilang.');">
+                                    @csrf
+                                    <button type="submit" class="btn btn-warning btn-sm">Reset Ujian</button>
+                                </form>
                             </td>
                         </tr>
                         @empty

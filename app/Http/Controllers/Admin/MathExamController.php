@@ -210,10 +210,36 @@ class MathExamController extends Controller
     // Export Rekap Keseluruhan Nilai Kelas
     public function exportRecap($id)
     {
-        $exam = \App\Models\MathExam::with(['examUsers.student.school'])->findOrFail($id);
+        $exam = MathExam::with(['examUsers.student.school'])->findOrFail($id);
 
         $fileName = 'Rekap_Nilai_'.str_replace(' ', '_', $exam->title).'.xlsx';
 
         return Excel::download(new MathExamRecapExport($id), $fileName);
+    }
+
+    // Reset Ujian Siswa (Mengulang dari awal)
+    public function resetStudentExam($examUserId)
+    {
+        // Cari data Sesi Ujian Siswa
+        $examUser = MathExamUser::findOrFail($examUserId);
+
+        // 1. Kembalikan status menjadi not_started dan kosongkan nilai
+        $examUser->update([
+            'status' => 'not_started',
+            'score' => 0, // atau null, sesuaikan dengan struktur database Anda
+            // Jika ada field waktu mulai/selesai, silakan di-uncomment:
+            // 'started_at' => null,
+            // 'ended_at' => null,
+        ]);
+
+        // 2. Kosongkan semua jawaban siswa di tabel soal untuk ujian ini
+        MathExamQuestion::where('math_exam_id', $examUser->math_exam_id)
+            ->where('student_id', $examUser->student_id)
+            ->update([
+                'user_answer' => null, // Hapus jawaban yang sudah diisi
+                'is_correct' => null,  // Hapus status benar/salah
+            ]);
+
+        return redirect()->back()->with('success', 'Ujian peserta berhasil direset. Siswa dapat memulai ujian kembali dari awal.');
     }
 }
