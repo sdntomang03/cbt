@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\MathExamRecapExport;
 use App\Http\Controllers\Controller;
 use App\Models\MathExam;
 use App\Models\MathExamQuestion;
@@ -9,6 +10,7 @@ use App\Models\MathExamUser;
 use App\Models\School;
 use App\Models\User; // Pastikan model School dipanggil
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class MathExamController extends Controller
 {
@@ -178,5 +180,15 @@ class MathExamController extends Controller
             ->get();
 
         return view('admin.math.result', compact('examUser', 'questions'));
+    }
+
+    // Export Rekap Keseluruhan Nilai Kelas
+    public function exportRecap($id)
+    {
+        $exam = \App\Models\MathExam::with(['examUsers.student.school'])->findOrFail($id);
+
+        $fileName = 'Rekap_Nilai_'.str_replace(' ', '_', $exam->title).'.xlsx';
+
+        return Excel::download(new MathExamRecapExport($id), $fileName);
     }
 }

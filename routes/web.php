@@ -74,6 +74,7 @@ Route::middleware(['auth', 'role:admin|guru'])
         Route::get('/math-exams/{id}/show', [MathExamController::class, 'show'])->name('math.show');
         Route::delete('/math-exams/{id}', [MathExamController::class, 'destroy'])->name('math.destroy');
         Route::get('/math-exams/result/{examUserId}', [MathExamController::class, 'showStudentResult'])->name('math.student_result');
+        Route::get('/math-exams/{id}/export-recap', [MathExamController::class, 'exportRecap'])->name('math.recap_export');
     });
 
 // --- GROUP SISWA ---

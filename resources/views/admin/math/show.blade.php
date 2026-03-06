@@ -13,10 +13,17 @@
                 </div>
             </div>
 
-            <button onclick="window.print()"
-                class="bg-slate-800 hover:bg-black text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-transform hover:-translate-y-1 flex items-center gap-2">
-                <i class="fas fa-print"></i> Cetak PDF
-            </button>
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="{{ route('admin.math.recap_export', $exam->id) }}"
+                    class="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-transform hover:-translate-y-1 flex items-center gap-2">
+                    <i class="fas fa-file-excel"></i> Export Excel Rekap
+                </a>
+
+                <button onclick="window.print()"
+                    class="bg-slate-800 hover:bg-black text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-transform hover:-translate-y-1 flex items-center gap-2">
+                    <i class="fas fa-print"></i> Cetak PDF
+                </button>
+            </div>
         </div>
 
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
