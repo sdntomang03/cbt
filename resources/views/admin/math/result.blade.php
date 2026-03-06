@@ -15,10 +15,7 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <a href="{{ route('admin.math.student_result_export', $examUser->id) }}"
-                    class="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-emerald-200 transition-all hover:-translate-y-0.5 flex items-center gap-2">
-                    <i class="fas fa-file-excel"></i> Export Excel
-                </a>
+
                 <button onclick="window.print()"
                     class="bg-slate-800 hover:bg-slate-900 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-slate-200 transition-all hover:-translate-y-0.5 flex items-center gap-2">
                     <i class="fas fa-print"></i> Cetak Hasil
