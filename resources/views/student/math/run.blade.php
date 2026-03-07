@@ -121,9 +121,25 @@
                                 class="w-full p-6 sm:p-10 md:p-12" x-cloak>
 
                                 {{-- Notifikasi jika soal ini dilewati --}}
+                                {{-- Notifikasi jika soal ini dilewati --}}
                                 <div x-show="skipped.includes(q.id) && (answers[q.id] === undefined || answers[q.id] === '')"
-                                    class="inline-block bg-orange-100 text-orange-600 font-bold text-[10px] px-3 py-1 rounded-full uppercase tracking-wider mb-4 animate-pulse">
-                                    <i class="fas fa-exclamation-triangle"></i> Soal Dilewati
+                                    x-transition:enter="transition ease-out duration-300"
+                                    x-transition:enter-start="opacity-0 transform scale-75 -translate-y-4"
+                                    x-transition:enter-end="opacity-100 transform scale-100 translate-y-0"
+                                    x-transition:leave="transition ease-in duration-200"
+                                    x-transition:leave-start="opacity-100 transform scale-100"
+                                    x-transition:leave-end="opacity-0 transform scale-75"
+                                    class="inline-flex items-center gap-2.5 bg-gradient-to-r from-red-500 to-orange-500 text-white font-black text-[10px] sm:text-xs px-4 py-1.5 sm:py-2 rounded-full uppercase tracking-widest mb-6 shadow-lg shadow-red-500/40 border-2 border-white ring-4 ring-red-50 relative">
+
+                                    {{-- Animasi titik peringatan berdenyut (Radar Ping) --}}
+                                    <div class="relative flex h-2.5 w-2.5 justify-center items-center">
+                                        <span
+                                            class="animate-ping absolute inline-flex h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-white opacity-75"></span>
+                                        <span
+                                            class="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-white"></span>
+                                    </div>
+
+                                    <span>Soal Dilewati</span>
                                 </div>
 
                                 <div
