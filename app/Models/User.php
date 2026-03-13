@@ -41,8 +41,8 @@ class User extends Authenticatable implements MustVerifyEmail
                 'started_at',
                 'finished_at',
                 'score',
-                'violation_count', // <--- WAJIB ADA UNTUK MONITORING PROKTOR
-                'is_locked',        // <--- WAJIB ADA UNTUK MONITORING PROKTOR
+                'violation_count',
+                'is_locked',
             ])
             ->withTimestamps();
     }
