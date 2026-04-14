@@ -1,5 +1,5 @@
 <x-app-layout>
-    <div class="py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div x-data="{ showAddStudentModal: false }" class="py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
         {{-- ================================================================= --}}
         {{-- AREA NOTIFIKASI SUCCESS & ERROR --}}
         {{-- ================================================================= --}}
@@ -35,6 +35,7 @@
         </div>
         @endif
         {{-- ================= END AREA NOTIFIKASI ========================= --}}
+
         <div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div class="flex items-center gap-4">
                 <a href="{{ route('admin.math.index') }}"
@@ -48,9 +49,15 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-3">
+                {{-- TOMBOL TAMBAH SISWA --}}
+                <button @click="showAddStudentModal = true"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-transform hover:-translate-y-1 flex items-center gap-2">
+                    <i class="fas fa-user-plus"></i> Tambah Siswa
+                </button>
+
                 <a href="{{ route('admin.math.recap_export', $exam->id) }}"
                     class="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-transform hover:-translate-y-1 flex items-center gap-2">
-                    <i class="fas fa-file-excel"></i> Export Excel Rekap
+                    <i class="fas fa-file-excel"></i> Export Excel
                 </a>
 
                 <button onclick="window.print()"
@@ -102,25 +109,23 @@
                 </div>
             </div>
         </div>
+
         {{-- ================================================================= --}}
         {{-- DASHBOARD ANALISIS PENGUASAAN KELAS PER JENIS SOAL --}}
         {{-- ================================================================= --}}
         @php
-        // Ambil semua soal langsung dari relasi $exam->questions
         $allQuestions = $exam->questions;
 
-        // Hitung statistik per operator
         $classStats = collect(['+' => 'Penjumlahan', '-' => 'Pengurangan', 'x' => 'Perkalian', ':' => 'Pembagian'])
         ->map(function ($name, $op) use ($allQuestions) {
         $soal = $allQuestions->where('operator', $op);
         $total = $soal->count();
 
-        if ($total === 0) return null; // Abaikan jika tipe ini tidak ada di ujian
+        if ($total === 0) return null;
 
         $benar = $soal->where('is_correct', true)->count();
         $persen = round(($benar / $total) * 100);
 
-        // Tentukan warna tema kartu berdasarkan persentase
         $theme = $persen >= 70 ? 'text-emerald-700 bg-emerald-50 border-emerald-200' :
         ($persen >= 40 ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-rose-700 bg-rose-50 border-rose-200');
         $barColor = $persen >= 70 ? 'bg-emerald-500' : ($persen >= 40 ? 'bg-amber-500' : 'bg-rose-500');
@@ -163,6 +168,7 @@
         </div>
         @endif
         {{-- ================= END DASHBOARD ANALISIS ================= --}}
+
         <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
             <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                 <h3 class="font-black text-lg text-slate-800">Daftar Peserta & Nilai</h3>
@@ -217,13 +223,8 @@
                                 $start = \Carbon\Carbon::parse($user->started_at);
                                 $finish = \Carbon\Carbon::parse($user->finished_at);
 
-                                // 1. Ambil total detiknya saja (misal: 42 detik)
                                 $totalSeconds = $start->diffInSeconds($finish);
-
-                                // 2. Bagi 60 dan paksa bulatkan ke bawah (42 / 60 = 0.7 -> dibulatkan jadi 0)
                                 $diffInMinutes = floor($totalSeconds / 60);
-
-                                // 3. Ambil sisa detiknya
                                 $diffInSeconds = $totalSeconds % 60;
                                 @endphp
 
@@ -259,8 +260,10 @@
                                         class="m-0 p-0"
                                         onsubmit="return confirm('Yakin ingin mereset ujian siswa ini? Semua jawaban sebelumnya akan hilang.');">
                                         @csrf
-                                        <button type="submit" class="btn btn-warning btn-sm" title="Reset Ujian">
-                                            <i class="fas fa-undo"></i> Reset
+                                        <button type="submit"
+                                            class="btn btn-warning btn-sm inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-amber-500 hover:bg-amber-500 hover:text-white transition-colors"
+                                            title="Reset Ujian">
+                                            <i class="fas fa-undo"></i>
                                         </button>
                                     </form>
                                 </div>
@@ -279,7 +282,87 @@
             </div>
         </div>
 
+        {{-- ================================================================= --}}
+        {{-- MODAL TAMBAH SISWA --}}
+        {{-- ================================================================= --}}
+        <div x-show="showAddStudentModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto"
+            aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div x-show="showAddStudentModal" x-transition.opacity
+                    class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm transition-opacity"
+                    @click="showAddStudentModal = false" aria-hidden="true"></div>
+
+                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+                <div x-show="showAddStudentModal" x-transition
+                    class="inline-block align-bottom bg-white rounded-[2rem] text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-xl sm:w-full border border-slate-100">
+                    <form action="{{ route('admin.math.addStudent', $exam->id) }}" method="POST">
+                        @csrf
+                        <div class="bg-white px-4 pt-5 pb-4 sm:p-8 sm:pb-6">
+                            <div class="sm:flex sm:items-start">
+                                <div
+                                    class="mx-auto flex-shrink-0 flex items-center justify-center h-14 w-14 rounded-full bg-indigo-50 sm:mx-0 sm:h-12 sm:w-12 text-indigo-600 text-xl">
+                                    <i class="fas fa-user-plus"></i>
+                                </div>
+                                <div class="mt-3 text-center sm:mt-0 sm:ml-5 sm:text-left w-full">
+                                    <h3 class="text-xl leading-6 font-black text-slate-800" id="modal-title">
+                                        Tambah Peserta Ujian
+                                    </h3>
+                                    <div class="mt-2 mb-6">
+                                        <p class="text-sm text-slate-500 font-medium">
+                                            Pilih siswa yang akan ditambahkan ke ujian ini. Sistem akan otomatis
+                                            mengacak dan membuatkan soal sesuai dengan format/pengaturan ujian.
+                                        </p>
+                                    </div>
+
+                                    <div class="mt-4">
+                                        <label
+                                            class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pilih
+                                            Siswa (Bisa Lebih Dari Satu)</label>
+                                        <select name="student_ids[]" multiple required
+                                            class="w-full rounded-xl border-slate-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-48 overflow-y-auto">
+                                            @forelse($availableStudents as $student)
+                                            <option value="{{ $student->id }}"
+                                                class="p-2 border-b border-slate-50 hover:bg-indigo-50">
+                                                {{ $student->name }} ({{ $student->school->name ?? 'Pusat' }})
+                                            </option>
+                                            @empty
+                                            <option value="" disabled class="p-2 text-slate-400">Semua siswa sudah
+                                                terdaftar di ujian ini.</option>
+                                            @endforelse
+                                        </select>
+                                        <p class="mt-2 text-xs text-slate-500 font-medium"><i
+                                                class="fas fa-info-circle text-indigo-400 mr-1"></i> Tahan tombol <kbd
+                                                class="bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 font-mono text-[10px]">Ctrl</kbd>
+                                            (Windows) atau <kbd
+                                                class="bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 font-mono text-[10px]">Cmd</kbd>
+                                            (Mac) untuk memilih banyak siswa sekaligus.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            class="bg-slate-50 px-4 py-4 sm:px-8 sm:flex sm:flex-row-reverse border-t border-slate-100 gap-2">
+                            <button type="submit"
+                                class="w-full inline-flex justify-center items-center rounded-xl border border-transparent shadow-lg shadow-indigo-200 px-6 py-3 bg-indigo-600 text-base font-bold text-white hover:bg-indigo-700 hover:-translate-y-0.5 transition-all sm:ml-3 sm:w-auto sm:text-sm">
+                                <i class="fas fa-save mr-2"></i> Simpan
+                            </button>
+                            <button type="button" @click="showAddStudentModal = false"
+                                class="mt-3 w-full inline-flex justify-center items-center rounded-xl border border-slate-300 shadow-sm px-6 py-3 bg-white text-base font-bold text-slate-700 hover:bg-slate-50 transition-all sm:mt-0 sm:w-auto sm:text-sm">
+                                Batal
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {{-- ================= END MODAL TAMBAH SISWA ====================== --}}
+
         <style>
+            [x-cloak] {
+                display: none !important;
+            }
+
             @media print {
                 body * {
                     visibility: hidden;
@@ -317,10 +400,7 @@
                     border: none !important;
                 }
 
-                table {
-                    border: 1px solid #e2e8f0;
-                }
-
+                table,
                 th,
                 td {
                     border: 1px solid #e2e8f0;

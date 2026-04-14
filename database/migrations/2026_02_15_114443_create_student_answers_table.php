@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             // Link ke Soal
             $table->foreignId('question_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('school_id')->nullable()->constrained()->cascadeOnDelete();
 
             // Data Jawaban
             $table->string('answer')->nullable(); // String cukup untuk PG, Text/LongText jika Essai

@@ -35,7 +35,7 @@ return new class extends Migration
             // Metadata
             $table->foreignId('subject_id')->nullable()->constrained('subjects')->nullOnDelete();
             $table->foreignId('level_id')->nullable()->constrained('levels')->nullOnDelete();
-
+            $table->foreignId('school_id')->nullable()->constrained()->cascadeOnDelete();
             $table->timestamps();
         });
     }

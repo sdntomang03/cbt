@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToSchool;
 use Illuminate\Database\Eloquent\Model;
 
 class MathExamUser extends Model
 {
+    use BelongsToSchool;
+
     protected $guarded = [];
 
     public function exam()

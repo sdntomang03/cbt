@@ -667,23 +667,38 @@
 
                     forceSubmit() {
                         this.isSubmitting = true;
+
+                        // Kunci status window agar sistem pelanggaran tidak mendeteksi ini sebagai kecurangan
                         window.isExitingExam = true;
+                        window.isSystemPopup = true;
 
                         this.clearLines();
                         clearInterval(this.timerInterval);
 
-                        // Matikan store agar berhenti memantau
-                        if(Alpine.store('examState')) {
-                            Alpine.store('examState').started = false;
-                        }
+                        // PERBAIKAN: JANGAN set 'started = false' di sini agar layar tidak kembali ke halaman awal!
 
-                        window.onbeforeunload = null;
+                        window.onbeforeunload = null; // Matikan peringatan "Leave Site" dari browser
                         const f = document.getElementById('finish-form');
 
                         if(f) {
+                            // Tampilkan Pop-up Loading agar siswa tahu sedang proses submit
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    title: 'Menyimpan Jawaban...',
+                                    html: 'Mohon tunggu sebentar, jangan tutup halaman ini.',
+                                    allowOutsideClick: false,
+                                    allowEscapeKey: false,
+                                    showConfirmButton: false,
+                                    didOpen: () => {
+                                        Swal.showLoading();
+                                    }
+                                });
+                            }
+
+                            // Eksekusi pengiriman form
                             f.submit();
                         } else {
-                            alert('Form error');
+                            alert('Terjadi kesalahan pada formulir. Gagal mengirim.');
                             this.isSubmitting = false;
                             window.isExitingExam = false;
                             window.isSystemPopup = false;

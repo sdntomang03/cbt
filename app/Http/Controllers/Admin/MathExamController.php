@@ -164,9 +164,9 @@ class MathExamController extends Controller
     }
 
     // Menampilkan Rekap Daftar Nilai Siswa
+    // Menampilkan Rekap Daftar Nilai Siswa & Detail Ujian
     public function show($id)
     {
-        // PERHATIKAN BAGIAN INI: Tambahkan 'examUsers.questions' di dalam array
         $exam = MathExam::with(['examUsers.student.school', 'questions'])->findOrFail($id);
 
         // Pisahkan data untuk menghitung statistik (Hanya yang sudah selesai)
@@ -180,7 +180,20 @@ class MathExamController extends Controller
             'lowest_score' => $completedUsers->count() > 0 ? $completedUsers->min('score') : 0,
         ];
 
-        return view('admin.math.show', compact('exam', 'stats'));
+        // =========================================================================
+        // TAMBAHAN BARU: Ambil data siswa yang BELUM terdaftar di ujian ini
+        // =========================================================================
+        $existingStudentIds = $exam->examUsers->pluck('student_id')->toArray();
+
+        $availableStudents = User::role('siswa') // Pastikan mengambil user dengan role siswa
+            ->whereNotIn('id', $existingStudentIds)
+            ->with('school')
+            ->orderBy('name')
+            ->get();
+        // =========================================================================
+
+        // PENTING: Pastikan 'availableStudents' ikut dikirim ke dalam compact()
+        return view('admin.math.show', compact('exam', 'stats', 'availableStudents'));
     }
 
     public function destroy($id)
@@ -238,5 +251,115 @@ class MathExamController extends Controller
             // Jika terjadi Error 500, kita tangkap dan tampilkan pesan aslinya
             return redirect()->back()->with('error', 'Gagal mereset! Pesan Error: '.$e->getMessage());
         }
+    }
+
+    public function addStudent(Request $request, $id)
+    {
+        $request->validate([
+            'student_ids' => 'required|array|min:1',
+            'student_ids.*' => 'exists:users,id',
+        ]);
+
+        $exam = MathExam::findOrFail($id);
+
+        // 1. Siapkan Blueprint / Pengaturan Asli Ujian
+        $selectedTypes = $exam->types; // Pastikan model MathExam sudah meng-cast 'types' & 'digits' ke array
+        $totalQuestions = $exam->total_questions;
+        $totalTypes = count($selectedTypes);
+
+        $baseQuota = floor($totalQuestions / $totalTypes);
+        $remainder = $totalQuestions % $totalTypes;
+
+        $examBlueprint = [];
+        foreach ($selectedTypes as $index => $type) {
+            $quota = $baseQuota + ($index < $remainder ? 1 : 0);
+            for ($i = 0; $i < $quota; $i++) {
+                $examBlueprint[] = $type;
+            }
+        }
+
+        $allQuestionsData = [];
+        $examUsersData = [];
+
+        // 2. Looping Siswa Baru
+        foreach ($request->student_ids as $studentId) {
+            // Cek agar tidak ganda
+            if (MathExamUser::where('math_exam_id', $exam->id)->where('student_id', $studentId)->exists()) {
+                continue;
+            }
+
+            $examUsersData[] = [
+                'math_exam_id' => $exam->id,
+                'student_id' => $studentId,
+                'status' => 'not_started',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+
+            // Acak soal untuk siswa ini
+            $studentBlueprint = $examBlueprint;
+            shuffle($studentBlueprint);
+
+            foreach ($studentBlueprint as $currentType) {
+                $currentDigit = $exam->digits[$currentType] ?? 1;
+
+                $min = $currentDigit == 1 ? 1 : pow(10, $currentDigit - 1);
+                $max = pow(10, $currentDigit) - 1;
+
+                $n1 = rand($min, $max);
+                $n2 = rand($min, $max);
+                $correct = 0;
+                $operator = '';
+
+                switch ($currentType) {
+                    case 'addition':
+                        $operator = '+';
+                        $correct = $n1 + $n2;
+                        break;
+                    case 'subtraction':
+                        $operator = '-';
+                        if ($n1 < $n2) {
+                            $temp = $n1;
+                            $n1 = $n2;
+                            $n2 = $temp;
+                        }
+                        $correct = $n1 - $n2;
+                        break;
+                    case 'multiplication':
+                        $operator = 'x';
+                        $correct = $n1 * $n2;
+                        break;
+                    case 'division':
+                        $operator = ':';
+                        $divMin = $currentDigit == 1 ? 2 : pow(10, $currentDigit - 1);
+                        $divMax = pow(10, $currentDigit) - 1;
+                        $correct = rand($divMin, $divMax);
+                        $n2 = rand(2, ($currentDigit == 1 ? 9 : 15));
+                        $n1 = $correct * $n2;
+                        break;
+                }
+
+                $allQuestionsData[] = [
+                    'math_exam_id' => $exam->id,
+                    'student_id' => $studentId,
+                    'num1' => $n1,
+                    'num2' => $n2,
+                    'operator' => $operator,
+                    'correct_answer' => $correct,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+
+        // 3. Simpan ke Database
+        if (! empty($examUsersData)) {
+            MathExamUser::insert($examUsersData);
+            foreach (array_chunk($allQuestionsData, 500) as $chunk) {
+                MathExamQuestion::insert($chunk);
+            }
+        }
+
+        return redirect()->back()->with('success', 'Berhasil menambahkan '.count($examUsersData).' siswa baru ke dalam ujian.');
     }
 }

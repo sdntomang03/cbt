@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('question_id')->constrained()->onDelete('cascade');
             $table->text('premise_text'); // Sisi Kiri (Soal)
             $table->text('target_text');  // Sisi Kanan (Jawaban)
+            $table->foreignId('school_id')->nullable()->constrained()->cascadeOnDelete();
             $table->timestamps();
         });
     }

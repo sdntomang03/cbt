@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToSchool;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ExamSessionUser extends Model
 {
-    use HasFactory;
+    use BelongsToSchool,HasFactory;
 
     protected $table = 'exam_session_user';
 

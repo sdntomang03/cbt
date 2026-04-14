@@ -19,6 +19,7 @@ return new class extends Migration
             $table->enum('status', ['not_started', 'ongoing', 'completed'])->default('not_started');
             $table->timestamp('started_at')->nullable();
             $table->timestamp('finished_at')->nullable();
+            $table->foreignId('school_id')->nullable()->constrained()->cascadeOnDelete();
             $table->timestamps();
         });
     }

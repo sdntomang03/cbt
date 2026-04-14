@@ -81,7 +81,7 @@ Route::middleware(['auth', 'role:admin|guru'])
         // Export Excel
         Route::get('/math-exams/{id}/export-recap', [MathExamController::class, 'exportRecap'])->name('math.recap_export');
         Route::get('/math-exams/result/{examUserId}/export', [MathExamController::class, 'exportStudentResult'])->name('math.student_result_export');
-
+        Route::post('/math-exams/{id}/add-student', [MathExamController::class, 'addStudent'])->name('math.addStudent');
         // --- 7. Manajemen Users ---
         Route::delete('/users/bulk-delete', [UserController::class, 'bulkDelete'])->name('users.bulk-delete');
         Route::get('/users/export-selected', [UserController::class, 'exportSelected'])->name('users.export-selected');

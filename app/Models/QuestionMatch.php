@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToSchool;
 use Illuminate\Database\Eloquent\Model;
 
 class QuestionMatch extends Model
 {
+    use BelongsToSchool;
+
     // PENTING: Tambahkan ini agar bisa createMany
     protected $guarded = ['id'];
 

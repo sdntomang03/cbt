@@ -16,12 +16,14 @@ class StudentExamController extends Controller
     {
         $user = Auth::user();
 
-        // Tambahkan withoutGlobalScopes() di sini
+        // Ambil sesi ujian via relasi Many-to-Many
         $mySessions = $user->examSessions()
-            ->withoutGlobalScopes() // <--- MATIKAN FILTER TERSEMBUNYI
+        // PERBAIKAN DI SINI:
+        // Gunakan array callback untuk memanggil withCount pada relasi 'exam'
             ->with(['exam' => function ($query) {
                 $query->withCount('questions');
             }])
+        // ------------------
             ->orderBy('start_time', 'asc')
             ->get()
             ->map(function ($session) {

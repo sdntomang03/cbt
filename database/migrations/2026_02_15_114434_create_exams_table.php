@@ -20,6 +20,7 @@ return new class extends Migration
             $table->boolean('random_question')->default(false);
             $table->boolean('random_answer')->default(false);
             $table->enum('status', ['draft', 'published', 'closed'])->default('draft');
+            $table->foreignId('school_id')->nullable()->constrained()->cascadeOnDelete();
             $table->timestamps();
         });
     }

@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToSchool;
 use Illuminate\Database\Eloquent\Model;
 
 class MathExam extends Model
 {
+    use BelongsToSchool;
+
     protected $guarded = [];
 
     protected $casts = ['types' => 'array', 'digits' => 'array'];

@@ -18,6 +18,7 @@ return new class extends Migration
             $table->integer('correct_answer');
             $table->integer('student_answer')->nullable();
             $table->boolean('is_correct')->default(false);
+            $table->foreignId('school_id')->nullable()->constrained()->cascadeOnDelete();
             $table->timestamps();
         });
     }

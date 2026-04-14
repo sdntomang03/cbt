@@ -15,6 +15,7 @@ return new class extends Migration
             $table->json('digits');
             $table->integer('total_questions');
             $table->integer('duration_minutes');
+            $table->foreignId('school_id')->nullable()->constrained()->cascadeOnDelete();
             $table->timestamps();
         });
     }
