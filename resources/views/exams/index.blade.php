@@ -122,7 +122,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 align-middle text-center">
-                                    <a href="{{ route('admin.ajax.questions.index', $exam->id) }}"
+                                    <a href="{{ route('admin.exams.soal.index', $exam->id) }}"
                                         class="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-600 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm hover:shadow-md">
                                         <i class="fas fa-edit"></i>
                                         Atur Soal
