@@ -504,9 +504,7 @@
     {{-- ================= DEPENDENCIES (JS) ================= --}}
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js"></script>
-    {{-- PERBAIKAN: Pastikan memanggil versi lengkap (all plugins) --}}
-    <script src="https://cdn.jsdelivr.net/npm/suneditor@latest/dist/suneditor.all.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/suneditor@latest/src/lang/en.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/suneditor@latest/dist/suneditor.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
@@ -523,14 +521,13 @@
                 isEditMode: false,
                 currentId: null,
                 editorInstance: null,
-                closeTimeout: null, // PERBAIKAN: Penjaga Timer
 
                 form: { type: 'single_choice', content: '', subject_id: '', level_id: '', options: [] },
 
                 types: [
                     { id: 'single_choice', label: 'Pilgan', icon: 'fa-dot-circle' },
                     { id: 'complex_choice', label: 'PG Kompleks', icon: 'fa-check-square' },
-                    { id: 'true_false', label: 'Benar/Salah', icon: 'fa-list-ol' },
+                    { id: 'true_false', label: 'Benar/Salah', icon: 'fa-list-ol' }, // Icon diubah agar mencerminkan list pernyataan
                     { id: 'matching', label: 'Menjodohkan', icon: 'fa-exchange-alt' },
                     { id: 'essay', label: 'Isian Singkat', icon: 'fa-keyboard' }
                 ],
@@ -538,117 +535,53 @@
                 init() {
                     this.fetchQuestions();
 
-                    // PENUNGGU CERDAS
                     this.$watch('isModalOpen', value => {
                         if (value) {
-                            // Tunggu 300ms PASTI (sampai animasi modal benar-benar selesai dan tampil di layar)
+                            this.initEditor();
+                        } else {
                             setTimeout(() => {
-                                this.initEditor();
+                                if (this.editorInstance) this.editorInstance.setContents('<p><br></p>');
+                                this.form.content = '';
                             }, 300);
                         }
                     });
                 },
 
                 initEditor() {
-                    if (typeof SUNEDITOR === 'undefined') return;
+                    let attempts = 0;
+                    const tryInit = () => {
+                        const editorEl = document.getElementById('main_editor_narasi');
 
-                    const editorEl = document.getElementById('main_editor_narasi');
-                    if (!editorEl) return;
+                        if (editorEl && editorEl.offsetParent !== null) {
+                            if (!this.editorInstance) {
+                                this.editorInstance = SUNEDITOR.create(editorEl, {
+                                    katex: window.katex,
+                                    width: '100%',
+                                    height: '100%',
+                                    buttonList: [
+                                        ['undo', 'redo', 'font', 'fontSize', 'formatBlock'],
+                                        ['bold', 'underline', 'italic', 'strike', 'subscript', 'superscript'],
+                                        ['fontColor', 'hiliteColor', 'align', 'list', 'table'],
+                                        ['image', 'video', 'math'],
+                                        ['fullScreen', 'codeView']
+                                    ],
+                                    imageUploadUrl: window.globalUploadConfig.imageUploadUrl,
+                                    imageUploadHeader: window.globalUploadConfig.imageUploadHeader
+                                });
 
-                    // 1. JURUS PAMUNGKAS: Jika editor lama masih nyangkut, HANCURKAN!
-                    if (this.editorInstance) {
-                        this.editorInstance.destroy();
-                        this.editorInstance = null;
-                    }
-
-                    // 2. Suntikkan teks ke textarea aslinya SEBELUM SunEditor menetas
-                    editorEl.value = this.form.content || '';
-
-                    // 3. Buat SunEditor yang 100% Fresh & Baru
-                    this.editorInstance = SUNEDITOR.create(editorEl, {
-                        katex: window.katex,
-                        width: '100%',
-                        height: '250px',
-                        buttonList: [
-                            ['undo', 'redo'],
-                            ['font', 'fontSize', 'formatBlock'],
-                            ['bold', 'underline', 'italic', 'strike', 'subscript', 'superscript'],
-                            ['fontColor', 'hiliteColor', 'outdent', 'indent', 'align', 'list', 'table'],
-                            ['link', 'image', 'video', 'math'],
-                            ['fullScreen', 'codeView']
-                        ],
-                        imageUploadUrl: window.globalUploadConfig.imageUploadUrl,
-                        imageUploadHeader: window.globalUploadConfig.imageUploadHeader
-                    });
-
-                    // 4. Paksa sekali lagi untuk memastikan teks masuk ke dalam iframe editor
-                    this.editorInstance.setContents(this.form.content || '<p><br></p>');
-
-                    // CATATAN: Kita TIDAK MEMAKAI onChange() di sini.
-                    // Kita biarkan SunEditor tenang, dan hanya mengambil teksnya saat tombol "Simpan" diklik.
-                },
-
-                openModal() {
-                    // PERBAIKAN: Hentikan timer penghapus jika user buka modal dengan cepat
-                    if (this.closeTimeout) clearTimeout(this.closeTimeout);
-
-                    this.isEditMode = false;
-                    this.currentId = null;
-
-                    this.form = { type: 'single_choice', content: '', subject_id: '', level_id: '', options: [] };
-                    this.resetOptions();
-
-                    this.isModalOpen = true;
-                },
-
-                editQuestion(q) {
-                    // PERBAIKAN: Hentikan timer penghapus agar data database tidak terhapus
-                    if (this.closeTimeout) clearTimeout(this.closeTimeout);
-
-                    this.isEditMode = true;
-                    this.currentId = q.id;
-
-                    let loadedOptions = [];
-                    if (q.type === 'matching') {
-                        loadedOptions = (q.matches && q.matches.length > 0)
-                            ? q.matches.map(m => ({ premise_text: m.premise_text, target_text: m.target_text }))
-                            : [{ premise_text: '', target_text: '' }];
-                    } else {
-                        loadedOptions = (q.options && q.options.length > 0)
-                            ? q.options.map(o => ({ option_text: o.option_text, is_correct: o.is_correct }))
-                            : [];
-
-                        if (q.type === 'essay' && loadedOptions.length === 0) {
-                            loadedOptions = [{ option_text: '', is_correct: 1 }];
+                                this.editorInstance.onChange = (contents) => {
+                                    this.form.content = contents;
+                                };
+                            }
+                            this.editorInstance.setContents(this.form.content || '<p><br></p>');
+                        } else {
+                            attempts++;
+                            if (attempts < 20 && this.isModalOpen) {
+                                setTimeout(tryInit, 50);
+                            }
                         }
-                        if (q.type === 'true_false' && loadedOptions.length === 0) {
-                            loadedOptions = [{ option_text: '', is_correct: 1 }];
-                        }
-                    }
-
-                    // Set form dengan data ASLI dari database
-                    this.form = {
-                        type: q.type,
-                        content: q.content,
-                        subject_id: q.subject_id || '',
-                        level_id: q.level_id || '',
-                        options: loadedOptions
                     };
-
-                    this.isModalOpen = true;
-                },
-
-                closeModal() {
-                    this.isModalOpen = false;
-
-                    // Bersihkan semuanya setelah modal perlahan menghilang (300ms)
-                    setTimeout(() => {
-                        if (this.editorInstance) {
-                            this.editorInstance.destroy(); // Hancurkan editor
-                            this.editorInstance = null;
-                        }
-                        this.form.content = '';
-                    }, 300);
+                    tryInit();
                 },
 
                 renderMath() {
@@ -676,12 +609,26 @@
                         .finally(() => this.isLoading = false);
                 },
 
+                openModal() {
+                    this.isEditMode = false;
+                    this.currentId = null;
+                    this.form = { type: 'single_choice', content: '', subject_id: '', level_id: '', options: [] };
+                    this.resetOptions();
+                    if (this.editorInstance) this.editorInstance.setContents('<p><br></p>');
+                    this.isModalOpen = true;
+                },
+
+                closeModal() {
+                    this.isModalOpen = false;
+                },
+
                 resetOptions() {
                     this.form.options = [];
                     if(this.form.type === 'essay') {
                         this.form.options.push({ option_text: '', is_correct: 1 });
                     }
                     else if (this.form.type === 'true_false') {
+                        // PERUBAHAN: Sediakan 3 baris pernyataan kosong default
                         for(let i=0; i<3; i++) {
                             this.form.options.push({ option_text: '', is_correct: 1 });
                         }
@@ -714,12 +661,12 @@
                     if (this.form.type === 'complex_choice') {
                         this.form.options[index].is_correct = !this.form.options[index].is_correct;
                     } else if (this.form.type !== 'true_false') {
+                        // Untuk single choice
                         this.form.options.forEach((o, i) => o.is_correct = (i === index ? 1 : 0));
                     }
                 },
 
                 saveQuestion() {
-                    // SEKARANG kita baru menarik konten dari editor SAAT tombol simpan ditekan
                     if(this.editorInstance) {
                         this.form.content = this.editorInstance.getContents();
                     } else {
@@ -744,6 +691,7 @@
                         if(!valid) return Swal.fire({ icon: 'warning', title: 'Oops!', text: 'Isi minimal satu kunci jawaban yang benar!' });
                     }
 
+                    // PERUBAHAN: Validasi minimal ada 1 pernyataan untuk benar/salah
                     if (this.form.type === 'true_false') {
                         let valid = this.form.options.some(o => o.option_text.trim() !== '');
                         if(!valid) return Swal.fire({ icon: 'warning', title: 'Oops!', text: 'Isi minimal satu pernyataan!' });
@@ -772,6 +720,40 @@
                             Swal.fire({ icon: 'error', title: 'Gagal', text: err.response?.data?.message || 'Terjadi kesalahan sistem' });
                         })
                         .finally(() => this.isSaving = false);
+                },
+
+                editQuestion(q) {
+                    this.isEditMode = true;
+                    this.currentId = q.id;
+
+                    let loadedOptions = [];
+                    if (q.type === 'matching') {
+                        loadedOptions = (q.matches && q.matches.length > 0)
+                            ? q.matches.map(m => ({ premise_text: m.premise_text, target_text: m.target_text }))
+                            : [{ premise_text: '', target_text: '' }];
+                    } else {
+                        loadedOptions = (q.options && q.options.length > 0)
+                            ? q.options.map(o => ({ option_text: o.option_text, is_correct: o.is_correct }))
+                            : [];
+
+                        if (q.type === 'essay' && loadedOptions.length === 0) {
+                            loadedOptions = [{ option_text: '', is_correct: 1 }];
+                        }
+                        // PERUBAHAN: Jika edit T/F tapi kosong (kasus jarang terjadi)
+                        if (q.type === 'true_false' && loadedOptions.length === 0) {
+                            loadedOptions = [{ option_text: '', is_correct: 1 }];
+                        }
+                    }
+
+                    this.form = {
+                        type: q.type,
+                        content: q.content,
+                        subject_id: q.subject_id || '',
+                        level_id: q.level_id || '',
+                        options: loadedOptions
+                    };
+
+                    this.isModalOpen = true;
                 },
 
                 deleteQuestion(id) {
