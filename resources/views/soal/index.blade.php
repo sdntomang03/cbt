@@ -1,7 +1,10 @@
 <x-app-layout>
+    {{-- KUNCI 1: Pastikan memuat varian wight 300 (Light), 400 (Regular), 700 (Bold), 900 (Black) --}}
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800;900&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
     <style>
         [x-cloak] {
             display: none !important;
@@ -14,6 +17,25 @@
 
         .bounce-active:active {
             transform: scale(0.98);
+        }
+
+        /* KUNCI: Override bawaan Tailwind agar teks benar-benar tipis (Light 300) */
+        .prose-custom p {
+            font-weight: 300 !important;
+            /* Diubah dari 400 menjadi 300 */
+            color: #334155 !important;
+            line-height: 1.7;
+        }
+
+        .prose-custom strong,
+        .prose-custom b {
+            font-weight: 800 !important;
+            /* Bold tetap ekstra tebal agar kontras */
+            color: #0f172a !important;
+        }
+
+        .prose-custom .katex {
+            font-size: 1.1em;
         }
     </style>
 
@@ -101,7 +123,9 @@
                                 </div>
 
                                 {{-- Narasi --}}
-                                <div class="prose prose-indigo max-w-none font-bold text-slate-700 leading-relaxed mb-6 __se__katex_container"
+                                {{-- KUNCI 3: Hapus 'font-bold' dari class utama dan ganti 'prose' dengan 'prose-custom'
+                                buatan kita --}}
+                                <div class="prose-custom max-w-none text-slate-700 mb-6 __se__katex_container"
                                     x-html="q.content"></div>
 
                                 {{-- Preview Jawaban Tersimpan --}}
@@ -117,7 +141,8 @@
                                                     :class="(opt.is_correct == 1 || opt.is_correct === true) ? 'text-emerald-600' : 'text-slate-400 opacity-50'">
                                                     <i class="fas mt-1 text-sm"
                                                         :class="(opt.is_correct == 1 || opt.is_correct === true) ? 'fa-check-circle' : 'fa-times'"></i>
-                                                    <div class="text-sm font-bold prose prose-sm prose-p:my-0"
+                                                    {{-- Gunakan prose-custom di sini juga --}}
+                                                    <div class="text-sm prose-custom prose-sm prose-p:my-0"
                                                         x-html="opt.option_text"></div>
                                                 </div>
                                             </template>
@@ -130,7 +155,7 @@
                                             <template x-for="(opt, i) in q.options" :key="i">
                                                 <div
                                                     class="flex items-start justify-between gap-4 py-2 border-b border-slate-100 last:border-0 last:pb-0">
-                                                    <div class="text-sm font-bold text-slate-600 prose prose-sm prose-p:my-0 flex-1"
+                                                    <div class="text-sm prose-custom prose-sm prose-p:my-0 flex-1"
                                                         x-html="opt.option_text || '- Pernyataan Kosong -'"></div>
                                                     <div class="shrink-0">
                                                         <span
@@ -149,11 +174,11 @@
                                             <template x-for="(m, i) in q.matches" :key="i">
                                                 <div
                                                     class="bg-white p-2 rounded-lg border border-slate-200 flex items-center justify-between text-xs shadow-sm">
-                                                    <span class="font-bold text-slate-600 truncate w-[45%]"
+                                                    <span class="prose-custom truncate w-[45%]"
                                                         x-html="m.premise_text ? m.premise_text.replace(/<[^>]*>?/gm, '') : ''"></span>
                                                     <i class="fas fa-arrow-right text-indigo-300"></i>
-                                                    <span class="font-bold text-emerald-600 truncate w-[45%] text-right"
-                                                        x-text="m.target_text"></span>
+                                                    <span class="prose-custom truncate w-[45%] text-right"
+                                                        x-html="m.target_text ? m.target_text.replace(/<[^>]*>?/gm, '') : ''"></span>
                                                 </div>
                                             </template>
                                         </div>
@@ -166,16 +191,16 @@
                                                 <div
                                                     class="text-sm font-bold text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 flex items-center gap-2">
                                                     <i class="fas fa-check text-indigo-400 text-[10px]"></i>
-                                                    <span x-text="opt.option_text || '-'"></span>
+                                                    {{-- Note: Essay biarkan tebal (font-bold bawaan div di atas) karena
+                                                    ini kata kunci singkat --}}
+                                                    <span class="prose-custom prose-p:my-0"
+                                                        x-html="opt.option_text || '-'"></span>
                                                 </div>
                                             </template>
                                         </div>
                                     </template>
                                 </div>
 
-                                {{-- Pilihan Jawaban Preview (TETAP SEPERTI ASLINYA, SAYA POTONG DI SINI UNTUK
-                                KETERBACAAN. COPY-PASTE BAGIAN PREVIEW JAWABAN DARI FILE ANDA SEBELUMNYA KE SINI) --}}
-                                {{-- <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">...</div> --}}
                             </div>
                         </div>
                     </div>
