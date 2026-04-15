@@ -8,7 +8,7 @@ use App\Http\Controllers\ExamController;
 use App\Http\Controllers\ImageUploadController;
 use App\Http\Controllers\ProctorController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\QuestionAjaxController;
+use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\Student\MathExamController as StudentMathExamController;
 use App\Http\Controllers\Student\StudentExamController;
 use Illuminate\Support\Facades\Route;
@@ -53,12 +53,9 @@ Route::middleware(['auth', 'role:admin|guru'])
         Route::get('/exams/{exam}/export', [ExamController::class, 'exportGrades'])->name('exams.export');
         Route::resource('exams', ExamController::class);
 
-        // --- 3. Manajemen Soal (AJAX) ---
-        Route::get('/exams/{exam}/questions', [QuestionAjaxController::class, 'index'])->name('ajax.questions.index');
-        Route::post('/exams/{exam}/questions', [QuestionAjaxController::class, 'store'])->name('ajax.questions.store');
-        Route::put('/questions/{question}', [QuestionAjaxController::class, 'update'])->name('ajax.questions.update');
-        Route::delete('/questions/{question}', [QuestionAjaxController::class, 'destroy'])->name('ajax.questions.destroy');
-
+        // --- 3. Manajemen Soal ---
+        // KITA LANGSUNG TARUH DI SINI SAJA, TIDAK PERLU BUAT GROUP 'ADMIN' BARU
+        Route::resource('exams.questions', QuestionController::class)->except(['show']);
         // --- 4. Upload Gambar (Summernote/CKEditor) ---
         Route::post('/upload-image', [ImageUploadController::class, 'store'])->name('image.upload');
 
