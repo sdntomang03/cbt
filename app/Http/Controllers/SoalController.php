@@ -10,9 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
-class QuestionController extends Controller
+class SoalController extends Controller
 {
-    // 1. TAMPILAN DAFTAR SOAL (INDEX)
     public function index(Exam $exam)
     {
         $questions = $exam->questions()
@@ -20,19 +19,17 @@ class QuestionController extends Controller
             ->latest()
             ->get();
 
-        return view('admin.questions.index', compact('exam', 'questions'));
+        return view('soal.index', compact('exam', 'questions'));
     }
 
-    // 2. TAMPILAN FORM BUAT SOAL (CREATE)
     public function create(Exam $exam)
     {
         $subjects = Subject::all();
         $levels = Level::all();
 
-        return view('admin.questions.create', compact('exam', 'subjects', 'levels'));
+        return view('soal.create', compact('exam', 'subjects', 'levels'));
     }
 
-    // 3. PROSES SIMPAN SOAL BARU (STORE)
     public function store(Request $request, Exam $exam)
     {
         $data = $request->validate([
@@ -43,7 +40,7 @@ class QuestionController extends Controller
             'level_id' => 'nullable|exists:levels,id',
         ]);
 
-        DB::transaction(function () use ($data, $request, $exam) {
+        return DB::transaction(function () use ($data, $request, $exam) {
             $question = $exam->questions()->create([
                 'user_id' => Auth::id(),
                 'type' => $data['type'],
@@ -51,28 +48,23 @@ class QuestionController extends Controller
                 'subject_id' => $data['subject_id'],
                 'level_id' => $data['level_id'],
             ]);
-            $this->saveQuestionDetails($question, $request->options, $data['type']);
-        });
 
-        // Redirect kembali ke daftar soal
-        return redirect()->route('admin.exams.questions.index', $exam->id)
-            ->with('success', 'Soal berhasil ditambahkan!');
+            $this->saveQuestionDetails($question, $request->options, $data['type']);
+
+            return response()->json(['message' => 'Soal berhasil disimpan!']);
+        });
     }
 
-    // 4. TAMPILAN FORM EDIT SOAL (EDIT)
-    public function edit(Exam $exam, Question $question)
+    public function edit(Exam $exam, Question $soal)
     {
+        $soal->load(['options', 'matches']);
         $subjects = Subject::all();
         $levels = Level::all();
 
-        // Load relasi agar bisa ditampilkan di form
-        $question->load(['options', 'matches']);
-
-        return view('admin.questions.edit', compact('exam', 'question', 'subjects', 'levels'));
+        return view('soal.edit', compact('exam', 'soal', 'subjects', 'levels'));
     }
 
-    // 5. PROSES UPDATE SOAL (UPDATE)
-    public function update(Request $request, Exam $exam, Question $question)
+    public function update(Request $request, Exam $exam, Question $soal)
     {
         $data = $request->validate([
             'type' => 'required|in:single_choice,complex_choice,essay,true_false,matching',
@@ -82,33 +74,30 @@ class QuestionController extends Controller
             'level_id' => 'nullable|exists:levels,id',
         ]);
 
-        DB::transaction(function () use ($data, $request, $question) {
-            $question->update([
+        return DB::transaction(function () use ($data, $request, $soal) {
+            $soal->update([
                 'type' => $data['type'],
                 'content' => $data['content'],
                 'subject_id' => $data['subject_id'],
                 'level_id' => $data['level_id'],
             ]);
 
-            $question->options()->delete();
-            $question->matches()->delete();
+            $soal->options()->delete();
+            $soal->matches()->delete();
 
-            $this->saveQuestionDetails($question, $request->options, $data['type']);
+            $this->saveQuestionDetails($soal, $request->options, $data['type']);
+
+            return response()->json(['message' => 'Soal berhasil diperbarui!']);
         });
-
-        return redirect()->route('admin.exams.questions.index', $exam->id)
-            ->with('success', 'Soal berhasil diperbarui!');
     }
 
-    // 6. PROSES HAPUS SOAL (DESTROY)
-    public function destroy(Exam $exam, Question $question)
+    public function destroy(Exam $exam, Question $soal)
     {
-        $question->delete();
+        $soal->delete();
 
-        return redirect()->back()->with('success', 'Soal berhasil dihapus!');
+        return response()->json(['message' => 'Soal berhasil dihapus']);
     }
 
-    // HELPER: Simpan detail opsi
     private function saveQuestionDetails($question, $items, $type)
     {
         if (empty($items)) {
@@ -119,7 +108,10 @@ class QuestionController extends Controller
             $matches = [];
             foreach ($items as $item) {
                 if (! empty($item['premise_text']) && ! empty($item['target_text'])) {
-                    $matches[] = ['premise_text' => $item['premise_text'], 'target_text' => $item['target_text']];
+                    $matches[] = [
+                        'premise_text' => $item['premise_text'],
+                        'target_text' => $item['target_text'],
+                    ];
                 }
             }
             if (count($matches) > 0) {

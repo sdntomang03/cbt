@@ -9,6 +9,7 @@ use App\Http\Controllers\ImageUploadController;
 use App\Http\Controllers\ProctorController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QuestionAjaxController;
+use App\Http\Controllers\SoalController;
 use App\Http\Controllers\Student\MathExamController as StudentMathExamController;
 use App\Http\Controllers\Student\StudentExamController;
 use Illuminate\Support\Facades\Route;
@@ -128,4 +129,8 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
 
 });
 
+Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
+    // Nested resource untuk Soal
+    Route::resource('exams.soal', SoalController::class)->except(['show']);
+});
 require __DIR__.'/auth.php';
