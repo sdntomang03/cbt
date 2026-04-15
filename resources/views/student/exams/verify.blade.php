@@ -12,7 +12,7 @@
                 Verifikasi Ujian
             </h2>
             <p class="mt-2 text-center text-sm font-bold text-slate-500">
-                {{ $session->exam->title }}
+                {{ $session->exam?->title ?? 'Ujian Tidak Tersedia (Dihapus)' }}
             </p>
         </div>
 

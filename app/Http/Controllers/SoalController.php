@@ -47,6 +47,7 @@ class SoalController extends Controller
                 'content' => $data['content'],
                 'subject_id' => $data['subject_id'],
                 'level_id' => $data['level_id'],
+                'school_id' => Auth::user()->school_id,
             ]);
 
             $this->saveQuestionDetails($question, $request->options, $data['type']);
@@ -111,6 +112,7 @@ class SoalController extends Controller
                     $matches[] = [
                         'premise_text' => $item['premise_text'],
                         'target_text' => $item['target_text'],
+                        'school_id' => Auth::user()->school_id,
                     ];
                 }
             }
@@ -124,6 +126,7 @@ class SoalController extends Controller
                     $options[] = [
                         'option_text' => $item['option_text'],
                         'is_correct' => filter_var($item['is_correct'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                        'school_id' => Auth::user()->school_id,
                     ];
                 }
             }

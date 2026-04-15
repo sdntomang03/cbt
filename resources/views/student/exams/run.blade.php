@@ -332,8 +332,21 @@
                         <template x-for="(q, index) in questions" :key="q.id">
                             <button @click="currentIndex = index"
                                 class="aspect-square rounded-xl font-black text-sm transition-all border-2 flex items-center justify-center relative"
-                                :class="{ 'bg-indigo-600 text-white border-indigo-600 scale-110 z-10': currentIndex === index, 'bg-white text-indigo-600 border-indigo-200': hasAnswer(q.id) && currentIndex !== index, 'bg-amber-100 text-amber-600 border-amber-300': flags.includes(q.id) && currentIndex !== index, 'bg-white text-slate-300 border-slate-100': !hasAnswer(q.id) && !flags.includes(q.id) && currentIndex !== index }"><span
-                                    x-text="index + 1"></span></button>
+                                :class="{
+                /* 1. Sedang Dilihat (Aktif) = Ungu Gelap & Membesar */
+                'bg-indigo-600 text-white border-indigo-600 scale-110 z-10 shadow-md': currentIndex === index,
+
+                /* 2. Ditandai Ragu-ragu (Bukan Aktif) = Kuning/Amber (Prioritas lebih tinggi dari sudah dijawab) */
+                'bg-amber-100 text-amber-600 border-amber-400': flags.includes(q.id) && currentIndex !== index,
+
+                /* 3. Sudah Dijawab (Bukan Aktif & Tidak Ragu) = BIRU (Blue) */
+                'bg-blue-500 text-white border-blue-500': hasAnswer(q.id) && !flags.includes(q.id) && currentIndex !== index,
+
+                /* 4. Belum Dijawab Sama Sekali = Putih Abu-abu */
+                'bg-white text-slate-400 border-slate-200': !hasAnswer(q.id) && !flags.includes(q.id) && currentIndex !== index
+            }">
+                                <span x-text="index + 1"></span>
+                            </button>
                         </template>
                     </div>
                 </div>

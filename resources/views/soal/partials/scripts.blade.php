@@ -205,11 +205,14 @@
                         opts = [{ option_text: '', is_correct: 1 }];
                     }
                 }
-                this.form = {
+              this.form = {
                     type: q.type,
                     content: q.content,
+
+                    // Cukup tarik datanya secara natural
                     subject_id: q.subject_id || '',
                     level_id: q.level_id || '',
+
                     options: opts
                 };
             },

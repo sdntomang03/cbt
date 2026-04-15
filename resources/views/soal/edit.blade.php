@@ -40,26 +40,32 @@
                     </div>
                 </div>
                 <div class="lg:col-span-4 flex gap-4">
+                    {{-- Dropdown Mapel --}}
                     <div class="flex-1">
                         <label
                             class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Mapel</label>
+                        {{-- x-model tetap ada agar Alpine tahu nilainya --}}
                         <select x-model="form.subject_id"
-                            class="w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-bold text-slate-700 py-3 focus:ring-indigo-500">
+                            class="w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-bold text-slate-700 py-3 px-4 focus:ring-indigo-500 cursor-pointer">
                             <option value="">Umum</option>
-                            <template x-for="s in subjects">
-                                <option :value="s.id" x-text="s.name"></option>
-                            </template>
+                            {{-- KUNCI: Gunakan Blade @foreach agar opsi sudah siap sebelum Alpine berjalan --}}
+                            @foreach($subjects as $s)
+                            <option value="{{ $s->id }}">{{ $s->name }}</option>
+                            @endforeach
                         </select>
                     </div>
+
+                    {{-- Dropdown Level --}}
                     <div class="flex-1">
                         <label
                             class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Level</label>
                         <select x-model="form.level_id"
-                            class="w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-bold text-slate-700 py-3 focus:ring-indigo-500">
+                            class="w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-bold text-slate-700 py-3 px-4 focus:ring-indigo-500 cursor-pointer">
                             <option value="">Umum</option>
-                            <template x-for="l in levels">
-                                <option :value="l.id" x-text="l.name"></option>
-                            </template>
+                            {{-- KUNCI: Gunakan Blade @foreach --}}
+                            @foreach($levels as $l)
+                            <option value="{{ $l->id }}">{{ $l->name }}</option>
+                            @endforeach
                         </select>
                     </div>
                 </div>

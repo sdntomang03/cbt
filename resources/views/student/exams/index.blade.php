@@ -103,6 +103,7 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 @forelse($mySessions as $session)
+
                 <div
                     class="bg-white rounded-[2.5rem] p-2 shadow-[0_2px_15px_rgba(0,0,0,0.03)] border border-slate-100 hover:border-indigo-200 transition-all hover-lift group flex flex-col h-full relative overflow-hidden">
 
@@ -143,12 +144,12 @@
                         <div class="mb-8">
                             <h3
                                 class="text-xl font-black text-slate-800 leading-snug mb-3 group-hover:text-indigo-600 transition-colors line-clamp-2">
-                                {{ $session->exam->title }}
+                                {{ $session->exam?->title ?? 'Ujian Tidak Tersedia (Dihapus)' }}
                             </h3>
                             <div class="flex items-center gap-4 text-xs font-bold text-slate-400">
                                 <div class="flex items-center gap-1.5">
-                                    <i class="fas fa-stopwatch text-indigo-400"></i> {{ $session->exam->duration_minutes
-                                    }} Menit
+                                    <i class="fas fa-stopwatch text-indigo-400"></i> {{
+                                    $session->exam?->duration_minutes ?? 0 }} Menit
                                 </div>
                                 <div class="flex items-center gap-1.5">
                                     <i class="fas fa-file-alt text-indigo-400"></i> {{ $session->exam->questions_count

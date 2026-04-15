@@ -7,7 +7,7 @@
             <a href="{{ route('admin.exams.questions.index', $exam->id) }}"
                 class="text-slate-400 hover:text-indigo-600 transition"><i class="fas fa-arrow-left text-xl"></i></a>
             <div>
-                <h2 class="font-black text-2xl text-slate-800">Buat Soal Baru</h2>
+                <h2 class="font-black text-2xl text-slate-800">Edit Soal</h2>
                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Editor Konten Ujian</p>
             </div>
         </div>
