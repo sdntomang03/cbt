@@ -30,6 +30,7 @@ class QuestionSeeder extends Seeder
             'random_question' => true,
             'random_answer' => true,
             'status' => 'published',
+            'school_id' => 1, // Pastikan sekolah dengan ID 1 ada
         ]);
 
         $this->command->info('Exam created: '.$exam->title);
@@ -74,11 +75,12 @@ class QuestionSeeder extends Seeder
             'user_id' => 1,
             'type' => 'single_choice',
             'content' => '<p>4+4 = ...</p>',
+            'school_id' => 1, // Pastikan sekolah dengan ID 1 ada
         ]);
-        QuestionOption::create(['question_id' => $q1->id, 'option_text' => '6', 'is_correct' => false]);
-        QuestionOption::create(['question_id' => $q1->id, 'option_text' => '8', 'is_correct' => true]);
-        QuestionOption::create(['question_id' => $q1->id, 'option_text' => '9', 'is_correct' => false]);
-        QuestionOption::create(['question_id' => $q1->id, 'option_text' => '12', 'is_correct' => false]);
+        QuestionOption::create(['question_id' => $q1->id, 'school_id' => 1, 'option_text' => '6', 'is_correct' => false]);
+        QuestionOption::create(['question_id' => $q1->id, 'school_id' => 1, 'option_text' => '8', 'is_correct' => true]);
+        QuestionOption::create(['question_id' => $q1->id, 'school_id' => 1, 'option_text' => '9', 'is_correct' => false]);
+        QuestionOption::create(['question_id' => $q1->id, 'school_id' => 1, 'option_text' => '12', 'is_correct' => false]);
 
         // Soal 2: Pilihan Ganda Kompleks
         $q2 = Question::create([
@@ -86,11 +88,12 @@ class QuestionSeeder extends Seeder
             'user_id' => 1,
             'type' => 'complex_choice',
             'content' => '<p>Manakah yang termasuk perangkat <strong>Input</strong> komputer? (Pilih lebih dari satu)</p>',
+            'school_id' => 1, // Pastikan sekolah dengan ID 1 ada
         ]);
-        QuestionOption::create(['question_id' => $q2->id, 'option_text' => 'Monitor', 'is_correct' => false]);
-        QuestionOption::create(['question_id' => $q2->id, 'option_text' => 'Keyboard', 'is_correct' => true]);
-        QuestionOption::create(['question_id' => $q2->id, 'option_text' => 'Mouse', 'is_correct' => true]);
-        QuestionOption::create(['question_id' => $q2->id, 'option_text' => 'Printer', 'is_correct' => false]);
+        QuestionOption::create(['question_id' => $q2->id, 'school_id' => 1, 'option_text' => 'Monitor', 'is_correct' => false]);
+        QuestionOption::create(['question_id' => $q2->id, 'school_id' => 1, 'option_text' => 'Keyboard', 'is_correct' => true]);
+        QuestionOption::create(['question_id' => $q2->id, 'school_id' => 1, 'option_text' => 'Mouse', 'is_correct' => true]);
+        QuestionOption::create(['question_id' => $q2->id, 'school_id' => 1, 'option_text' => 'Printer', 'is_correct' => false]);
 
         // Soal 3: Benar Salah
         $q3 = Question::create([
@@ -98,9 +101,10 @@ class QuestionSeeder extends Seeder
             'user_id' => 1,
             'type' => 'true_false',
             'content' => '<p>HTML adalah bahasa pemrograman.</p>',
+            'school_id' => 1, // Pastikan sekolah dengan ID 1 ada
         ]);
-        QuestionOption::create(['question_id' => $q3->id, 'option_text' => 'Benar', 'is_correct' => false]);
-        QuestionOption::create(['question_id' => $q3->id, 'option_text' => 'Salah', 'is_correct' => true]);
+        QuestionOption::create(['question_id' => $q3->id, 'school_id' => 1, 'option_text' => 'Benar', 'is_correct' => false]);
+        QuestionOption::create(['question_id' => $q3->id, 'school_id' => 1, 'option_text' => 'Salah', 'is_correct' => true]);
 
         // Soal 4: Menjodohkan
         $q4 = Question::create([
@@ -108,6 +112,7 @@ class QuestionSeeder extends Seeder
             'user_id' => 1,
             'type' => 'matching',
             'content' => '<p>Pasangkan istilah jaringan berikut dengan fungsinya!</p>',
+            'school_id' => 1, // Pastikan sekolah dengan ID 1 ada
         ]);
         QuestionMatch::create(['question_id' => $q4->id, 'premise_text' => 'LAN', 'target_text' => 'Local Area Network']);
         QuestionMatch::create(['question_id' => $q4->id, 'premise_text' => 'WAN', 'target_text' => 'Wide Area Network']);
@@ -120,7 +125,8 @@ class QuestionSeeder extends Seeder
             'user_id' => 1,
             'type' => 'essay',
             'content' => '<p>Sebutkan ibukota Jawa Barat?</p>',
+            'school_id' => 1, // Pastikan sekolah dengan ID 1 ada
         ]);
-        QuestionOption::create(['question_id' => $q5->id, 'option_text' => 'Bandung', 'is_correct' => true]);
+        QuestionOption::create(['question_id' => $q5->id, 'school_id' => 1, 'option_text' => 'Bandung', 'is_correct' => true]);
     }
 }
