@@ -6,6 +6,8 @@ use App\Http\Controllers\Admin\SchoolController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\ImageUploadController;
+use App\Http\Controllers\KawanBacaController;
+use App\Http\Controllers\KawanHitungController;
 use App\Http\Controllers\ProctorController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QuestionAjaxController;
@@ -132,5 +134,18 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
 Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
     // Nested resource untuk Soal
     Route::resource('exams.soal', SoalController::class)->except(['show']);
+});
+
+Route::prefix('kawan-hitung')->group(function () {
+    Route::get('/', [KawanHitungController::class, 'index'])->name('hitung.index');
+    Route::post('/generate', [KawanHitungController::class, 'generate'])->name('hitung.generate');
+    Route::get('/latihan', [KawanHitungController::class, 'latihan'])->name('hitung.latihan');
+    Route::post('/submit', [KawanHitungController::class, 'submit'])->name('hitung.submit');
+});
+
+Route::prefix('kawan-baca')->group(function () {
+    Route::get('/', [KawanBacaController::class, 'index'])->name('baca.index');
+    Route::post('/generate', [KawanBacaController::class, 'generate'])->name('baca.generate');
+    Route::get('/latihan', [KawanBacaController::class, 'latihan'])->name('baca.latihan');
 });
 require __DIR__.'/auth.php';

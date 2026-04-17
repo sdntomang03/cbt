@@ -71,8 +71,8 @@
                             (Role)</label>
                         <select name="role" required
                             class="w-full bg-slate-50 border-transparent focus:border-indigo-500 focus:bg-white focus:ring-0 rounded-xl font-bold text-slate-700 py-3 px-4">
-                            <option value="student" {{ old('role')=='student' ? 'selected' : '' }}>Siswa</option>
-                            <option value="teacher" {{ old('role')=='teacher' ? 'selected' : '' }}>Guru</option>
+                            <option value="siswa" {{ old('role')=='siswa' ? 'selected' : '' }}>Siswa</option>
+                            <option value="guru" {{ old('role')=='guru' ? 'selected' : '' }}>Guru</option>
                             <option value="admin" {{ old('role')=='admin' ? 'selected' : '' }}>Admin</option>
                         </select>
                         @error('role') <p class="text-rose-500 text-xs font-bold mt-1">{{ $message }}</p> @enderror
