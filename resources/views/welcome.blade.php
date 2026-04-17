@@ -89,14 +89,32 @@
     <nav class="relative z-50 w-full glass-panel border-b-0 shadow-sm">
         <div class="max-w-7xl mx-auto px-6 lg:px-8">
             <div class="flex justify-between h-20 items-center">
-                <div class="flex items-center gap-3">
-                    <div
-                        class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
-                        <i class="fas fa-graduation-cap text-xl"></i>
+
+                <div class="flex items-center gap-8">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                            <i class="fas fa-graduation-cap text-xl"></i>
+                        </div>
+                        <span class="font-black text-2xl tracking-tight text-slate-800">
+                            CBT<span class="text-indigo-600">Pro</span>
+                        </span>
                     </div>
-                    <span class="font-black text-2xl tracking-tight text-slate-800">
-                        CBT<span class="text-indigo-600">Pro</span>
-                    </span>
+
+                    <div class="hidden md:flex items-center gap-6 border-l-2 border-slate-100 pl-8">
+                        <a href="{{ route('hitung.index') }}"
+                            class="font-bold text-slate-600 hover:text-indigo-600 transition flex items-center gap-2 group">
+                            <span
+                                class="text-xl group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">🧮</span>
+                            Kawan Hitung
+                        </a>
+                        <a href="{{ route('baca.index') }}"
+                            class="font-bold text-slate-600 hover:text-indigo-600 transition flex items-center gap-2 group">
+                            <span
+                                class="text-xl group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">📖</span>
+                            Kawan Baca
+                        </a>
+                    </div>
                 </div>
 
                 @if (Route::has('login'))
@@ -119,6 +137,7 @@
                     @endauth
                 </div>
                 @endif
+
             </div>
         </div>
     </nav>
@@ -194,7 +213,8 @@
                     <div class="flex items-center gap-3 mb-2">
                         <div
                             class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-500 flex items-center justify-center text-xs">
-                            <i class="fas fa-check"></i></div>
+                            <i class="fas fa-check"></i>
+                        </div>
                         <div>
                             <p class="text-[10px] font-bold text-slate-400 uppercase">Status</p>
                             <p class="text-sm font-black text-slate-700">Ujian Selesai</p>
