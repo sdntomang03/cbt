@@ -113,161 +113,215 @@
                                 class="w-full text-lg font-bold text-slate-700 bg-slate-50 border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 py-4 px-5 shadow-inner placeholder-slate-300">
                         </div>
 
-                        <div class="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-                                <div>
-                                    <h3 class="font-black text-xl text-slate-800">Tipe Operasi Matematika</h3>
-                                    <p class="text-sm font-bold text-slate-400 mt-1">Centang operasi dan atur level
-                                        digitnya.</p>
-                                </div>
-                                <div
-                                    class="bg-amber-50 text-amber-600 px-4 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-2 whitespace-nowrap">
-                                    <i class="fas fa-lightbulb"></i> Minimal pilih 1
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+                            {{-- 1. PENJUMLAHAN --}}
+                            <div class="flex flex-col p-1 bg-white rounded-2xl border-2 transition-all"
+                                :class="types.includes('addition') ? 'border-emerald-500 bg-emerald-50/10 shadow-lg shadow-emerald-100/50' : 'border-slate-100'">
+                                <label class="relative flex items-center p-3 cursor-pointer group">
+                                    <input type="checkbox" name="types[]" value="addition" x-model="types"
+                                        class="hidden">
+                                    <div class="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl mr-4 transition-colors shrink-0"
+                                        :class="types.includes('addition') ? 'bg-emerald-500 text-white shadow-md shadow-emerald-200' : 'bg-slate-100 text-slate-400 group-hover:bg-emerald-100 group-hover:text-emerald-500'">
+                                        <i class="fas fa-plus"></i>
+                                    </div>
+                                    <div class="flex-1"><span
+                                            class="block font-black text-slate-800 text-lg">Penjumlahan</span></div>
+                                    <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ml-2"
+                                        :class="types.includes('addition') ? 'border-emerald-500 bg-emerald-500' : 'border-slate-200'">
+                                        <i class="fas fa-check text-white text-[10px]"
+                                            x-show="types.includes('addition')"></i>
+                                    </div>
+                                </label>
+                                <div x-show="types.includes('addition')" x-collapse>
+                                    <div class="px-4 pb-4 pt-2">
+                                        <div class="border-t border-emerald-100 pt-3 grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label
+                                                    class="block text-[10px] font-black text-emerald-600 mb-1 uppercase">Angka
+                                                    1 (Kiri):</label>
+                                                <select name="digits[addition][num1]"
+                                                    class="w-full text-xs font-bold text-slate-700 rounded-lg border-emerald-200 bg-emerald-50 focus:ring-emerald-500 py-2">
+                                                    <option value="1">Pasti 1 Digit</option>
+                                                    <option value="2" selected>Pasti 2 Digit</option>
+                                                    <option value="2_max">Maks 2 Digit (1-99)</option>
+                                                    <option value="3">Pasti 3 Digit</option>
+                                                    <option value="3_max">Maks 3 Digit (1-999)</option>
+                                                    <option value="4">Pasti 4 Digit</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label
+                                                    class="block text-[10px] font-black text-emerald-600 mb-1 uppercase">Angka
+                                                    2 (Kanan):</label>
+                                                <select name="digits[addition][num2]"
+                                                    class="w-full text-xs font-bold text-slate-700 rounded-lg border-emerald-200 bg-emerald-50 focus:ring-emerald-500 py-2">
+                                                    <option value="1" selected>Pasti 1 Digit</option>
+                                                    <option value="2">Pasti 2 Digit</option>
+                                                    <option value="2_max">Maks 2 Digit (1-99)</option>
+                                                    <option value="3">Pasti 3 Digit</option>
+                                                    <option value="3_max">Maks 3 Digit (1-999)</option>
+                                                    <option value="4">Pasti 4 Digit</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                <div class="flex flex-col p-1 bg-white rounded-2xl border-2 transition-all"
-                                    :class="types.includes('addition') ? 'border-emerald-500 bg-emerald-50/10 shadow-lg shadow-emerald-100/50' : 'border-slate-100'">
-                                    <label class="relative flex items-center p-3 cursor-pointer group">
-                                        <input type="checkbox" name="types[]" value="addition" x-model="types"
-                                            class="hidden">
-                                        <div class="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl mr-4 transition-colors shrink-0"
-                                            :class="types.includes('addition') ? 'bg-emerald-500 text-white shadow-md shadow-emerald-200' : 'bg-slate-100 text-slate-400 group-hover:bg-emerald-100 group-hover:text-emerald-500'">
-                                            <i class="fas fa-plus"></i>
-                                        </div>
-                                        <div class="flex-1">
-                                            <span class="block font-black text-slate-800 text-lg">Penjumlahan</span>
-                                        </div>
-                                        <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ml-2"
-                                            :class="types.includes('addition') ? 'border-emerald-500 bg-emerald-500' : 'border-slate-200'">
-                                            <i class="fas fa-check text-white text-[10px]"
-                                                x-show="types.includes('addition')"></i>
-                                        </div>
-                                    </label>
-                                    <div x-show="types.includes('addition')" x-collapse>
-                                        <div class="px-4 pb-4 pt-2">
-                                            <div class="border-t border-emerald-100 pt-3">
-                                                <label class="block text-xs font-black text-emerald-600 mb-2">PILIH
-                                                    LEVEL DIGIT:</label>
-                                                <select name="digits[addition]"
-                                                    class="w-full text-sm font-bold text-slate-700 rounded-xl border-emerald-200 bg-emerald-50 focus:ring-emerald-500 py-2">
-                                                    <option value="1">1 Digit (1 - 9)</option>
-                                                    <option value="2" selected>2 Digit (10 - 99)</option>
-                                                    <option value="3">3 Digit (100 - 999)</option>
-                                                    <option value="4">4 Digit (1000+)</option>
+                            {{-- 2. PENGURANGAN --}}
+                            <div class="flex flex-col p-1 bg-white rounded-2xl border-2 transition-all"
+                                :class="types.includes('subtraction') ? 'border-rose-500 bg-rose-50/10 shadow-lg shadow-rose-100/50' : 'border-slate-100'">
+                                <label class="relative flex items-center p-3 cursor-pointer group">
+                                    <input type="checkbox" name="types[]" value="subtraction" x-model="types"
+                                        class="hidden">
+                                    <div class="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl mr-4 transition-colors shrink-0"
+                                        :class="types.includes('subtraction') ? 'bg-rose-500 text-white shadow-md shadow-rose-200' : 'bg-slate-100 text-slate-400 group-hover:bg-rose-100 group-hover:text-rose-500'">
+                                        <i class="fas fa-minus"></i>
+                                    </div>
+                                    <div class="flex-1"><span
+                                            class="block font-black text-slate-800 text-lg">Pengurangan</span></div>
+                                    <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ml-2"
+                                        :class="types.includes('subtraction') ? 'border-rose-500 bg-rose-500' : 'border-slate-200'">
+                                        <i class="fas fa-check text-white text-[10px]"
+                                            x-show="types.includes('subtraction')"></i>
+                                    </div>
+                                </label>
+                                <div x-show="types.includes('subtraction')" x-collapse>
+                                    <div class="px-4 pb-4 pt-2">
+                                        <div class="border-t border-rose-100 pt-3 grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label
+                                                    class="block text-[10px] font-black text-rose-600 mb-1 uppercase">Angka
+                                                    1 (Kiri):</label>
+                                                <select name="digits[subtraction][num1]"
+                                                    class="w-full text-xs font-bold text-slate-700 rounded-lg border-rose-200 bg-rose-50 focus:ring-rose-500 py-2">
+                                                    <option value="1">Pasti 1 Digit</option>
+                                                    <option value="2" selected>Pasti 2 Digit</option>
+                                                    <option value="2_max">Maks 2 Digit</option>
+                                                    <option value="3">Pasti 3 Digit</option>
+                                                    <option value="3_max">Maks 3 Digit</option>
+                                                    <option value="4">Pasti 4 Digit</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label
+                                                    class="block text-[10px] font-black text-rose-600 mb-1 uppercase">Angka
+                                                    2 (Kanan):</label>
+                                                <select name="digits[subtraction][num2]"
+                                                    class="w-full text-xs font-bold text-slate-700 rounded-lg border-rose-200 bg-rose-50 focus:ring-rose-500 py-2">
+                                                    <option value="1" selected>Pasti 1 Digit</option>
+                                                    <option value="2">Pasti 2 Digit</option>
+                                                    <option value="2_max">Maks 2 Digit</option>
+                                                    <option value="3">Pasti 3 Digit</option>
+                                                    <option value="3_max">Maks 3 Digit</option>
+                                                    <option value="4">Pasti 4 Digit</option>
                                                 </select>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div class="flex flex-col p-1 bg-white rounded-2xl border-2 transition-all"
-                                    :class="types.includes('subtraction') ? 'border-rose-500 bg-rose-50/10 shadow-lg shadow-rose-100/50' : 'border-slate-100'">
-                                    <label class="relative flex items-center p-3 cursor-pointer group">
-                                        <input type="checkbox" name="types[]" value="subtraction" x-model="types"
-                                            class="hidden">
-                                        <div class="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl mr-4 transition-colors shrink-0"
-                                            :class="types.includes('subtraction') ? 'bg-rose-500 text-white shadow-md shadow-rose-200' : 'bg-slate-100 text-slate-400 group-hover:bg-rose-100 group-hover:text-rose-500'">
-                                            <i class="fas fa-minus"></i>
-                                        </div>
-                                        <div class="flex-1">
-                                            <span class="block font-black text-slate-800 text-lg">Pengurangan</span>
-                                        </div>
-                                        <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ml-2"
-                                            :class="types.includes('subtraction') ? 'border-rose-500 bg-rose-500' : 'border-slate-200'">
-                                            <i class="fas fa-check text-white text-[10px]"
-                                                x-show="types.includes('subtraction')"></i>
-                                        </div>
-                                    </label>
-                                    <div x-show="types.includes('subtraction')" x-collapse>
-                                        <div class="px-4 pb-4 pt-2">
-                                            <div class="border-t border-rose-100 pt-3">
-                                                <label class="block text-xs font-black text-rose-600 mb-2">PILIH LEVEL
-                                                    DIGIT:</label>
-                                                <select name="digits[subtraction]"
-                                                    class="w-full text-sm font-bold text-slate-700 rounded-xl border-rose-200 bg-rose-50 focus:ring-rose-500 py-2">
-                                                    <option value="1">1 Digit (1 - 9)</option>
-                                                    <option value="2" selected>2 Digit (10 - 99)</option>
-                                                    <option value="3">3 Digit (100 - 999)</option>
-                                                    <option value="4">4 Digit (1000+)</option>
+                            {{-- 3. PERKALIAN --}}
+                            <div class="flex flex-col p-1 bg-white rounded-2xl border-2 transition-all"
+                                :class="types.includes('multiplication') ? 'border-blue-500 bg-blue-50/10 shadow-lg shadow-blue-100/50' : 'border-slate-100'">
+                                <label class="relative flex items-center p-3 cursor-pointer group">
+                                    <input type="checkbox" name="types[]" value="multiplication" x-model="types"
+                                        class="hidden">
+                                    <div class="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl mr-4 transition-colors shrink-0"
+                                        :class="types.includes('multiplication') ? 'bg-blue-500 text-white shadow-md shadow-blue-200' : 'bg-slate-100 text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-500'">
+                                        <i class="fas fa-times"></i>
+                                    </div>
+                                    <div class="flex-1"><span
+                                            class="block font-black text-slate-800 text-lg">Perkalian</span></div>
+                                    <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ml-2"
+                                        :class="types.includes('multiplication') ? 'border-blue-500 bg-blue-500' : 'border-slate-200'">
+                                        <i class="fas fa-check text-white text-[10px]"
+                                            x-show="types.includes('multiplication')"></i>
+                                    </div>
+                                </label>
+                                <div x-show="types.includes('multiplication')" x-collapse>
+                                    <div class="px-4 pb-4 pt-2">
+                                        <div class="border-t border-blue-100 pt-3 grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label
+                                                    class="block text-[10px] font-black text-blue-600 mb-1 uppercase">Angka
+                                                    1 (Kiri):</label>
+                                                <select name="digits[multiplication][num1]"
+                                                    class="w-full text-xs font-bold text-slate-700 rounded-lg border-blue-200 bg-blue-50 focus:ring-blue-500 py-2">
+                                                    <option value="1">Pasti 1 Digit</option>
+                                                    <option value="2">Pasti 2 Digit</option>
+                                                    <option value="2_max" selected>Maks 2 Digit</option>
+                                                    <option value="3">Pasti 3 Digit</option>
+                                                    <option value="3_max">Maks 3 Digit</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label
+                                                    class="block text-[10px] font-black text-blue-600 mb-1 uppercase">Angka
+                                                    2 (Kanan):</label>
+                                                <select name="digits[multiplication][num2]"
+                                                    class="w-full text-xs font-bold text-slate-700 rounded-lg border-blue-200 bg-blue-50 focus:ring-blue-500 py-2">
+                                                    <option value="1" selected>Pasti 1 Digit</option>
+                                                    <option value="2">Pasti 2 Digit</option>
+                                                    <option value="2_max">Maks 2 Digit</option>
+                                                    <option value="3">Pasti 3 Digit</option>
                                                 </select>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div class="flex flex-col p-1 bg-white rounded-2xl border-2 transition-all"
-                                    :class="types.includes('multiplication') ? 'border-blue-500 bg-blue-50/10 shadow-lg shadow-blue-100/50' : 'border-slate-100'">
-                                    <label class="relative flex items-center p-3 cursor-pointer group">
-                                        <input type="checkbox" name="types[]" value="multiplication" x-model="types"
-                                            class="hidden">
-                                        <div class="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl mr-4 transition-colors shrink-0"
-                                            :class="types.includes('multiplication') ? 'bg-blue-500 text-white shadow-md shadow-blue-200' : 'bg-slate-100 text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-500'">
-                                            <i class="fas fa-times"></i>
-                                        </div>
-                                        <div class="flex-1">
-                                            <span class="block font-black text-slate-800 text-lg">Perkalian</span>
-                                        </div>
-                                        <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ml-2"
-                                            :class="types.includes('multiplication') ? 'border-blue-500 bg-blue-500' : 'border-slate-200'">
-                                            <i class="fas fa-check text-white text-[10px]"
-                                                x-show="types.includes('multiplication')"></i>
-                                        </div>
-                                    </label>
-                                    <div x-show="types.includes('multiplication')" x-collapse>
-                                        <div class="px-4 pb-4 pt-2">
-                                            <div class="border-t border-blue-100 pt-3">
-                                                <label class="block text-xs font-black text-blue-600 mb-2">PILIH LEVEL
-                                                    DIGIT:</label>
-                                                <select name="digits[multiplication]"
-                                                    class="w-full text-sm font-bold text-slate-700 rounded-xl border-blue-200 bg-blue-50 focus:ring-blue-500 py-2">
-                                                    <option value="1">1 Digit (1 - 9)</option>
-                                                    <option value="2">2 Digit (10 - 99)</option>
-                                                    <option value="3">3 Digit (100 - 999)</option>
-                                                </select>
-                                                <p class="text-[10px] text-blue-500 mt-2 font-bold"><i
-                                                        class="fas fa-info-circle"></i> Awas! Hasil perkalian bisa
-                                                    sangat besar.</p>
-                                            </div>
-                                        </div>
+                            {{-- 4. PEMBAGIAN --}}
+                            <div class="flex flex-col p-1 bg-white rounded-2xl border-2 transition-all"
+                                :class="types.includes('division') ? 'border-purple-500 bg-purple-50/10 shadow-lg shadow-purple-100/50' : 'border-slate-100'">
+                                <label class="relative flex items-center p-3 cursor-pointer group">
+                                    <input type="checkbox" name="types[]" value="division" x-model="types"
+                                        class="hidden">
+                                    <div class="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl mr-4 transition-colors shrink-0"
+                                        :class="types.includes('division') ? 'bg-purple-500 text-white shadow-md shadow-purple-200' : 'bg-slate-100 text-slate-400 group-hover:bg-purple-100 group-hover:text-purple-500'">
+                                        <i class="fas fa-divide"></i>
                                     </div>
-                                </div>
-
-                                <div class="flex flex-col p-1 bg-white rounded-2xl border-2 transition-all"
-                                    :class="types.includes('division') ? 'border-purple-500 bg-purple-50/10 shadow-lg shadow-purple-100/50' : 'border-slate-100'">
-                                    <label class="relative flex items-center p-3 cursor-pointer group">
-                                        <input type="checkbox" name="types[]" value="division" x-model="types"
-                                            class="hidden">
-                                        <div class="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl mr-4 transition-colors shrink-0"
-                                            :class="types.includes('division') ? 'bg-purple-500 text-white shadow-md shadow-purple-200' : 'bg-slate-100 text-slate-400 group-hover:bg-purple-100 group-hover:text-purple-500'">
-                                            <i class="fas fa-divide"></i>
-                                        </div>
-                                        <div class="flex-1">
-                                            <span class="block font-black text-slate-800 text-lg">Pembagian</span>
-                                        </div>
-                                        <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ml-2"
-                                            :class="types.includes('division') ? 'border-purple-500 bg-purple-500' : 'border-slate-200'">
-                                            <i class="fas fa-check text-white text-[10px]"
-                                                x-show="types.includes('division')"></i>
-                                        </div>
-                                    </label>
-                                    <div x-show="types.includes('division')" x-collapse>
-                                        <div class="px-4 pb-4 pt-2">
-                                            <div class="border-t border-purple-100 pt-3">
-                                                <label class="block text-xs font-black text-purple-600 mb-2">TARGET
-                                                    DIGIT JAWABAN:</label>
-                                                <select name="digits[division]"
-                                                    class="w-full text-sm font-bold text-slate-700 rounded-xl border-purple-200 bg-purple-50 focus:ring-purple-500 py-2">
-                                                    <option value="1">1 Digit (Jawaban Satuan)</option>
-                                                    <option value="2" selected>2 Digit (Jawaban Puluhan)</option>
-                                                    <option value="3">3 Digit (Jawaban Ratusan)</option>
+                                    <div class="flex-1"><span
+                                            class="block font-black text-slate-800 text-lg">Pembagian</span></div>
+                                    <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ml-2"
+                                        :class="types.includes('division') ? 'border-purple-500 bg-purple-500' : 'border-slate-200'">
+                                        <i class="fas fa-check text-white text-[10px]"
+                                            x-show="types.includes('division')"></i>
+                                    </div>
+                                </label>
+                                <div x-show="types.includes('division')" x-collapse>
+                                    <div class="px-4 pb-4 pt-2">
+                                        <div class="border-t border-purple-100 pt-3 grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label
+                                                    class="block text-[10px] font-black text-purple-600 mb-1 uppercase">Yg
+                                                    Dibagi (Kiri):</label>
+                                                <select name="digits[division][num1]"
+                                                    class="w-full text-xs font-bold text-slate-700 rounded-lg border-purple-200 bg-purple-50 focus:ring-purple-500 py-2">
+                                                    <option value="2">Pasti 2 Digit</option>
+                                                    <option value="2_max">Maks 2 Digit</option>
+                                                    <option value="3" selected>Pasti 3 Digit</option>
+                                                    <option value="3_max">Maks 3 Digit</option>
+                                                    <option value="4">Pasti 4 Digit</option>
                                                 </select>
-                                                <p class="text-[10px] text-purple-500 mt-2 font-bold"><i
-                                                        class="fas fa-shield-alt"></i> Sistem dijamin membagi habis
-                                                    tanpa sisa.</p>
+                                            </div>
+                                            <div>
+                                                <label
+                                                    class="block text-[10px] font-black text-purple-600 mb-1 uppercase">Pembagi
+                                                    (Kanan):</label>
+                                                <select name="digits[division][num2]"
+                                                    class="w-full text-xs font-bold text-slate-700 rounded-lg border-purple-200 bg-purple-50 focus:ring-purple-500 py-2">
+                                                    <option value="1" selected>Pasti 1 Digit</option>
+                                                    <option value="2">Pasti 2 Digit</option>
+                                                    <option value="2_max">Maks 2 Digit</option>
+                                                </select>
                                             </div>
                                         </div>
+                                        <p class="text-[9px] text-purple-500 mt-2 font-bold"><i
+                                                class="fas fa-shield-alt"></i> Dijamin membagi habis tanpa sisa.</p>
                                     </div>
                                 </div>
                             </div>

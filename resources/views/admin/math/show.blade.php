@@ -60,10 +60,10 @@
                     <i class="fas fa-file-excel"></i> Export Excel
                 </a>
 
-                <button onclick="window.print()"
-                    class="bg-slate-800 hover:bg-black text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-transform hover:-translate-y-1 flex items-center gap-2">
-                    <i class="fas fa-print"></i> Cetak PDF
-                </button>
+                <a href="{{ route('admin.math.print', $exam->id) }}" target="_blank"
+                    class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-6 py-3 rounded-2xl font-bold shadow-sm transition-all flex items-center gap-2">
+                    <i class="fas fa-print text-slate-400"></i> Cetak Lembar Kerja (PDF)
+                </a>
             </div>
         </div>
 

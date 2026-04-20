@@ -57,14 +57,48 @@
                 </div>
             </div>
             <div
-                class="flex items-center gap-4 bg-white/80 backdrop-blur p-2 pl-6 rounded-full shadow-sm border border-white">
-                <div class="flex flex-col items-end pr-2">
+                class="flex items-center gap-2 md:gap-3 bg-white/80 backdrop-blur p-2 pl-6 rounded-full shadow-sm border border-white">
+
+                {{-- 1. Counter Total Soal --}}
+                <div class="flex flex-col items-end pr-2 md:pr-4">
                     <span class="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1">Total Soal</span>
                     <span class="text-2xl font-black text-indigo-600 leading-none">{{ $questions->count() }}</span>
                 </div>
+
+                {{-- Garis Pemisah (Garis Vertikal) --}}
+                <div class="w-px h-8 bg-slate-200 hidden sm:block"></div>
+
+                {{-- ========================================== --}}
+                {{-- 2. FORM IMPORT EXCEL (TERSEMBUNYI) --}}
+                {{-- ========================================== --}}
+                <form action="{{ route('admin.exams.soal.import', $exam->id) }}" method="POST"
+                    enctype="multipart/form-data" id="formImportExcel" class="hidden">
+                    @csrf
+                    <input type="file" name="file_excel" id="fileExcel" accept=".xlsx, .xls, .csv"
+                        onchange="document.getElementById('formImportExcel').submit()">
+                </form>
+
+                {{-- 3. TOMBOL DOWNLOAD TEMPLATE --}}
+                <a href="{{ route('admin.soal.template') }}" target="_blank"
+                    class="bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 px-4 md:px-5 py-3.5 rounded-full font-bold transition-all flex items-center gap-2 text-sm shadow-sm bounce-active"
+                    title="Download Template Excel">
+                    <i class="fas fa-file-download text-slate-400"></i>
+                    <span class="hidden lg:inline">Template</span>
+                </a>
+
+                {{-- 4. TOMBOL IMPORT --}}
+                <button type="button" onclick="document.getElementById('fileExcel').click()"
+                    class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-100 px-4 md:px-5 py-3.5 rounded-full font-bold transition-all flex items-center gap-2 text-sm shadow-sm bounce-active"
+                    title="Import dari Excel">
+                    <i class="fas fa-file-excel text-emerald-500"></i>
+                    <span class="hidden lg:inline">Import</span>
+                </button>
+
+                {{-- 5. TOMBOL MANUAL (Bawaan Anda) --}}
                 <a href="{{ route('admin.exams.soal.create', $exam->id) }}"
-                    class="bg-slate-900 hover:bg-black text-white px-8 py-3.5 rounded-full shadow-xl shadow-slate-300 transition-all bounce-active font-bold flex items-center gap-3">
-                    <i class="fas fa-plus-circle text-indigo-400"></i> Buat Soal Baru
+                    class="bg-slate-900 hover:bg-black text-white px-6 md:px-8 py-3.5 rounded-full shadow-xl shadow-slate-300 transition-all bounce-active font-bold flex items-center gap-2 md:gap-3 ml-1 text-sm md:text-base">
+                    <i class="fas fa-plus-circle text-indigo-400"></i>
+                    <span class="hidden sm:inline">Buat Manual</span>
                 </a>
             </div>
         </div>

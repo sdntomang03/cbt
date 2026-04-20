@@ -8,7 +8,8 @@ use App\Models\MathExam;
 use App\Models\MathExamQuestion;
 use App\Models\MathExamUser;
 use App\Models\School;
-use App\Models\User; // Pastikan model School dipanggil
+use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -16,7 +17,6 @@ class MathExamController extends Controller
 {
     public function index()
     {
-        // Gunakan withCount('examUsers') untuk menghitung jumlah siswa yang ikut ujian ini
         $exams = MathExam::withCount('examUsers')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -26,10 +26,7 @@ class MathExamController extends Controller
 
     public function create()
     {
-        // Ambil data siswa beserta relasi sekolahnya
         $students = User::role('siswa')->with('school')->orderBy('name')->get();
-
-        // Ambil data sekolah untuk dropdown filter
         $schools = School::orderBy('name')->get();
 
         return view('admin.math.create', compact('students', 'schools'));
@@ -42,12 +39,11 @@ class MathExamController extends Controller
             'student_ids' => 'required|array|min:1',
             'student_ids.*' => 'exists:users,id',
             'types' => 'required|array|min:1',
-            'digits' => 'required|array',
+            'digits' => 'required|array', // Menerima array multi-dimensi [type][num1] & [type][num2]
             'total_questions' => 'required|integer|min:1|max:200',
             'duration_minutes' => 'required|integer|min:1',
         ]);
 
-        // 1. BUAT PENGATURAN UJIAN
         $exam = MathExam::create([
             'title' => $request->title,
             'types' => $request->types,
@@ -60,32 +56,22 @@ class MathExamController extends Controller
         $totalQuestions = $request->total_questions;
         $totalTypes = count($selectedTypes);
 
-        // ====================================================================
-        // HITUNG KUOTA SOAL PER JENIS AGAR ADIL UNTUK SEMUA SISWA
-        // ====================================================================
-        $baseQuota = floor($totalQuestions / $totalTypes); // Kuota dasar per jenis
-        $remainder = $totalQuestions % $totalTypes; // Sisa soal jika tidak habis dibagi
+        // Kuota Soal
+        $baseQuota = floor($totalQuestions / $totalTypes);
+        $remainder = $totalQuestions % $totalTypes;
 
-        // Array untuk menyimpan blueprint (cetak biru) urutan jenis soal
         $examBlueprint = [];
-
         foreach ($selectedTypes as $index => $type) {
-            // Jika ada sisa soal, berikan ke jenis-jenis pertama agar genap
             $quota = $baseQuota + ($index < $remainder ? 1 : 0);
-
-            // Masukkan jenis soal ke blueprint sebanyak kuota-nya
             for ($i = 0; $i < $quota; $i++) {
                 $examBlueprint[] = $type;
             }
         }
-        // ====================================================================
 
         $allQuestionsData = [];
         $examUsersData = [];
 
-        // 2. LOOPING UNTUK SETIAP SISWA
         foreach ($request->student_ids as $studentId) {
-
             $examUsersData[] = [
                 'math_exam_id' => $exam->id,
                 'student_id' => $studentId,
@@ -94,68 +80,29 @@ class MathExamController extends Controller
                 'updated_at' => now(),
             ];
 
-            // Acak urutan tipe soal khusus untuk siswa ini (agar urutan soal Siswa A & B beda)
             $studentBlueprint = $examBlueprint;
             shuffle($studentBlueprint);
 
-            // Siapkan soal berdasarkan blueprint yang sudah teracak
             foreach ($studentBlueprint as $currentType) {
-                $currentDigit = $request->digits[$currentType] ?? 1;
-
-                $min = $currentDigit == 1 ? 1 : pow(10, $currentDigit - 1);
-                $max = pow(10, $currentDigit) - 1;
-
-                $n1 = rand($min, $max);
-                $n2 = rand($min, $max);
-                $correct = 0;
-                $operator = '';
-
-                switch ($currentType) {
-                    case 'addition':
-                        $operator = '+';
-                        $correct = $n1 + $n2;
-                        break;
-                    case 'subtraction':
-                        $operator = '-';
-                        if ($n1 < $n2) {
-                            $temp = $n1;
-                            $n1 = $n2;
-                            $n2 = $temp;
-                        }
-                        $correct = $n1 - $n2;
-                        break;
-                    case 'multiplication':
-                        $operator = 'x';
-                        $correct = $n1 * $n2;
-                        break;
-                    case 'division':
-                        $operator = ':';
-                        $divMin = $currentDigit == 1 ? 2 : pow(10, $currentDigit - 1);
-                        $divMax = pow(10, $currentDigit) - 1;
-                        $correct = rand($divMin, $divMax);
-                        $n2 = rand(2, ($currentDigit == 1 ? 9 : 15));
-                        $n1 = $correct * $n2;
-                        break;
-                }
+                // Generate soal menggunakan Helper canggih kita
+                $questionData = $this->generateMathQuestion($currentType, $request->digits);
 
                 $allQuestionsData[] = [
                     'math_exam_id' => $exam->id,
                     'student_id' => $studentId,
-                    'num1' => $n1,
-                    'num2' => $n2,
-                    'operator' => $operator,
-                    'correct_answer' => $correct,
+                    'num1' => $questionData['num1'],
+                    'num2' => $questionData['num2'],
+                    'operator' => $questionData['operator'],
+                    'correct_answer' => $questionData['correct_answer'],
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
             }
         }
 
-        // 3. SIMPAN SEMUA DATA KE DATABASE
-        \App\Models\MathExamUser::insert($examUsersData);
-
+        MathExamUser::insert($examUsersData);
         foreach (array_chunk($allQuestionsData, 500) as $chunk) {
-            \App\Models\MathExamQuestion::insert($chunk);
+            MathExamQuestion::insert($chunk);
         }
 
         $countStudents = count($request->student_ids);
@@ -163,13 +110,89 @@ class MathExamController extends Controller
         return redirect()->back()->with('success', "Ujian '{$exam->title}' berhasil dibuat untuk $countStudents siswa!");
     }
 
-    // Menampilkan Rekap Daftar Nilai Siswa
-    // Menampilkan Rekap Daftar Nilai Siswa & Detail Ujian
+    // =========================================================================
+    // HELPER: LOGIKA GENERATE SOAL SUPER CANGGIH (PASTI & MAKSIMAL)
+    // =========================================================================
+    private function getDigitRange($settingString)
+    {
+        $isMax = str_contains($settingString, '_max');
+        $digit = (int) str_replace('_max', '', $settingString);
+        $digit = max(1, $digit);
+
+        if ($isMax) {
+            $min = 1;
+            $max = pow(10, $digit) - 1;
+        } else {
+            $min = $digit == 1 ? 1 : pow(10, $digit - 1);
+            $max = pow(10, $digit) - 1;
+        }
+
+        return ['min' => $min, 'max' => $max];
+    }
+
+    private function generateMathQuestion($type, $digitsConfig)
+    {
+        $set1 = $this->getDigitRange($digitsConfig[$type]['num1'] ?? '1');
+        $set2 = $this->getDigitRange($digitsConfig[$type]['num2'] ?? '1');
+
+        $n1 = rand($set1['min'], $set1['max']);
+        $n2 = rand($set2['min'], $set2['max']);
+
+        $correct = 0;
+        $operator = '';
+
+        switch ($type) {
+            case 'addition':
+                $operator = '+';
+                $correct = $n1 + $n2;
+                break;
+            case 'subtraction':
+                $operator = '-';
+                // Hindari angka negatif untuk SD (Angka Kiri harus lebih besar)
+                if ($n1 < $n2) {
+                    $temp = $n1;
+                    $n1 = $n2;
+                    $n2 = $temp;
+                }
+                $correct = $n1 - $n2;
+                break;
+            case 'multiplication':
+                $operator = 'x';
+                $correct = $n1 * $n2;
+                break;
+            case 'division':
+                $operator = ':';
+
+                // Algoritma Cerdas: Menjamin tidak ada sisa bagi (desimal)
+                $n2 = max(2, $n2); // Pembagi (Angka Kanan) minimal 2 agar tidak terlalu mudah
+
+                // Cari rentang Hasil Bagi (Correct Answer) agar Angka Kiri sesuai range yang diminta
+                $minMultiplier = (int) ceil($set1['min'] / $n2);
+                $maxMultiplier = (int) floor($set1['max'] / $n2);
+
+                if ($minMultiplier > $maxMultiplier) {
+                    // Fallback aman jika setting guru tidak masuk akal (misal: 1 digit dibagi 3 digit)
+                    $correct = rand(1, 9);
+                    $n1 = $n2 * $correct;
+                } else {
+                    $correct = rand($minMultiplier, $maxMultiplier);
+                    $n1 = $correct * $n2;
+                }
+                break;
+        }
+
+        return [
+            'num1' => $n1,
+            'num2' => $n2,
+            'operator' => $operator,
+            'correct_answer' => $correct,
+        ];
+    }
+    // =========================================================================
+
     public function show($id)
     {
         $exam = MathExam::with(['examUsers.student.school', 'questions'])->findOrFail($id);
-
-        // Pisahkan data untuk menghitung statistik (Hanya yang sudah selesai)
         $completedUsers = $exam->examUsers->where('status', 'completed');
 
         $stats = [
@@ -180,39 +203,27 @@ class MathExamController extends Controller
             'lowest_score' => $completedUsers->count() > 0 ? $completedUsers->min('score') : 0,
         ];
 
-        // =========================================================================
-        // TAMBAHAN BARU: Ambil data siswa yang BELUM terdaftar di ujian ini
-        // =========================================================================
         $existingStudentIds = $exam->examUsers->pluck('student_id')->toArray();
-
-        $availableStudents = User::role('siswa') // Pastikan mengambil user dengan role siswa
+        $availableStudents = User::role('siswa')
             ->whereNotIn('id', $existingStudentIds)
             ->with('school')
             ->orderBy('name')
             ->get();
-        // =========================================================================
 
-        // PENTING: Pastikan 'availableStudents' ikut dikirim ke dalam compact()
         return view('admin.math.show', compact('exam', 'stats', 'availableStudents'));
     }
 
     public function destroy($id)
     {
         $exam = MathExam::findOrFail($id);
-
-        // Hapus ujian. (Otomatis menghapus data di tabel math_exam_users & math_exam_questions berkat cascade)
         $exam->delete();
 
         return redirect()->route('admin.math.index')->with('success', 'Ujian beserta seluruh data nilai siswa berhasil dihapus.');
     }
 
-    // Menampilkan Lembar Jawaban Detail per Siswa
     public function showStudentResult($examUserId)
     {
-        // Cari data Sesi Ujian Siswa
         $examUser = MathExamUser::with(['exam', 'student.school'])->findOrFail($examUserId);
-
-        // Ambil semua soal yang dikerjakan oleh siswa ini pada ujian ini
         $questions = MathExamQuestion::where('math_exam_id', $examUser->math_exam_id)
             ->where('student_id', $examUser->student_id)
             ->get();
@@ -220,24 +231,18 @@ class MathExamController extends Controller
         return view('admin.math.result', compact('examUser', 'questions'));
     }
 
-    // Export Rekap Keseluruhan Nilai Kelas
     public function exportRecap($id)
     {
         $exam = MathExam::with(['examUsers.student.school'])->findOrFail($id);
-
         $fileName = 'Rekap_Nilai_'.str_replace(' ', '_', $exam->title).'.xlsx';
 
         return Excel::download(new MathExamRecapExport($id), $fileName);
     }
 
-    // Reset Ujian Siswa
     public function resetStudentExam($examUserId)
     {
         try {
-            // Cari data Sesi Ujian Siswa
             $examUser = MathExamUser::findOrFail($examUserId);
-
-            // 1. Kembalikan status menjadi not_started dan kosongkan nilai
             $examUser->update([
                 'status' => 'not_started',
                 'score' => 0,
@@ -246,9 +251,7 @@ class MathExamController extends Controller
             ]);
 
             return redirect()->back()->with('success', 'Ujian peserta berhasil direset.');
-
         } catch (\Exception $e) {
-            // Jika terjadi Error 500, kita tangkap dan tampilkan pesan aslinya
             return redirect()->back()->with('error', 'Gagal mereset! Pesan Error: '.$e->getMessage());
         }
     }
@@ -262,8 +265,7 @@ class MathExamController extends Controller
 
         $exam = MathExam::findOrFail($id);
 
-        // 1. Siapkan Blueprint / Pengaturan Asli Ujian
-        $selectedTypes = $exam->types; // Pastikan model MathExam sudah meng-cast 'types' & 'digits' ke array
+        $selectedTypes = $exam->types;
         $totalQuestions = $exam->total_questions;
         $totalTypes = count($selectedTypes);
 
@@ -281,9 +283,7 @@ class MathExamController extends Controller
         $allQuestionsData = [];
         $examUsersData = [];
 
-        // 2. Looping Siswa Baru
         foreach ($request->student_ids as $studentId) {
-            // Cek agar tidak ganda
             if (MathExamUser::where('math_exam_id', $exam->id)->where('student_id', $studentId)->exists()) {
                 continue;
             }
@@ -296,63 +296,26 @@ class MathExamController extends Controller
                 'updated_at' => now(),
             ];
 
-            // Acak soal untuk siswa ini
             $studentBlueprint = $examBlueprint;
             shuffle($studentBlueprint);
 
             foreach ($studentBlueprint as $currentType) {
-                $currentDigit = $exam->digits[$currentType] ?? 1;
-
-                $min = $currentDigit == 1 ? 1 : pow(10, $currentDigit - 1);
-                $max = pow(10, $currentDigit) - 1;
-
-                $n1 = rand($min, $max);
-                $n2 = rand($min, $max);
-                $correct = 0;
-                $operator = '';
-
-                switch ($currentType) {
-                    case 'addition':
-                        $operator = '+';
-                        $correct = $n1 + $n2;
-                        break;
-                    case 'subtraction':
-                        $operator = '-';
-                        if ($n1 < $n2) {
-                            $temp = $n1;
-                            $n1 = $n2;
-                            $n2 = $temp;
-                        }
-                        $correct = $n1 - $n2;
-                        break;
-                    case 'multiplication':
-                        $operator = 'x';
-                        $correct = $n1 * $n2;
-                        break;
-                    case 'division':
-                        $operator = ':';
-                        $divMin = $currentDigit == 1 ? 2 : pow(10, $currentDigit - 1);
-                        $divMax = pow(10, $currentDigit) - 1;
-                        $correct = rand($divMin, $divMax);
-                        $n2 = rand(2, ($currentDigit == 1 ? 9 : 15));
-                        $n1 = $correct * $n2;
-                        break;
-                }
+                // Gunakan helper yang sama persis dengan fungsi Store!
+                $questionData = $this->generateMathQuestion($currentType, $exam->digits);
 
                 $allQuestionsData[] = [
                     'math_exam_id' => $exam->id,
                     'student_id' => $studentId,
-                    'num1' => $n1,
-                    'num2' => $n2,
-                    'operator' => $operator,
-                    'correct_answer' => $correct,
+                    'num1' => $questionData['num1'],
+                    'num2' => $questionData['num2'],
+                    'operator' => $questionData['operator'],
+                    'correct_answer' => $questionData['correct_answer'],
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
             }
         }
 
-        // 3. Simpan ke Database
         if (! empty($examUsersData)) {
             MathExamUser::insert($examUsersData);
             foreach (array_chunk($allQuestionsData, 500) as $chunk) {
@@ -361,5 +324,26 @@ class MathExamController extends Controller
         }
 
         return redirect()->back()->with('success', 'Berhasil menambahkan '.count($examUsersData).' siswa baru ke dalam ujian.');
+    }
+
+    public function printWorksheets($id)
+    {
+        $exam = MathExam::with([
+            'examUsers.student',
+            'examUsers.questions' => function ($query) use ($id) {
+                $query->where('math_exam_id', $id);
+            },
+        ])->findOrFail($id);
+
+        $data = [
+            'exam' => $exam,
+            'examUsers' => $exam->examUsers,
+        ];
+
+        // Pastikan disetel ke A4 Landscape
+        $pdf = Pdf::loadView('admin.math.pdf_worksheets', $data)
+            ->setPaper('a4', 'landscape');
+
+        return $pdf->stream('Lembar_Kerja_'.str_replace(' ', '_', $exam->title).'.pdf');
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Imports\QuestionImport;
 use App\Models\Exam;
 use App\Models\Level;
 use App\Models\Question;
@@ -9,6 +10,8 @@ use App\Models\Subject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SoalController extends Controller
 {
@@ -133,6 +136,36 @@ class SoalController extends Controller
             if (count($options) > 0) {
                 $question->options()->createMany($options);
             }
+        }
+    }
+
+    public function downloadTemplate(): BinaryFileResponse
+    {
+        $path = public_path('templates/template_import_soal.xlsx');
+
+        // Pastikan Anda menaruh file template.xlsx di folder public/templates/
+        if (! file_exists($path)) {
+            abort(404, 'Template file not found.');
+        }
+
+        return response()->download($path);
+    }
+
+    /**
+     * Proses Import file Excel
+     */
+    public function import(Request $request, Exam $exam)
+    {
+        $request->validate([
+            'file_excel' => 'required|mimes:xlsx,xls,csv|max:5120', // Maks 5MB
+        ]);
+
+        try {
+            Excel::import(new QuestionImport($exam->id, Auth::id(), Auth::user()->school_id), $request->file('file_excel'));
+
+            return redirect()->back()->with('success', 'Soal berhasil diimport dari Excel!');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal mengimport soal. Pastikan format sesuai template. Error: '.$e->getMessage());
         }
     }
 }

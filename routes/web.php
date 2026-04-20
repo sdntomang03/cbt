@@ -85,6 +85,7 @@ Route::middleware(['auth', 'role:admin|guru'])
         Route::get('/math-exams/{id}/export-recap', [MathExamController::class, 'exportRecap'])->name('math.recap_export');
         Route::get('/math-exams/result/{examUserId}/export', [MathExamController::class, 'exportStudentResult'])->name('math.student_result_export');
         Route::post('/math-exams/{id}/add-student', [MathExamController::class, 'addStudent'])->name('math.addStudent');
+        Route::get('/math-exams/{id}/print', [MathExamController::class, 'printWorksheets'])->name('math.print');
         // --- 7. Manajemen Users ---
         Route::delete('/users/bulk-delete', [UserController::class, 'bulkDelete'])->name('users.bulk-delete');
         Route::get('/users/export-selected', [UserController::class, 'exportSelected'])->name('users.export-selected');
@@ -134,6 +135,13 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
 Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
     // Nested resource untuk Soal
     Route::resource('exams.soal', SoalController::class)->except(['show']);
+    // 1. Rute Download Template
+    Route::get('/soal/download-template', [SoalController::class, 'downloadTemplate'])
+        ->name('soal.template'); // Menjadi: admin.soal.template
+
+    // 2. Rute Import Excel
+    Route::post('/exams/{exam}/soal/import', [SoalController::class, 'import'])
+        ->name('exams.soal.import'); // Menjadi: admin.exams.soal.import
 });
 
 Route::prefix('kawan-hitung')->group(function () {
