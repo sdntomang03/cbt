@@ -49,7 +49,7 @@ class SoalController extends Controller
                 $question = $exam->questions()->create([
                     'user_id' => Auth::id(),
                     'type' => $data['type'],
-                    'content' => $data['content'] = base64_decode($data['content']), // Pastikan ini di-decode jika dikirim via Base64
+                    'content' => base64_decode($data['content']), // Pastikan ini di-decode jika dikirim via Base64
                     'subject_id' => $data['subject_id'],
                     'level_id' => $data['level_id'],
                     'school_id' => Auth::user()->school_id,

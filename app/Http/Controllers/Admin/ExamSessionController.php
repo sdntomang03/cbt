@@ -51,6 +51,7 @@ class ExamSessionController extends Controller
             'exam_id' => 'required|exists:exams,id',
             'session_name' => 'required|string|max:255',
             'start_time' => 'required|date',
+
             'end_time' => 'required|date|after:start_time', // Waktu selesai harus setelah waktu mulai
         ], [
             'end_time.after' => 'Waktu selesai harus lebih akhir dari waktu mulai.',
@@ -62,6 +63,7 @@ class ExamSessionController extends Controller
             'session_name' => $validated['session_name'],
             'start_time' => $validated['start_time'],
             'end_time' => $validated['end_time'],
+            'school_id' => auth()->user()->school_id, // Pastikan sesi ujian terkait dengan sekolah pengguna yang membuatnya
             'token' => strtoupper(Str::random(6)), // Generate Token 6 Karakter Unik
         ]);
 
