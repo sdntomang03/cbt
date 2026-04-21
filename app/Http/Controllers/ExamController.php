@@ -46,9 +46,9 @@ class ExamController extends Controller
     // Form Tambah Ujian
     public function create()
     {
-        $schools = School::all(); 
-        
-        return view('exams.create', compact( 'schools'));
+        $schools = School::all();
+
+        return view('exams.create', compact('schools'));
     }
 
     // Simpan Ujian Baru
@@ -65,7 +65,7 @@ class ExamController extends Controller
         $validated['teacher_id'] = Auth::id();
         $validated['random_question'] = $request->has('random_question');
         $validated['random_answer'] = $request->has('random_answer');
-
+        $validated['school_id'] = \Illuminate\Support\Facades\Auth::user()->school_id;
         Exam::create($validated);
 
         return redirect()->route('admin.exams.index')->with('success', 'Ujian berhasil dibuat!');
