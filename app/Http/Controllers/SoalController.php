@@ -49,7 +49,7 @@ class SoalController extends Controller
                 $question = $exam->questions()->create([
                     'user_id' => Auth::id(),
                     'type' => $data['type'],
-                    'content' => $data['content'], // Pastikan ini di-decode jika dikirim via Base64
+                    'content' => $data['content'] = base64_decode($data['content']), // Pastikan ini di-decode jika dikirim via Base64
                     'subject_id' => $data['subject_id'],
                     'level_id' => $data['level_id'],
                     'school_id' => Auth::user()->school_id,
@@ -96,7 +96,7 @@ class SoalController extends Controller
         return DB::transaction(function () use ($data, $request, $soal) {
             $soal->update([
                 'type' => $data['type'],
-                'content' => $data['content'],
+                'content' => base64_decode($data['content']),
                 'subject_id' => $data['subject_id'],
                 'level_id' => $data['level_id'],
             ]);
@@ -140,7 +140,7 @@ class SoalController extends Controller
                     // Simpan Options (Pilihan Ganda/Essay) 1 per 1
                     if (! empty($item['option_text'])) {
                         $question->options()->create([
-                            'option_text' => $item['option_text'], // Decode Base64 di sini jika perlu
+                            'option_text' => base64_decode($item['option_text']), // Decode Base64 di sini jika perlu
                             'is_correct' => filter_var($item['is_correct'] ?? false, FILTER_VALIDATE_BOOLEAN),
                             'school_id' => $schoolId,
                         ]);

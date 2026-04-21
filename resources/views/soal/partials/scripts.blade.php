@@ -350,22 +350,44 @@
                 }
             },
 
-            saveQuestion() {
-                if (!this.form.content.trim()) {
-                    return Swal.fire({ icon: 'warning', title: 'Oops!', text: 'Isi narasi pertanyaan terlebih dahulu!' });
-                }
-                this.isSaving = true;
-                const method = config.isEdit ? 'put' : 'post';
-                axios[method](config.submitUrl, this.form)
-                    .then(() => {
-                        Swal.fire({ icon: 'success', title: 'Tersimpan!', timer: 5000, showConfirmButton: false })
-                            .then(() => window.location.href = config.redirectUrl);
-                    })
-                    .catch(err => {
-                        Swal.fire({ icon: 'error', title: 'Gagal', text: err.response?.data?.message || 'Terjadi kesalahan sistem' });
-                        this.isSaving = false;
-                    });
-            }
+          saveQuestion() {
+    if (!this.form.content.trim()) {
+        return Swal.fire({ icon: 'warning', title: 'Oops!', text: 'Isi narasi pertanyaan terlebih dahulu!' });
+    }
+    this.isSaving = true;
+
+    // --- CLONE DATA UNTUK DI-ENCODE ---
+    let payload = JSON.parse(JSON.stringify(this.form));
+
+    // Encode Narasi Utama
+    payload.content = btoa(unescape(encodeURIComponent(payload.content)));
+
+    // Encode Pilihan Jawaban
+    payload.options = payload.options.map(opt => {
+        let newOpt = { ...opt };
+        if (newOpt.option_text) {
+            newOpt.option_text = btoa(unescape(encodeURIComponent(newOpt.option_text)));
+        }
+        if (newOpt.premise_text) {
+            newOpt.premise_text = btoa(unescape(encodeURIComponent(newOpt.premise_text)));
+        }
+        if (newOpt.target_text) {
+            newOpt.target_text = btoa(unescape(encodeURIComponent(newOpt.target_text)));
+        }
+        return newOpt;
+    });
+
+    const method = config.isEdit ? 'put' : 'post';
+    axios[method](config.submitUrl, payload) // Kirim payload yang sudah di-encode
+        .then(() => {  Swal.fire({ icon: 'success', title: 'Tersimpan!', timer: 1500, showConfirmButton: false })
+                            .then(() => window.location.href = config.redirectUrl);})
+        .catch(err => {
+            // Tampilkan pesan error detail dari server untuk debug
+            let errorMsg = err.response?.data?.debug_error || err.response?.data?.message || 'Terjadi kesalahan sistem';
+            Swal.fire({ icon: 'error', title: 'Gagal', text: errorMsg });
+            this.isSaving = false;
+        });
+}
         };
     });
 });
