@@ -10,6 +10,7 @@ use App\Models\Subject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -43,20 +44,34 @@ class SoalController extends Controller
             'level_id' => 'nullable|exists:levels,id',
         ]);
 
-        return DB::transaction(function () use ($data, $request, $exam) {
-            $question = $exam->questions()->create([
-                'user_id' => Auth::id(),
-                'type' => $data['type'],
-                'content' => $data['content'],
-                'subject_id' => $data['subject_id'],
-                'level_id' => $data['level_id'],
-                'school_id' => Auth::user()->school_id,
-            ]);
+        try {
+            return DB::transaction(function () use ($data, $request, $exam) {
+                $question = $exam->questions()->create([
+                    'user_id' => Auth::id(),
+                    'type' => $data['type'],
+                    'content' => $data['content'], // Pastikan ini di-decode jika dikirim via Base64
+                    'subject_id' => $data['subject_id'],
+                    'level_id' => $data['level_id'],
+                    'school_id' => Auth::user()->school_id,
+                ]);
 
-            $this->saveQuestionDetails($question, $request->options, $data['type']);
+                // Panggil detail saver
+                $this->saveQuestionDetails($question, $request->options, $data['type']);
 
-            return response()->json(['message' => 'Soal berhasil disimpan!']);
-        });
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Soal dan pilihan jawaban berhasil disimpan!',
+                ]);
+            });
+        } catch (\Exception $e) {
+            // Jika gagal, log errornya untuk debugging
+            Log::error('Gagal menyimpan soal: '.$e->getMessage());
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan: '.$e->getMessage(),
+            ], 500);
+        }
     }
 
     public function edit(Exam $exam, Question $soal)
@@ -108,33 +123,32 @@ class SoalController extends Controller
             return;
         }
 
-        if ($type === 'matching') {
-            $matches = [];
-            foreach ($items as $item) {
-                if (! empty($item['premise_text']) && ! empty($item['target_text'])) {
-                    $matches[] = [
-                        'premise_text' => $item['premise_text'],
-                        'target_text' => $item['target_text'],
-                        'school_id' => Auth::user()->school_id,
-                    ];
+        $schoolId = Auth::user()->school_id;
+
+        foreach ($items as $index => $item) {
+            try {
+                if ($type === 'matching') {
+                    // Simpan Matching 1 per 1
+                    if (! empty($item['premise_text']) && ! empty($item['target_text'])) {
+                        $question->matches()->create([
+                            'premise_text' => $item['premise_text'],
+                            'target_text' => $item['target_text'],
+                            'school_id' => $schoolId,
+                        ]);
+                    }
+                } else {
+                    // Simpan Options (Pilihan Ganda/Essay) 1 per 1
+                    if (! empty($item['option_text'])) {
+                        $question->options()->create([
+                            'option_text' => $item['option_text'], // Decode Base64 di sini jika perlu
+                            'is_correct' => filter_var($item['is_correct'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                            'school_id' => $schoolId,
+                        ]);
+                    }
                 }
-            }
-            if (count($matches) > 0) {
-                $question->matches()->createMany($matches);
-            }
-        } else {
-            $options = [];
-            foreach ($items as $item) {
-                if (! empty($item['option_text'])) {
-                    $options[] = [
-                        'option_text' => $item['option_text'],
-                        'is_correct' => filter_var($item['is_correct'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                        'school_id' => Auth::user()->school_id,
-                    ];
-                }
-            }
-            if (count($options) > 0) {
-                $question->options()->createMany($options);
+            } catch (\Exception $e) {
+                // Jika baris tertentu gagal, lempar exception agar DB::transaction melakukan Rollback
+                throw new \Exception('Gagal menyimpan detail pada baris ke-'.($index + 1).'. Pesan: '.$e->getMessage());
             }
         }
     }
