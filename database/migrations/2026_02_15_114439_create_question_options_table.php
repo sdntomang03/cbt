@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('question_options', function (Blueprint $table) {
             $table->id();
             $table->foreignId('question_id')->constrained('questions')->cascadeOnDelete();
-            $table->text('option_text'); // Teks Opsi / Sisi Kiri
+            $table->longText('option_text'); // Teks Opsi / Sisi Kiri
             $table->boolean('is_correct')->default(false); // Kunci Jawaban
             $table->foreignId('school_id')->nullable()->constrained()->cascadeOnDelete();
             $table->timestamps();
