@@ -358,7 +358,7 @@
                 const method = config.isEdit ? 'put' : 'post';
                 axios[method](config.submitUrl, this.form)
                     .then(() => {
-                        Swal.fire({ icon: 'success', title: 'Tersimpan!', timer: 1500, showConfirmButton: false })
+                        Swal.fire({ icon: 'success', title: 'Tersimpan!', timer: 5000, showConfirmButton: false })
                             .then(() => window.location.href = config.redirectUrl);
                     })
                     .catch(err => {
