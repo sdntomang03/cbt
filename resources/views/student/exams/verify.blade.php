@@ -54,7 +54,7 @@
 
                         <p class="mt-2 text-xs font-semibold text-slate-500 flex items-center gap-1.5">
                             @if($defaultToken)
-                            <i class="fas fa-magic text-amber-500"></i> Token terisi otomatis untuk sekolah Anda.
+                            <i class="fas fa-magic text-amber-500"></i> Token terisi otomatis.
                             @else
                             <i class="fas fa-info-circle text-indigo-400"></i> Dapatkan token ujian dari pengawas
                             ruangan.
