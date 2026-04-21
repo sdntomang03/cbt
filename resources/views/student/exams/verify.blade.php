@@ -47,12 +47,18 @@
                                 <i class="fas fa-unlock text-indigo-400"></i>
                             </div>
                             <input id="token" name="token" type="text" required autofocus autocomplete="off"
-                                placeholder="Masukkan token..."
-                                class="block w-full pl-10 border-slate-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 sm:text-lg font-black tracking-widest uppercase text-center py-3 shadow-sm transition-colors @error('token') border-rose-300 ring-rose-500 @enderror">
+                                placeholder="Masukkan token..." {{-- OTOMATISASI DI SINI --}}
+                                value="{{ $defaultToken }}" @if($defaultToken) readonly @endif
+                                class="block w-full pl-10 border-slate-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 sm:text-lg font-black tracking-widest uppercase text-center py-3 shadow-sm transition-colors @if($defaultToken) bg-slate-50 cursor-not-allowed @endif @error('token') border-rose-300 ring-rose-500 @enderror">
                         </div>
+
                         <p class="mt-2 text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+                            @if($defaultToken)
+                            <i class="fas fa-magic text-amber-500"></i> Token terisi otomatis untuk sekolah Anda.
+                            @else
                             <i class="fas fa-info-circle text-indigo-400"></i> Dapatkan token ujian dari pengawas
                             ruangan.
+                            @endif
                         </p>
                     </div>
 

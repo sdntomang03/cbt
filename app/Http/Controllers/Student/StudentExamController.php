@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ExamSession;
 use App\Models\ExamSessionUser;
 use App\Models\Question;
+use App\Models\RegistrationSetting;
 use App\Models\StudentAnswer; // Pastikan Model ini ada
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -396,7 +397,13 @@ class StudentExamController extends Controller
             return redirect()->route('student.exam.run', $exam_id);
         }
 
-        return view('student.exams.verify', compact('session'));
+        // LOGIKA BARU: Cek apakah sekolah siswa terdaftar di registration_settings
+        $isAutoToken = RegistrationSetting::where('school_id', $user->school_id)->exists();
+
+        // Ambil token jika sekolah terdaftar, jika tidak biarkan null
+        $defaultToken = $isAutoToken ? $session->token : null;
+
+        return view('student.exams.verify', compact('session', 'defaultToken'));
     }
 
     // =========================================================================
