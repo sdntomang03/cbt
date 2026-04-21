@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exports\SchoolsExport;
 use App\Http\Controllers\Controller;
+use App\Models\AcademicYear; // Tambahkan ini
+use App\Models\Classroom;    // Tambahkan ini
 use App\Models\School;
+use App\Models\User;         // Tambahkan ini
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -86,5 +89,29 @@ class SchoolController extends Controller
 
         // 3. Download menggunakan Maatwebsite Excel
         return Excel::download(new SchoolsExport($ids), 'Data_Sekolah_Terpilih.xlsx');
+    }
+
+    // --- METHOD BARU: Tampilkan Detail Sekolah ---
+    public function showDetails(School $school)
+    {
+        // 1. Ambil Tahun Ajaran yang Aktif di sekolah ini
+        $activeAcademicYear = AcademicYear::where('school_id', $school->id)
+            ->where('is_active', true)
+            ->first();
+
+        // 2. Ambil Daftar Guru di sekolah ini (Menggunakan Spatie Role)
+        $teachers = User::role('guru')->where('school_id', $school->id)->get();
+
+        // 3. Ambil Daftar Kelas beserta Wali Kelas dan Siswanya (HANYA untuk tahun ajaran aktif)
+        $classrooms = collect(); // Default collection kosong
+        if ($activeAcademicYear) {
+            $classrooms = Classroom::with(['homeroomTeacher', 'students'])
+                ->where('school_id', $school->id)
+                ->where('academic_year_id', $activeAcademicYear->id)
+                ->get();
+        }
+
+        // 4. Kirim data ke View (Perhatikan path viewnya disesuaikan ke folder admin)
+        return view('admin.schools.details', compact('school', 'activeAcademicYear', 'teachers', 'classrooms'));
     }
 }

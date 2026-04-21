@@ -74,9 +74,11 @@
                         <select name="role" required
                             class="w-full bg-slate-50 border-transparent focus:border-indigo-500 focus:bg-white focus:ring-0 rounded-xl font-bold text-slate-700 py-3 px-4">
                             @php $currentRole = $user->roles->first()->name ?? 'student'; @endphp
-                            <option value="student" {{ old('role', $currentRole)=='student' ? 'selected' : '' }}>Siswa
+                            <option value="siswa" {{ old('role', $currentRole)=='siswa' ? 'selected' : '' }}>Siswa
                             </option>
-                            <option value="teacher" {{ old('role', $currentRole)=='teacher' ? 'selected' : '' }}>Guru
+                            <option value="guru" {{ old('role', $currentRole)=='guru' ? 'selected' : '' }}>Guru
+                            </option>
+                            <option value="operator" {{ old('role', $currentRole)=='operator' ? 'selected' : '' }}>Operator
                             </option>
                             <option value="admin" {{ old('role', $currentRole)=='admin' ? 'selected' : '' }}>Admin
                             </option>

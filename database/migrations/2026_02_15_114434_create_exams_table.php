@@ -13,14 +13,15 @@ return new class extends Migration
     {
         Schema::create('exams', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('teacher_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('school_id')->constrained()->cascadeOnDelete(); // Filter sekolah
+    $table->foreignId('teacher_id')->constrained('users')->cascadeOnDelete();
             $table->string('title');
             $table->string('slug')->unique();
             $table->integer('duration_minutes')->default(60);
             $table->boolean('random_question')->default(false);
             $table->boolean('random_answer')->default(false);
             $table->enum('status', ['draft', 'published', 'closed'])->default('draft');
-            $table->foreignId('school_id')->nullable()->constrained()->cascadeOnDelete();
+            
             $table->timestamps();
         });
     }

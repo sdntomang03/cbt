@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\ExamSessionController;
 use App\Http\Controllers\Admin\MathExamController;
 use App\Http\Controllers\Admin\SchoolController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\RegistrationSettingController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\ImageUploadController;
 use App\Http\Controllers\KawanBacaController;
@@ -51,6 +52,8 @@ Route::middleware(['auth', 'role:admin|guru'])
         Route::get('/schools/export', [SchoolController::class, 'export'])->name('schools.export');
         Route::delete('/schools/bulk-delete', [SchoolController::class, 'bulkDelete'])->name('schools.bulk-delete');
         Route::resource('schools', SchoolController::class)->except(['create', 'show', 'edit']);
+        // Route untuk Detail Sekolah (Guru, Kelas, dan Siswa)
+    Route::get('schools/{school}/details', [SchoolController::class, 'showDetails'])->name('schools.details');
 
         // --- 2. Manajemen Ujian (Bank Soal) ---
         Route::get('/exams/{exam}/export', [ExamController::class, 'exportGrades'])->name('exams.export');
@@ -92,6 +95,9 @@ Route::middleware(['auth', 'role:admin|guru'])
         Route::post('/users/import', [UserController::class, 'importExcel'])->name('users.import');
         Route::get('/users/download-template', [UserController::class, 'downloadTemplate'])->name('users.download-template');
         Route::resource('users', UserController::class);
+
+        Route::get('settings/registration', [RegistrationSettingController::class, 'edit'])->name('settings.registration');
+Route::put('settings/registration', [RegistrationSettingController::class, 'update'])->name('settings.registration.update');
 
     });
 

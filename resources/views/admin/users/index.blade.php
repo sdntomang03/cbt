@@ -167,15 +167,17 @@
                             <td class="px-6 py-4">
                                 <div class="text-xs text-slate-500">{{ $user->school->name ?? '-' }}</div>
                             </td>
-                            <td class="px-6 py-4 text-center">
-                                @if($user->hasRole('admin')) <span
-                                    class="bg-rose-100 text-rose-600 px-3 py-1 rounded-full text-xs font-black uppercase">Admin</span>
-                                @elseif($user->hasRole('guru')) <span
-                                    class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-black uppercase">Guru</span>
-                                @else <span
-                                    class="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-xs font-black uppercase">Siswa</span>
-                                @endif
-                            </td>
+                       <td class="px-6 py-4 text-center">
+    @if($user->hasRole('admin')) 
+        <span class="bg-rose-100 text-rose-600 px-3 py-1 rounded-full text-xs font-black uppercase">Admin</span>
+    @elseif($user->hasRole('operator')) 
+        <span class="bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-xs font-black uppercase">Operator</span>
+    @elseif($user->hasRole('guru')) 
+        <span class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-black uppercase">Guru</span>
+    @else 
+        <span class="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-xs font-black uppercase">Siswa</span>
+    @endif
+</td>
                             <td class="px-6 py-4 text-right space-x-2">
                                 <a href="{{ route('admin.users.edit', $user->id) }}"
                                     class="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition">

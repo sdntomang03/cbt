@@ -58,42 +58,31 @@
             width: 3px;
             height: 1.2em;
             background-color: #4f46e5;
-            /* indigo-600 */
             vertical-align: text-bottom;
             animation: blink 1s step-end infinite;
         }
 
         @keyframes blink {
-            50% {
-                opacity: 0;
-            }
+            50% { opacity: 0; }
         }
     </style>
 </head>
 
-<body
-    class="font-sans antialiased bg-slate-50 text-slate-800 overflow-x-hidden relative selection:bg-indigo-500 selection:text-white">
+<body class="font-sans antialiased bg-slate-50 text-slate-800 overflow-x-hidden relative selection:bg-indigo-500 selection:text-white">
 
     <div class="fixed inset-0 w-full h-full pointer-events-none overflow-hidden z-0">
-        <div
-            class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob">
-        </div>
-        <div
-            class="absolute top-[20%] right-[-5%] w-96 h-96 bg-cyan-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000">
-        </div>
-        <div
-            class="absolute bottom-[-20%] left-[20%] w-[30rem] h-[30rem] bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000">
-        </div>
+        <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+        <div class="absolute top-[20%] right-[-5%] w-96 h-96 bg-cyan-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div class="absolute bottom-[-20%] left-[20%] w-[30rem] h-[30rem] bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
     </div>
 
-    <nav class="relative z-50 w-full glass-panel border-b-0 shadow-sm">
+    <nav x-data="{ mobileMenuOpen: false }" class="relative z-50 w-full glass-panel border-b-0 shadow-sm">
         <div class="max-w-7xl mx-auto px-6 lg:px-8">
             <div class="flex justify-between h-20 items-center">
 
                 <div class="flex items-center gap-8">
                     <div class="flex items-center gap-3">
-                        <div
-                            class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                        <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
                             <i class="fas fa-graduation-cap text-xl"></i>
                         </div>
                         <span class="font-black text-2xl tracking-tight text-slate-800">
@@ -102,52 +91,78 @@
                     </div>
 
                     <div class="hidden md:flex items-center gap-6 border-l-2 border-slate-100 pl-8">
-                        <a href="{{ route('hitung.index') }}"
-                            class="font-bold text-slate-600 hover:text-indigo-600 transition flex items-center gap-2 group">
-                            <span
-                                class="text-xl group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">🧮</span>
+                        <a href="{{ route('hitung.index') }}" class="font-bold text-slate-600 hover:text-indigo-600 transition flex items-center gap-2 group">
+                            <span class="text-xl group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">🧮</span>
                             Kawan Hitung
                         </a>
-                        <a href="{{ route('baca.index') }}"
-                            class="font-bold text-slate-600 hover:text-indigo-600 transition flex items-center gap-2 group">
-                            <span
-                                class="text-xl group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">📖</span>
+                        <a href="{{ route('baca.index') }}" class="font-bold text-slate-600 hover:text-indigo-600 transition flex items-center gap-2 group">
+                            <span class="text-xl group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">📖</span>
                             Kawan Baca
                         </a>
                     </div>
                 </div>
 
-                @if (Route::has('login'))
-                <div class="flex items-center gap-4">
+                <div class="hidden md:flex items-center gap-4">
                     @auth
-                    <a href="{{ url('/dashboard') }}" class="font-bold text-slate-600 hover:text-indigo-600 transition">
-                        Dashboard Saya
-                    </a>
+                        <a href="{{ url('/dashboard') }}" class="font-bold text-slate-600 hover:text-indigo-600 transition">
+                            Dashboard Saya
+                        </a>
                     @else
-                    <a href="{{ route('login') }}"
-                        class="font-bold text-slate-600 hover:text-indigo-600 transition hidden sm:block">
-                        Masuk
-                    </a>
-                    @if (Route::has('register'))
-                    <a href="{{ route('register') }}"
-                        class="bg-slate-900 hover:bg-black text-white px-6 py-2.5 rounded-full font-bold shadow-lg shadow-slate-200 transition transform hover:-translate-y-0.5">
-                        Daftar Sekarang
-                    </a>
-                    @endif
+                        <a href="{{ route('login') }}" class="font-bold text-slate-600 hover:text-indigo-600 transition">
+                            Masuk
+                        </a>
+                        @if (Route::has('register'))
+                            <a href="{{ route('register') }}" class="bg-slate-900 hover:bg-black text-white px-6 py-2.5 rounded-full font-bold shadow-lg shadow-slate-200 transition transform hover:-translate-y-0.5">
+                                Daftar Sekarang
+                            </a>
+                        @endif
                     @endauth
                 </div>
-                @endif
 
+                <div class="flex md:hidden items-center">
+                    <button @click="mobileMenuOpen = !mobileMenuOpen" class="text-slate-600 hover:text-indigo-600 focus:outline-none p-2">
+                        <i class="fas fa-bars text-2xl" x-show="!mobileMenuOpen"></i>
+                        <i class="fas fa-times text-2xl" x-show="mobileMenuOpen" x-cloak></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="mobileMenuOpen" 
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 -translate-y-2"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 translate-y-0"
+             x-transition:leave-end="opacity-0 -translate-y-2"
+             x-cloak
+             class="md:hidden absolute top-20 left-0 w-full bg-white/95 backdrop-blur-md border-t border-slate-100 shadow-xl rounded-b-2xl pb-4">
+            <div class="flex flex-col px-6 pt-4 pb-2 space-y-4">
+                <a href="{{ route('hitung.index') }}" class="font-bold text-slate-700 hover:text-indigo-600 flex items-center gap-3 bg-slate-50 p-3 rounded-xl">
+                    <span class="text-2xl">🧮</span> Kawan Hitung
+                </a>
+                <a href="{{ route('baca.index') }}" class="font-bold text-slate-700 hover:text-indigo-600 flex items-center gap-3 bg-slate-50 p-3 rounded-xl">
+                    <span class="text-2xl">📖</span> Kawan Baca
+                </a>
+                
+                <hr class="border-slate-100">
+                
+                @auth
+                    <a href="{{ url('/dashboard') }}" class="font-bold text-center bg-indigo-50 text-indigo-600 py-3 rounded-xl">Dashboard Saya</a>
+                @else
+                    <a href="{{ route('login') }}" class="font-bold text-center text-slate-600 py-2">Masuk</a>
+                    @if (Route::has('register'))
+                        <a href="{{ route('register') }}" class="bg-indigo-600 text-white py-3 rounded-xl font-bold text-center shadow-lg shadow-indigo-200">Daftar Sekarang</a>
+                    @endif
+                @endauth
             </div>
         </div>
     </nav>
 
-    <main
-        class="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 pt-20 pb-32 flex flex-col lg:flex-row items-center gap-16 min-h-[calc(100vh-80px)]">
-
+    <main class="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 pt-10 pb-20 flex flex-col lg:flex-row items-center gap-16 min-h-[calc(100vh-80px)]">
+        
         <div class="flex-1 text-center lg:text-left pt-10 lg:pt-0">
-            <div
-                class="inline-block px-4 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 font-bold text-xs uppercase tracking-widest mb-6">
+            <div class="inline-block px-4 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 font-bold text-xs uppercase tracking-widest mb-6">
                 <i class="fas fa-rocket mr-2"></i> Sistem Ujian Generasi Baru
             </div>
 
@@ -161,23 +176,19 @@
             </h1>
 
             <p class="text-lg text-slate-500 mb-10 max-w-2xl mx-auto lg:mx-0 font-medium leading-relaxed">
-                Platform Computer Based Test (CBT) yang dirancang untuk mendukung berbagai tipe soal kompleks,
-                dilengkapi sistem anti-kecurangan cerdas, dan antarmuka yang disukai siswa.
+                Platform Computer Based Test (CBT) yang dirancang untuk mendukung berbagai tipe soal kompleks, dilengkapi modul literasi dan numerasi dasar untuk memperkuat pondasi anak.
             </p>
 
             <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
                 @auth
-                <a href="{{ url('/dashboard') }}"
-                    class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-xl shadow-indigo-200 flex items-center justify-center gap-3 transition transform hover:-translate-y-1">
+                <a href="{{ url('/dashboard') }}" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-xl shadow-indigo-200 flex items-center justify-center gap-3 transition transform hover:-translate-y-1">
                     Buka Dashboard <i class="fas fa-arrow-right"></i>
                 </a>
                 @else
-                <a href="{{ route('login') }}"
-                    class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-xl shadow-indigo-200 flex items-center justify-center gap-3 transition transform hover:-translate-y-1">
+                <a href="{{ route('login') }}" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-xl shadow-indigo-200 flex items-center justify-center gap-3 transition transform hover:-translate-y-1">
                     Mulai Ujian <i class="fas fa-play"></i>
                 </a>
-                <a href="#fitur"
-                    class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white text-slate-700 border-2 border-slate-200 hover:border-slate-300 font-bold flex items-center justify-center gap-3 transition">
+                <a href="#fitur" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white text-slate-700 border-2 border-slate-200 hover:border-slate-300 font-bold flex items-center justify-center gap-3 transition">
                     Pelajari Fitur
                 </a>
                 @endauth
@@ -185,13 +196,10 @@
         </div>
 
         <div class="flex-1 w-full relative max-w-lg lg:max-w-none">
-            <div class="absolute inset-0 bg-gradient-to-tr from-indigo-100 to-cyan-50 rounded-full blur-3xl opacity-70">
-            </div>
-
+            <div class="absolute inset-0 bg-gradient-to-tr from-indigo-100 to-cyan-50 rounded-full blur-3xl opacity-70"></div>
             <div class="relative z-10 w-full aspect-square md:aspect-[4/3] flex items-center justify-center">
 
-                <div
-                    class="absolute w-[80%] h-[70%] bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden animate-float p-6 flex flex-col z-20">
+                <div class="absolute w-[80%] h-[70%] bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden animate-float p-6 flex flex-col z-20">
                     <div class="flex gap-2 mb-6">
                         <div class="w-3 h-3 rounded-full bg-rose-400"></div>
                         <div class="w-3 h-3 rounded-full bg-amber-400"></div>
@@ -208,11 +216,9 @@
                     </div>
                 </div>
 
-                <div
-                    class="absolute left-0 bottom-[20%] w-48 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-white z-30 animate-float-delayed">
+                <div class="absolute left-0 bottom-[20%] w-48 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-white z-30 animate-float-delayed">
                     <div class="flex items-center gap-3 mb-2">
-                        <div
-                            class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-500 flex items-center justify-center text-xs">
+                        <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-500 flex items-center justify-center text-xs">
                             <i class="fas fa-check"></i>
                         </div>
                         <div>
@@ -222,15 +228,43 @@
                     </div>
                 </div>
 
-                <div
-                    class="absolute right-[-5%] top-[10%] w-32 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-white z-30 animate-float">
+                <div class="absolute right-[-5%] top-[10%] w-32 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-white z-30 animate-float">
                     <p class="text-[10px] font-bold text-slate-400 uppercase text-center mb-1">Skor Akhir</p>
                     <p class="text-3xl font-black text-indigo-600 text-center">95.5</p>
                 </div>
-
             </div>
         </div>
     </main>
+
+    <section id="fitur" class="py-24 bg-white relative z-10">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+            
+            <div class="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 hover:shadow-2xl transition group">
+                <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mb-8 group-hover:-rotate-6 transition">🧮</div>
+                <h3 class="text-2xl font-black text-slate-900 mb-4">Kawan Hitung</h3>
+                <p class="text-slate-500 mb-8 font-medium leading-relaxed">
+                    Bantu siswa memperkuat pondasi numerasi. Masalah dasar berhitung seringkali menjadi penghambat nilai matematika. Latih kemampuan aritmatika dengan cara yang seru!
+                </p>
+                <a href="{{ route('hitung.index') }}" class="inline-flex items-center gap-3 bg-white border-2 border-blue-100 hover:border-blue-500 text-blue-600 px-6 py-3 rounded-xl font-black transition">
+                    Mulai Latihan <i class="fas fa-chevron-right text-xs"></i>
+                </a>
+            </div>
+
+            <div class="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 hover:shadow-2xl transition group">
+                <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-3xl mb-8 group-hover:rotate-6 transition">📖</div>
+                <h3 class="text-2xl font-black text-slate-900 mb-4">Kawan Baca</h3>
+                <p class="text-slate-500 mb-8 font-medium leading-relaxed">
+                    Tingkatkan literasi dan pemahaman esensi teks. Melatih siswa agar tidak hanya lancar membaca, tapi juga memahami inti dari setiap materi yang dipelajari.
+                </p>
+                <a href="{{ route('baca.index') }}" class="inline-flex items-center gap-3 bg-white border-2 border-amber-100 hover:border-amber-500 text-amber-600 px-6 py-3 rounded-xl font-black transition">
+                    Mulai Membaca <i class="fas fa-chevron-right text-xs"></i>
+                </a>
+            </div>
+
+        </div>
+    </div>
+</section>
 
     <script>
         function typewriter(words) {
@@ -261,12 +295,10 @@
 
                     let speed = this.isDeleting ? this.deleteSpeed : this.typeSpeed;
 
-                    // Jika selesai mengetik 1 kata
                     if (!this.isDeleting && this.text === currentWord) {
                         speed = this.delayBetweenWords;
                         this.isDeleting = true;
                     }
-                    // Jika selesai menghapus
                     else if (this.isDeleting && this.text === '') {
                         this.isDeleting = false;
                         this.wordIndex = (this.wordIndex + 1) % this.words.length;

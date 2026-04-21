@@ -98,19 +98,28 @@
                                         <span x-show="!school.domain" class="text-slate-300">-</span>
                                     </td>
                                     <td class="p-4 pr-6">
-                                        <div class="flex items-center justify-end gap-2">
-                                            <button @click="openModal(school)"
-                                                class="w-8 h-8 rounded-lg bg-amber-50 text-amber-500 hover:bg-amber-500 hover:text-white transition flex items-center justify-center"
-                                                title="Edit">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button @click="deleteSchool(school.id, school.name)"
-                                                class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white transition flex items-center justify-center"
-                                                title="Hapus">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </button>
-                                        </div>
-                                    </td>
+    <div class="flex items-center justify-end gap-2">
+        
+        <a :href="`/admin/schools/${school.id}/details`"
+            class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition flex items-center justify-center"
+            title="Detail Sekolah">
+            <i class="fas fa-eye"></i>
+        </a>
+
+        <button @click="openModal(school)"
+            class="w-8 h-8 rounded-lg bg-amber-50 text-amber-500 hover:bg-amber-500 hover:text-white transition flex items-center justify-center"
+            title="Edit">
+            <i class="fas fa-edit"></i>
+        </button>
+        
+        <button @click="deleteSchool(school.id, school.name)"
+            class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white transition flex items-center justify-center"
+            title="Hapus">
+            <i class="fas fa-trash-alt"></i>
+        </button>
+        
+    </div>
+</td>
                                 </tr>
                             </template>
                         </tbody>

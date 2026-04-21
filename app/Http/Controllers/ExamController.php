@@ -46,7 +46,9 @@ class ExamController extends Controller
     // Form Tambah Ujian
     public function create()
     {
-        return view('exams.create');
+        $schools = School::all(); 
+        
+        return view('exams.create', compact( 'schools'));
     }
 
     // Simpan Ujian Baru

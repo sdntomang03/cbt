@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
             SubjectSeeder::class,
             LevelSeeder::class,
             QuestionSeeder::class,
-            // Tambahkan seeder lain di sini jika ada (misal: ExamSeeder)
+            AcademicSeeder::class,
         ]);
     }
 }

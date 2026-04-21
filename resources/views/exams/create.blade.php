@@ -24,6 +24,32 @@
             <form action="{{ route('admin.exams.store') }}" method="POST" class="space-y-6">
                 @csrf
 
+                {{-- PILIHAN SEKOLAH --}}
+                <div>
+                    <label for="school_id" class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">
+                        Pilihan Sekolah <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fas fa-building text-slate-400"></i>
+                        </div>
+                        <select id="school_id" name="school_id" required
+                            class="block w-full pl-11 rounded-xl border-slate-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-bold text-slate-800 py-3 px-4 appearance-none transition-colors cursor-pointer">
+                            <option value="">-- Pilih Sekolah --</option>
+                            @foreach($schools as $school)
+                                <option value="{{ $school->id }}" {{ old('school_id') == $school->id ? 'selected' : '' }}>
+                                    {{ $school->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @error('school_id')
+                    <span class="text-rose-500 text-sm font-bold mt-1.5 block flex items-center gap-1">
+                        <i class="fas fa-exclamation-circle"></i> {{ $message }}
+                    </span>
+                    @enderror
+                </div>
+
                 {{-- NAMA UJIAN --}}
                 <div>
                     <label for="title" class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">
@@ -74,8 +100,7 @@
                             <select id="status" name="status"
                                 class="block w-full pl-11 rounded-xl border-slate-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-bold text-slate-800 py-3 px-4 appearance-none transition-colors cursor-pointer">
                                 @foreach(App\Enums\ExamStatus::cases() as $status)
-                                <option value="{{ $status->value }}" {{ old('status')==$status->value ? 'selected' : ''
-                                    }}>
+                                <option value="{{ $status->value }}" {{ old('status')==$status->value ? 'selected' : '' }}>
                                     {{ $status->getLabel() }}
                                 </option>
                                 @endforeach
