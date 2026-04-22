@@ -13,7 +13,7 @@
                 <i class="fas fa-check text-sm" x-show="isOptionSelected(q.id, opt.id)"></i>
             </div>
 
-            <div class="font-bold text-lg" x-html="opt.option_text"></div>
+            <div class=" text-lg" x-html="opt.option_text"></div>
         </div>
     </template>
 </div>

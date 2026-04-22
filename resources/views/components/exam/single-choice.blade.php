@@ -13,7 +13,7 @@
                 <span x-text="String.fromCharCode(65 + oIndex)"></span>
             </div>
 
-            <div class="font-bold text-lg" x-html="opt.option_text"></div>
+            <div class=" text-lg" x-html="opt.option_text"></div>
 
             <div x-show="answers[q.id] == opt.id" class="absolute right-4 text-white">
                 <i class="fas fa-check-circle text-xl"></i>

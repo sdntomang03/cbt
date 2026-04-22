@@ -12,7 +12,7 @@
         <tbody class="divide-y divide-slate-100">
             <template x-for="opt in q.options" :key="opt.id">
                 <tr class="hover:bg-slate-50/50 transition-colors">
-                    <td class="p-5 font-bold text-slate-700 text-lg" x-html="opt.option_text"></td>
+                    <td class="p-5  text-slate-700 text-lg" x-html="opt.option_text"></td>
 
                     <td class="p-5 text-center">
                         <label class="cursor-pointer block">

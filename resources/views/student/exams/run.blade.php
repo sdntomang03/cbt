@@ -280,7 +280,7 @@
                                 <div
                                     class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
                                 </div>
-                                <div class="prose prose-indigo prose-lg max-w-none font-bold text-slate-700 leading-relaxed no-select"
+                                <div class="prose prose-indigo prose-lg text-lg max-w-none text-slate-700 leading-relaxed no-select"
                                     x-html="q.content"></div>
                             </div>
                             <div class="space-y-4">

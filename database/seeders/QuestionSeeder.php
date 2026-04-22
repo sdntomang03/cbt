@@ -114,10 +114,10 @@ class QuestionSeeder extends Seeder
             'content' => '<p>Pasangkan istilah jaringan berikut dengan fungsinya!</p>',
             'school_id' => 1, // Pastikan sekolah dengan ID 1 ada
         ]);
-        QuestionMatch::create(['question_id' => $q4->id, 'premise_text' => 'LAN', 'target_text' => 'Local Area Network']);
-        QuestionMatch::create(['question_id' => $q4->id, 'premise_text' => 'WAN', 'target_text' => 'Wide Area Network']);
-        QuestionMatch::create(['question_id' => $q4->id, 'premise_text' => 'HTTP', 'target_text' => 'Protocol Transfer']);
-        QuestionMatch::create(['question_id' => $q4->id, 'premise_text' => 'IP', 'target_text' => 'Internet Protocol']);
+        QuestionMatch::create(['question_id' => $q4->id, 'premise_text' => 'LAN', 'target_text' => 'Local Area Network', 'school_id' => 1]);
+        QuestionMatch::create(['question_id' => $q4->id, 'premise_text' => 'WAN', 'target_text' => 'Wide Area Network', 'school_id' => 1]);
+        QuestionMatch::create(['question_id' => $q4->id, 'premise_text' => 'HTTP', 'target_text' => 'Protocol Transfer', 'school_id' => 1]);
+        QuestionMatch::create(['question_id' => $q4->id, 'premise_text' => 'IP', 'target_text' => 'Internet Protocol', 'school_id' => 1]);
 
         // Soal 5: Essay
         $q5 = Question::create([
