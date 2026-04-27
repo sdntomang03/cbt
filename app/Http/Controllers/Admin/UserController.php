@@ -107,7 +107,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users,username,'.$user->id,
             'email' => 'nullable|email|unique:users,email,'.$user->id,
-            'role' => 'required|in:admin,teacher,student',
+            'role' => 'required|in:admin,guru,siswa,operator',
         ]);
 
         $data = [
