@@ -2,9 +2,9 @@
 
 use App\Http\Controllers\Admin\ExamSessionController;
 use App\Http\Controllers\Admin\MathExamController;
+use App\Http\Controllers\Admin\RegistrationSettingController;
 use App\Http\Controllers\Admin\SchoolController;
 use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Admin\RegistrationSettingController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\ImageUploadController;
 use App\Http\Controllers\KawanBacaController;
@@ -53,7 +53,7 @@ Route::middleware(['auth', 'role:admin|guru'])
         Route::delete('/schools/bulk-delete', [SchoolController::class, 'bulkDelete'])->name('schools.bulk-delete');
         Route::resource('schools', SchoolController::class)->except(['create', 'show', 'edit']);
         // Route untuk Detail Sekolah (Guru, Kelas, dan Siswa)
-    Route::get('schools/{school}/details', [SchoolController::class, 'showDetails'])->name('schools.details');
+        Route::get('schools/{school}/details', [SchoolController::class, 'showDetails'])->name('schools.details');
 
         // --- 2. Manajemen Ujian (Bank Soal) ---
         Route::get('/exams/{exam}/export', [ExamController::class, 'exportGrades'])->name('exams.export');
@@ -97,7 +97,7 @@ Route::middleware(['auth', 'role:admin|guru'])
         Route::resource('users', UserController::class);
 
         Route::get('settings/registration', [RegistrationSettingController::class, 'edit'])->name('settings.registration');
-Route::put('settings/registration', [RegistrationSettingController::class, 'update'])->name('settings.registration.update');
+        Route::put('settings/registration', [RegistrationSettingController::class, 'update'])->name('settings.registration.update');
 
     });
 
@@ -141,6 +141,11 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
 Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
     // Nested resource untuk Soal
     Route::resource('exams.soal', SoalController::class)->except(['show']);
+
+    Route::get('/exam/{exam}/import-json', [SoalController::class, 'showImportJson'])->name('soal.import_json_view');
+
+    // Rute untuk memproses file JSON
+    Route::post('/exam/{exam}/import-json', [SoalController::class, 'importJson'])->name('soal.import_json');
     // 1. Rute Download Template
     Route::get('/soal/download-template', [SoalController::class, 'downloadTemplate'])
         ->name('soal.template'); // Menjadi: admin.soal.template

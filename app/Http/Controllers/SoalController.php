@@ -182,4 +182,73 @@ class SoalController extends Controller
             return redirect()->back()->with('error', 'Gagal mengimport soal. Pastikan format sesuai template. Error: '.$e->getMessage());
         }
     }
+
+    public function showImportJson(Exam $exam)
+    {
+        return view('soal.import_json', compact('exam'));
+    }
+
+    // 2. Method untuk memproses file JSON
+    public function importJson(Request $request, Exam $exam)
+    {
+        $request->validate([
+            'file_json' => 'required|file|mimetypes:application/json,text/plain',
+        ], [
+            'file_json.required' => 'Silakan pilih file JSON terlebih dahulu.',
+            'file_json.mimetypes' => 'File harus berformat JSON.',
+        ]);
+
+        $jsonContent = file_get_contents($request->file('file_json')->getPathname());
+        $soals = json_decode($jsonContent, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || ! is_array($soals)) {
+            return back()->withErrors(['file_json' => 'Format file JSON tidak valid atau rusak.']);
+        }
+
+        // Buka bungkus array jika JSON menggunakan key "data"
+        if (isset($soals['data']) && is_array($soals['data'])) {
+            $soals = $soals['data'];
+        }
+
+        try {
+            DB::transaction(function () use ($soals, $exam) {
+                $schoolId = Auth::user()->school_id ?? Auth::user()->sekolah_id;
+                $userId = Auth::id();
+
+                foreach ($soals as $item) {
+                    // Lewati baris jika tipe atau konten soal kosong
+                    if (empty($item['type']) || empty($item['content'])) {
+                        continue;
+                    }
+
+                    // Cek apakah konten berbentuk base64 atau plain text/HTML
+                    // Jika data dari JSON sudah berupa teks biasa, tidak perlu di base64_decode
+                    $isBase64 = (base64_encode(base64_decode($item['content'], true)) === $item['content']);
+                    $kontenSoal = $isBase64 ? base64_decode($item['content']) : $item['content'];
+
+                    $question = $exam->questions()->create([
+                        'user_id' => $userId,
+                        'school_id' => $schoolId,
+                        'type' => $item['type'],
+                        'content' => $kontenSoal,
+                        'subject_id' => $item['subject_id'] ?? null,
+                        'level_id' => $item['level_id'] ?? null,
+                    ]);
+
+                    // Langsung lempar array 'options' ke detail saver milik Bapak
+                    if (isset($item['options']) && is_array($item['options'])) {
+                        $this->saveQuestionDetails($question, $item['options'], $item['type']);
+                    }
+                }
+            });
+
+            return redirect()->route('admin.exams.soal.index', $exam->id)
+                ->with('success', 'Berhasil mengimpor '.count($soals).' soal dari file JSON.');
+
+        } catch (\Exception $e) {
+            Log::error('Gagal import JSON soal: '.$e->getMessage());
+
+            return back()->withErrors(['error' => 'Gagal mengimpor soal: '.$e->getMessage()]);
+        }
+    }
 }
