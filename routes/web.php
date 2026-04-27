@@ -142,10 +142,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     // Nested resource untuk Soal
     Route::resource('exams.soal', SoalController::class)->except(['show']);
 
+    // 1. Tampilkan form upload JSON
     Route::get('/exams/{exam}/import-json', [SoalController::class, 'showImportJson'])->name('soal.import_json_view');
 
-    // Rute untuk memproses file JSON
-    Route::post('/exams/{exam}/import-json', [SoalController::class, 'importJson'])->name('soal.import_json');
+    // 2. Proses upload file dan tampilkan preview (BARU)
+    Route::post('/exams/{exam}/import-json/preview', [SoalController::class, 'previewImportJson'])->name('soal.import_json_preview');
+
+    // 3. Simpan soal yang dicentang ke database (BARU)
+    Route::post('/exams/{exam}/import-json/store', [SoalController::class, 'storeImportJson'])->name('soal.import_json_store');
     // 1. Rute Download Template
     Route::get('/soal/download-template', [SoalController::class, 'downloadTemplate'])
         ->name('soal.template'); // Menjadi: admin.soal.template

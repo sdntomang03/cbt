@@ -26,8 +26,8 @@
 
         <div
             class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8 hover:border-indigo-300 transition-colors">
-            <form action="{{ route('admin.soal.import_json', $exam->id) }}" method="POST" enctype="multipart/form-data"
-                class="flex flex-col md:flex-row items-end gap-5">
+            <form action="{{ route('admin.soal.import_json_preview', $exam->id) }}" method="POST"
+                enctype="multipart/form-data" class="flex flex-col md:flex-row items-end gap-5">
                 @csrf
                 <div class="flex-1 w-full">
                     <label class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Unggah File

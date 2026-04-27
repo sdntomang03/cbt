@@ -188,14 +188,11 @@ class SoalController extends Controller
         return view('soal.import_json', compact('exam'));
     }
 
-    // 2. Method untuk memproses file JSON
-    public function importJson(Request $request, Exam $exam)
+    // Method untuk memproses file dan menampilkan layar Preview
+    public function previewImportJson(Request $request, Exam $exam)
     {
         $request->validate([
             'file_json' => 'required|file|mimetypes:application/json,text/plain',
-        ], [
-            'file_json.required' => 'Silakan pilih file JSON terlebih dahulu.',
-            'file_json.mimetypes' => 'File harus berformat JSON.',
         ]);
 
         $jsonContent = file_get_contents($request->file('file_json')->getPathname());
@@ -209,56 +206,79 @@ class SoalController extends Controller
             $soals = $soals['data'];
         }
 
+        // Enkripsi seluruh data JSON menjadi teks base64 untuk disisipkan ke form (Stateless)
+        $jsonDataEncoded = base64_encode(json_encode($soals));
+
+        return view('soal.preview_json', compact('exam', 'soals', 'jsonDataEncoded'));
+    }
+
+    // Method untuk menyimpan data yang dicentang (Final)
+    public function storeImportJson(Request $request, Exam $exam)
+    {
+        $request->validate([
+            'json_data' => 'required',
+            'selected_indexes' => 'required|array', // Memastikan ada soal yang dicentang
+        ]);
+
+        // Kembalikan teks base64 menjadi array data soal
+        $soals = json_decode(base64_decode($request->json_data), true);
+        $selectedIndexes = $request->selected_indexes;
+
+        DB::beginTransaction();
         try {
-            DB::transaction(function () use ($soals, $exam) {
-                $schoolId = Auth::user()->school_id ?? Auth::user()->sekolah_id;
-                $userId = Auth::id();
+            $schoolId = Auth::user()->school_id ?? Auth::user()->sekolah_id;
+            $userId = Auth::id();
+            $jumlahDisimpan = 0;
 
-                foreach ($soals as $item) {
-                    if (empty($item['type']) || empty($item['content'])) {
-                        continue;
-                    }
+            // Looping hanya untuk index soal yang dicentang oleh user
+            foreach ($selectedIndexes as $index) {
+                if (! isset($soals[$index])) {
+                    continue;
+                }
 
-                    $isBase64 = (base64_encode(base64_decode($item['content'], true)) === $item['content']);
-                    $kontenSoal = $isBase64 ? base64_decode($item['content']) : $item['content'];
+                $item = $soals[$index];
+                if (empty($item['type']) || empty($item['content'])) {
+                    continue;
+                }
 
-                    // 1. Simpan Soal
-                    $question = $exam->questions()->create([
-                        'user_id' => $userId,
-                        'school_id' => $schoolId,
-                        'type' => $item['type'],
-                        'content' => $kontenSoal,
-                        'subject_id' => $item['subject_id'] ?? null,
-                        'level_id' => $item['level_id'] ?? null,
-                    ]);
+                $isBase64 = (base64_encode(base64_decode($item['content'], true)) === $item['content']);
+                $kontenSoal = $isBase64 ? base64_decode($item['content']) : $item['content'];
 
-                    // 2. Simpan Opsi (DIUBAH KE INSERT LANGSUNG KE MODEL QuestionOption)
-                    if (isset($item['options']) && is_array($item['options'])) {
-                        foreach ($item['options'] as $opsi) {
+                $question = $exam->questions()->create([
+                    'user_id' => $userId,
+                    'school_id' => $schoolId,
+                    'type' => $item['type'],
+                    'content' => $kontenSoal,
+                    'subject_id' => $item['subject_id'] ?? null,
+                    'level_id' => $item['level_id'] ?? null,
+                ]);
 
-                            // Pastikan teks opsi tidak kosong
-                            if (! empty($opsi['text'])) {
-                                \App\Models\QuestionOption::create([
-                                    'question_id' => $question->id,
-                                    'school_id' => $schoolId,
-                                    'option_text' => $opsi['text'],
-                                    // Memastikan boolean di JSON (true/false) masuk sebagai 1 atau 0 di database
-                                    'is_correct' => (isset($opsi['is_correct']) && $opsi['is_correct'] == true) ? 1 : 0,
-                                ]);
-                            }
-
+                if (isset($item['options']) && is_array($item['options'])) {
+                    foreach ($item['options'] as $opsi) {
+                        if (! empty($opsi['text'])) {
+                            \App\Models\QuestionOption::create([
+                                'question_id' => $question->id,
+                                'school_id' => $schoolId,
+                                'option_text' => $opsi['text'],
+                                'is_correct' => (isset($opsi['is_correct']) && $opsi['is_correct'] == true) ? 1 : 0,
+                            ]);
                         }
                     }
                 }
-            });
+                $jumlahDisimpan++;
+            }
+
+            DB::commit();
 
             return redirect()->route('admin.exams.soal.index', $exam->id)
-                ->with('success', 'Berhasil mengimpor '.count($soals).' soal beserta pilihan jawabannya dari JSON.');
+                ->with('success', "Berhasil menambahkan $jumlahDisimpan soal ke dalam ujian.");
 
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Gagal import JSON soal: '.$e->getMessage());
+            DB::rollBack();
+            \Illuminate\Support\Facades\Log::error('Gagal simpan JSON soal: '.$e->getMessage());
 
-            return back()->withErrors(['error' => 'Gagal mengimpor soal: '.$e->getMessage()]);
+            return redirect()->route('admin.soal.import_json_view', $exam->id)
+                ->withErrors(['error' => 'Terjadi kesalahan sistem saat menyimpan: '.$e->getMessage()]);
         }
     }
 }
