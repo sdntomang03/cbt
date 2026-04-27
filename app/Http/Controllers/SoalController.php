@@ -205,7 +205,6 @@ class SoalController extends Controller
             return back()->withErrors(['file_json' => 'Format file JSON tidak valid atau rusak.']);
         }
 
-        // Buka bungkus array jika JSON menggunakan key "data"
         if (isset($soals['data']) && is_array($soals['data'])) {
             $soals = $soals['data'];
         }
@@ -216,16 +215,14 @@ class SoalController extends Controller
                 $userId = Auth::id();
 
                 foreach ($soals as $item) {
-                    // Lewati baris jika tipe atau konten soal kosong
                     if (empty($item['type']) || empty($item['content'])) {
                         continue;
                     }
 
-                    // Cek apakah konten berbentuk base64 atau plain text/HTML
-                    // Jika data dari JSON sudah berupa teks biasa, tidak perlu di base64_decode
                     $isBase64 = (base64_encode(base64_decode($item['content'], true)) === $item['content']);
                     $kontenSoal = $isBase64 ? base64_decode($item['content']) : $item['content'];
 
+                    // 1. Simpan Soal
                     $question = $exam->questions()->create([
                         'user_id' => $userId,
                         'school_id' => $schoolId,
@@ -235,18 +232,31 @@ class SoalController extends Controller
                         'level_id' => $item['level_id'] ?? null,
                     ]);
 
-                    // Langsung lempar array 'options' ke detail saver milik Bapak
+                    // 2. Simpan Opsi (DIUBAH KE INSERT LANGSUNG KE MODEL QuestionOption)
                     if (isset($item['options']) && is_array($item['options'])) {
-                        $this->saveQuestionDetails($question, $item['options'], $item['type']);
+                        foreach ($item['options'] as $opsi) {
+
+                            // Pastikan teks opsi tidak kosong
+                            if (! empty($opsi['text'])) {
+                                \App\Models\QuestionOption::create([
+                                    'question_id' => $question->id,
+                                    'school_id' => $schoolId,
+                                    'option_text' => $opsi['text'],
+                                    // Memastikan boolean di JSON (true/false) masuk sebagai 1 atau 0 di database
+                                    'is_correct' => (isset($opsi['is_correct']) && $opsi['is_correct'] == true) ? 1 : 0,
+                                ]);
+                            }
+
+                        }
                     }
                 }
             });
 
             return redirect()->route('admin.exams.soal.index', $exam->id)
-                ->with('success', 'Berhasil mengimpor '.count($soals).' soal dari file JSON.');
+                ->with('success', 'Berhasil mengimpor '.count($soals).' soal beserta pilihan jawabannya dari JSON.');
 
         } catch (\Exception $e) {
-            Log::error('Gagal import JSON soal: '.$e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Gagal import JSON soal: '.$e->getMessage());
 
             return back()->withErrors(['error' => 'Gagal mengimpor soal: '.$e->getMessage()]);
         }

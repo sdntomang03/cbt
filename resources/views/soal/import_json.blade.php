@@ -7,7 +7,7 @@
                 <p class="text-sm text-slate-500 mt-1">Ujian: <span class="font-bold text-indigo-600">{{ $exam->title ??
                         'Nama Ujian' }}</span></p>
             </div>
-            <a href="{{ route('exam.show', $exam->id) }}"
+            <a href="{{ route('admin.exams.soal.index', $exam->id) }}"
                 class="px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-bold shadow-sm transition-colors">
                 &larr; Kembali ke Ujian
             </a>
@@ -26,7 +26,7 @@
 
         <div
             class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8 hover:border-indigo-300 transition-colors">
-            <form action="{{ route('soal.import_json', $exam->id) }}" method="POST" enctype="multipart/form-data"
+            <form action="{{ route('admin.soal.import_json', $exam->id) }}" method="POST" enctype="multipart/form-data"
                 class="flex flex-col md:flex-row items-end gap-5">
                 @csrf
                 <div class="flex-1 w-full">
