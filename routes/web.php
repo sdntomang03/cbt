@@ -162,8 +162,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
 Route::prefix('kawan-hitung')->group(function () {
     Route::get('/', [KawanHitungController::class, 'index'])->name('hitung.index');
     Route::post('/generate', [KawanHitungController::class, 'generate'])->name('hitung.generate');
+
+    // Route untuk Mode Latihan (Banyak Soal)
     Route::get('/latihan', [KawanHitungController::class, 'latihan'])->name('hitung.latihan');
     Route::post('/submit', [KawanHitungController::class, 'submit'])->name('hitung.submit');
+
+    // Route BARU untuk Mode Belajar (1 Soal & Penjelasan)
+    Route::get('/belajar', [KawanHitungController::class, 'belajar'])->name('hitung.belajar');
 });
 
 Route::prefix('kawan-baca')->group(function () {

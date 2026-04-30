@@ -13,24 +13,28 @@ class KawanHitungController extends Controller
 
     public function generate(Request $request)
     {
+        // 1. Validasi: Pastikan 'mode' wajib diisi
         $request->validate([
             'operasi' => 'required|in:+,-,*,/',
             'digit1' => 'required|integer|min:1|max:4',
             'digit2' => 'required|integer|min:1|max:4',
-            'jumlah_soal' => 'required|integer|min:1|max:50',
+            'mode' => 'required|in:belajar,latihan',
         ]);
 
-        $soal = [];
-        for ($i = 0; $i < $request->jumlah_soal; $i++) {
+        $mode = $request->mode;
 
-            // Tentukan batas min & max untuk Angka Pertama
+        // 2. Jika mode 'belajar', paksa soal cuma 1
+        $jumlahSoal = ($mode === 'belajar') ? 1 : ($request->jumlah_soal ?? 5);
+
+        $soal = [];
+        for ($i = 0; $i < $jumlahSoal; $i++) {
+
             $min1 = pow(10, $request->digit1 - 1);
             $max1 = pow(10, $request->digit1) - 1;
             if ($request->digit1 == 1) {
                 $min1 = 1;
             }
 
-            // Tentukan batas min & max untuk Angka Kedua
             $min2 = pow(10, $request->digit2 - 1);
             $max2 = pow(10, $request->digit2) - 1;
             if ($request->digit2 == 1) {
@@ -38,17 +42,14 @@ class KawanHitungController extends Controller
             }
 
             if ($request->operasi === '/') {
-                // LOGIKA PEMBAGIAN FLEKSIBEL & HABIS DIBAGI
                 if ($request->digit2 == 1) {
                     $min2 = 2;
-                } // Hindari bagi 1 agar soal tidak terlalu mudah
+                }
                 $n2 = rand($min2, $max2);
 
-                // Cari pengali agar n1 masuk ke dalam range digit1
                 $minMultiplier = (int) ceil($min1 / $n2);
                 $maxMultiplier = (int) floor($max1 / $n2);
 
-                // Jika user iseng memasukkan 1 digit dibagi 3 digit, kita amankan agar tidak error
                 if ($minMultiplier > $maxMultiplier) {
                     $n1 = $n2;
                 } else {
@@ -56,11 +57,9 @@ class KawanHitungController extends Controller
                     $n1 = $n2 * $multiplier;
                 }
             } else {
-                // Operasi Selain Pembagian
                 $n1 = rand($min1, $max1);
                 $n2 = rand($min2, $max2);
 
-                // Jika pengurangan, pastikan angka pertama lebih besar (kecuali ingin ada nilai minus)
                 if ($request->operasi === '-' && $n2 > $n1) {
                     $temp = $n1;
                     $n1 = $n2;
@@ -77,10 +76,32 @@ class KawanHitungController extends Controller
         }
 
         session(['soal_hitung' => $soal]);
+        session(['config_hitung' => $request->all()]);
+
+        // 3. LOGIKA ARAH HALAMAN (REDIRECT)
+        if ($mode === 'belajar') {
+            return redirect()->route('hitung.belajar');
+        }
 
         return redirect()->route('hitung.latihan');
     }
 
+    // Menampilkan Halaman Belajar (1 Soal)
+    public function belajar()
+    {
+        $soal = session('soal_hitung');
+        $config = session('config_hitung');
+
+        if (! $soal || ! isset($soal[0])) {
+            return redirect()->route('hitung.index');
+        }
+
+        $s = $soal[0];
+
+        return view('kawan-hitung.belajar', compact('s', 'config'));
+    }
+
+    // Menampilkan Halaman Latihan (Banyak Soal)
     public function latihan()
     {
         $soal = session('soal_hitung');
@@ -91,6 +112,7 @@ class KawanHitungController extends Controller
         return view('kawan-hitung.latihan', compact('soal'));
     }
 
+    // Menghitung Nilai Akhir Latihan
     public function submit(Request $request)
     {
         $soal = session('soal_hitung');

@@ -12,7 +12,6 @@
             font-family: 'Nunito', sans-serif;
         }
 
-        /* Menyembunyikan panah atas-bawah bawaan pada input number */
         input[type=number]::-webkit-inner-spin-button,
         input[type=number]::-webkit-outer-spin-button {
             -webkit-appearance: none;
@@ -46,12 +45,45 @@
                     </svg>
                 </div>
                 <h2 class="text-3xl font-black text-slate-800 tracking-tight">Kawan Hitung</h2>
-                <p class="text-slate-500 font-semibold mt-1">Mari atur latihan matematikamu hari ini! 🚀</p>
+                <p class="text-slate-500 font-semibold mt-1">Mari atur belajarmu hari ini! 🚀</p>
             </div>
 
             <form action="{{ route('hitung.generate') }}" method="POST" class="space-y-6">
                 @csrf
 
+                <!-- BARU: Pilih Mode Pembelajaran -->
+                <div>
+                    <label
+                        class="block text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider text-center">Pilih
+                        Mode</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="mode" value="belajar" class="peer sr-only" onchange="toggleMode()"
+                                checked>
+                            <div
+                                class="p-4 rounded-2xl border-2 border-slate-100 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 hover:bg-slate-50 transition-all text-center group">
+                                <div class="text-3xl mb-1 group-hover:scale-110 transition-transform">💡</div>
+                                <div
+                                    class="font-bold text-slate-600 peer-checked:text-emerald-700 text-sm md:text-base">
+                                    Belajar</div>
+                                <div class="text-[10px] text-slate-400 mt-1">1 Soal & Petunjuk</div>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="mode" value="latihan" class="peer sr-only"
+                                onchange="toggleMode()">
+                            <div
+                                class="p-4 rounded-2xl border-2 border-slate-100 peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:bg-slate-50 transition-all text-center group">
+                                <div class="text-3xl mb-1 group-hover:scale-110 transition-transform">📝</div>
+                                <div class="font-bold text-slate-600 peer-checked:text-blue-700 text-sm md:text-base">
+                                    Latihan</div>
+                                <div class="text-[10px] text-slate-400 mt-1">Banyak Soal sekaligus</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Pilih Operasi -->
                 <div>
                     <label
                         class="block text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider text-center">Pilih
@@ -103,10 +135,10 @@
                         <div class="relative">
                             <select name="digit1"
                                 class="w-full pl-4 pr-10 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none font-bold text-slate-700 bg-white">
-                                <option value="1">1 Digit (Satuan)</option>
-                                <option value="2">2 Digit (Puluhan)</option>
-                                <option value="3" selected>3 Digit (Ratusan)</option>
-                                <option value="4">4 Digit (Ribuan)</option>
+                                <option value="1">1 Digit</option>
+                                <option value="2">2 Digit</option>
+                                <option value="3" selected>3 Digit</option>
+                                <option value="4">4 Digit</option>
                             </select>
                             <div
                                 class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
@@ -122,10 +154,10 @@
                         <div class="relative">
                             <select name="digit2"
                                 class="w-full pl-4 pr-10 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none font-bold text-slate-700 bg-white">
-                                <option value="1" selected>1 Digit (Satuan)</option>
-                                <option value="2">2 Digit (Puluhan)</option>
-                                <option value="3">3 Digit (Ratusan)</option>
-                                <option value="4">4 Digit (Ribuan)</option>
+                                <option value="1" selected>1 Digit</option>
+                                <option value="2">2 Digit</option>
+                                <option value="3">3 Digit</option>
+                                <option value="4">4 Digit</option>
                             </select>
                             <div
                                 class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
@@ -138,7 +170,8 @@
                     </div>
                 </div>
 
-                <div>
+                <!-- Input Jumlah Soal (Akan disembunyikan jika mode belajar) -->
+                <div id="jumlah-soal-container" style="display: none;">
                     <label class="block text-sm font-bold text-slate-500 mb-3 text-center">Berapa soal yang ingin
                         dikerjakan?</label>
                     <div class="flex items-center justify-center">
@@ -153,7 +186,7 @@
 
                 <button type="submit"
                     class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-black text-lg py-4 rounded-2xl transition-all duration-300 shadow-lg shadow-blue-300/50 hover:-translate-y-1 hover:shadow-xl flex items-center justify-center gap-2 mt-4">
-                    <span>Mulai Latihan Sekarang!</span>
+                    <span>Mulai Sekarang!</span>
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
                             d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
@@ -162,6 +195,20 @@
             </form>
         </div>
     </div>
+
+    <script>
+        function toggleMode() {
+            const isLatihan = document.querySelector('input[name="mode"][value="latihan"]').checked;
+            const container = document.getElementById('jumlah-soal-container');
+            if(isLatihan) {
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+            }
+        }
+        // Jalankan saat load
+        toggleMode();
+    </script>
 </body>
 
 </html>
