@@ -70,8 +70,8 @@
         <span class="text-emerald-400">"type"</span>: <span class="text-amber-300">"single_choice"</span>,
         <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Ibu kota negara Indonesia adalah...&lt;/p&gt;"</span>,
         <span class="text-emerald-400">"options"</span>: [
-            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"Jakarta"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> },
-            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"Bandung"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">false</span> }
+            { <span class="text-emerald-400">"option_text"</span>: <span class="text-amber-300">"Jakarta"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> },
+            { <span class="text-emerald-400">"option_text"</span>: <span class="text-amber-300">"Bandung"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">false</span> }
         ]
     },
 
@@ -80,39 +80,43 @@
         <span class="text-emerald-400">"type"</span>: <span class="text-amber-300">"complex_choice"</span>,
         <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Hewan manakah yang termasuk mamalia?&lt;/p&gt;"</span>,
         <span class="text-emerald-400">"options"</span>: [
-            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"Kucing"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> },
-            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"Ayam"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">false</span> },
-            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"Paus paus"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> }
+            { <span class="text-emerald-400">"option_text"</span>: <span class="text-amber-300">"Kucing"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> },
+            { <span class="text-emerald-400">"option_text"</span>: <span class="text-amber-300">"Paus"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> }
         ]
     },
 
-    <span class="text-slate-500">// 3. Benar Salah (Pernyataan dan Kunci)</span>
+    <span class="text-slate-500">// 3. Benar Salah (Pernyataan Majemuk)</span>
     {
         <span class="text-emerald-400">"type"</span>: <span class="text-amber-300">"true_false"</span>,
-        <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Tentukan Benar/Salah pernyataan tata surya ini!&lt;/p&gt;"</span>,
+        <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Tentukan Benar/Salah pernyataan berikut!&lt;/p&gt;"</span>,
         <span class="text-emerald-400">"options"</span>: [
-            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"Matahari mengelilingi bumi."</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">false</span> },
-            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"Bumi adalah planet ke-3."</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> }
+            { <span class="text-emerald-400">"option_text"</span>: <span class="text-amber-300">"Matahari mengelilingi bumi."</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">false</span> },
+            { <span class="text-emerald-400">"option_text"</span>: <span class="text-amber-300">"Bumi adalah planet ke-3."</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> }
         ]
     },
 
-    <span class="text-slate-500">// 4. Isian Singkat (Masukkan variasi jawaban yang dianggap benar)</span>
+    <span class="text-slate-500">// 4. Isian Singkat</span>
     {
         <span class="text-emerald-400">"type"</span>: <span class="text-amber-300">"essay"</span>,
         <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Sebutkan dasar negara Indonesia!&lt;/p&gt;"</span>,
         <span class="text-emerald-400">"options"</span>: [
-            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"Pancasila"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> },
-            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"pancasila"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> }
+            { <span class="text-emerald-400">"option_text"</span>: <span class="text-amber-300">"Pancasila"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> }
         ]
     },
 
-    <span class="text-slate-500">// 5. Menjodohkan (Gunakan premise untuk soal, target untuk jawaban)</span>
+    <span class="text-slate-500">// 5. Menjodohkan (Matching)</span>
     {
         <span class="text-emerald-400">"type"</span>: <span class="text-amber-300">"matching"</span>,
-        <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Pasangkan negara berikut dengan ibukotanya!&lt;/p&gt;"</span>,
+        <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Jodohkan negara dengan ibukotanya!&lt;/p&gt;"</span>,
         <span class="text-emerald-400">"options"</span>: [
-            { <span class="text-emerald-400">"premise"</span>: <span class="text-amber-300">"Jepang"</span>, <span class="text-emerald-400">"target"</span>: <span class="text-amber-300">"Tokyo"</span> },
-            { <span class="text-emerald-400">"premise"</span>: <span class="text-amber-300">"Malaysia"</span>, <span class="text-emerald-400">"target"</span>: <span class="text-amber-300">"Kuala Lumpur"</span> }
+            {
+                <span class="text-emerald-400">"premise_text"</span>: <span class="text-amber-300">"Jepang"</span>,
+                <span class="text-emerald-400">"target_text"</span>: <span class="text-amber-300">"Tokyo"</span>
+            },
+            {
+                <span class="text-emerald-400">"premise_text"</span>: <span class="text-amber-300">"Malaysia"</span>,
+                <span class="text-emerald-400">"target_text"</span>: <span class="text-amber-300">"Kuala Lumpur"</span>
+            }
         ]
     }
 ]</code></pre>
