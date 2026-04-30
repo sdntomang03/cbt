@@ -20,6 +20,11 @@ class ExamSessionController extends Controller
         // Pastikan model ExamSession memiliki relasi ke 'school' dan 'exam'
         $query = ExamSession::with(['exam', 'school']);
 
+        // --- FILTER BERDASARKAN EXAM_ID ---
+        if ($request->filled('exam_id')) {
+            $query->where('exam_id', $request->exam_id);
+        }
+
         // 1. Filter Dropdown: HANYA berlaku untuk Super Admin
         if (auth()->user()->hasRole('admin') && $request->filled('school_id')) {
             $query->where('school_id', $request->school_id);
@@ -30,6 +35,7 @@ class ExamSessionController extends Controller
             $query->where('session_name', 'like', '%'.$request->search.'%');
         }
 
+        // Menjalankan query dengan paginasi
         $sessions = $query->latest()->paginate(12)->withQueryString();
 
         // 3. Kirim data daftar sekolah ke layar (Hanya dikirim jika admin)
@@ -38,7 +44,10 @@ class ExamSessionController extends Controller
         // 4. Ambil data ujian untuk form modal (Create/Edit)
         $exams = Exam::latest()->get();
 
-        return view('admin.sessions.index', compact('sessions', 'schools', 'exams'));
+        // Ambil detail ujian yang sedang dipilih (untuk judul di Blade)
+        $selectedExam = $request->filled('exam_id') ? Exam::find($request->exam_id) : null;
+
+        return view('admin.sessions.index', compact('sessions', 'schools', 'exams', 'selectedExam'));
     }
 
     /**
