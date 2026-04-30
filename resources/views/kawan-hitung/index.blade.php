@@ -12,6 +12,7 @@
             font-family: 'Nunito', sans-serif;
         }
 
+        /* Menyembunyikan panah atas-bawah bawaan pada input number */
         input[type=number]::-webkit-inner-spin-button,
         input[type=number]::-webkit-outer-spin-button {
             -webkit-appearance: none;
@@ -23,9 +24,11 @@
 <body
     class="bg-gradient-to-br from-sky-100 via-blue-50 to-indigo-100 min-h-screen flex items-center justify-center p-4 md:p-6">
 
+    <!-- Kontainer utama diperlebar sedikit (max-w-xl) untuk laptop, padding responsif -->
     <div
-        class="bg-white p-8 md:p-10 rounded-[2rem] shadow-2xl shadow-blue-200/50 w-full max-w-lg border-4 border-white relative overflow-hidden">
+        class="bg-white p-6 sm:p-8 md:p-10 rounded-[2rem] shadow-2xl shadow-blue-200/50 w-full max-w-xl border-4 border-white relative overflow-hidden">
 
+        <!-- Ornamen Background -->
         <div
             class="absolute -top-10 -right-10 w-32 h-32 bg-yellow-300 rounded-full mix-blend-multiply filter blur-2xl opacity-40">
         </div>
@@ -36,48 +39,49 @@
         <div class="relative z-10">
             <div class="text-center mb-8">
                 <div
-                    class="inline-flex items-center justify-center w-20 h-20 bg-blue-100 text-blue-500 rounded-3xl mb-4 shadow-inner transform rotate-3 hover:rotate-0 transition-transform duration-300">
-                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    class="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-blue-100 text-blue-500 rounded-3xl mb-4 shadow-inner transform rotate-3 hover:rotate-0 transition-transform duration-300">
+                    <svg class="w-8 h-8 sm:w-10 sm:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                         xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z">
                         </path>
                     </svg>
                 </div>
-                <h2 class="text-3xl font-black text-slate-800 tracking-tight">Kawan Hitung</h2>
-                <p class="text-slate-500 font-semibold mt-1">Mari atur belajarmu hari ini! 🚀</p>
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">Kawan Hitung</h2>
+                <p class="text-sm sm:text-base text-slate-500 font-semibold mt-1">Mari atur belajarmu hari ini! 🚀</p>
             </div>
 
             <form action="{{ route('hitung.generate') }}" method="POST" class="space-y-6">
                 @csrf
 
-                <!-- BARU: Pilih Mode Pembelajaran -->
+                <!-- Pilih Mode Pembelajaran -->
                 <div>
                     <label
                         class="block text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider text-center">Pilih
                         Mode</label>
-                    <div class="grid grid-cols-2 gap-3">
+                    <!-- Grid 1 kolom di HP, 2 kolom di Layar Besar (sm) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <label class="cursor-pointer">
                             <input type="radio" name="mode" value="belajar" class="peer sr-only" onchange="toggleMode()"
                                 checked>
                             <div
-                                class="p-4 rounded-2xl border-2 border-slate-100 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 hover:bg-slate-50 transition-all text-center group">
+                                class="p-4 rounded-2xl border-2 border-slate-100 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 hover:bg-slate-50 transition-all text-center group flex flex-col justify-center h-full">
                                 <div class="text-3xl mb-1 group-hover:scale-110 transition-transform">💡</div>
                                 <div
                                     class="font-bold text-slate-600 peer-checked:text-emerald-700 text-sm md:text-base">
                                     Belajar</div>
-                                <div class="text-[10px] text-slate-400 mt-1">1 Soal & Petunjuk</div>
+                                <div class="text-[10px] sm:text-xs text-slate-400 mt-1">1 Soal & Petunjuk Visual</div>
                             </div>
                         </label>
                         <label class="cursor-pointer">
                             <input type="radio" name="mode" value="latihan" class="peer sr-only"
                                 onchange="toggleMode()">
                             <div
-                                class="p-4 rounded-2xl border-2 border-slate-100 peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:bg-slate-50 transition-all text-center group">
+                                class="p-4 rounded-2xl border-2 border-slate-100 peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:bg-slate-50 transition-all text-center group flex flex-col justify-center h-full">
                                 <div class="text-3xl mb-1 group-hover:scale-110 transition-transform">📝</div>
                                 <div class="font-bold text-slate-600 peer-checked:text-blue-700 text-sm md:text-base">
                                     Latihan</div>
-                                <div class="text-[10px] text-slate-400 mt-1">Banyak Soal sekaligus</div>
+                                <div class="text-[10px] sm:text-xs text-slate-400 mt-1">Banyak Soal sekaligus</div>
                             </div>
                         </label>
                     </div>
@@ -88,6 +92,7 @@
                     <label
                         class="block text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider text-center">Pilih
                         Operasi</label>
+                    <!-- Tetap 2 kolom agar berbentuk kotak rapi 2x2 di HP maupun Laptop -->
                     <div class="grid grid-cols-2 gap-3">
                         <label class="cursor-pointer">
                             <input type="radio" name="operasi" value="+" class="peer sr-only" checked>
@@ -95,7 +100,7 @@
                                 class="p-4 rounded-2xl border-2 border-slate-100 peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:bg-slate-50 transition-all text-center group">
                                 <div class="text-3xl mb-1 group-hover:scale-110 transition-transform">➕</div>
                                 <div class="font-bold text-slate-600 peer-checked:text-blue-700 text-sm md:text-base">
-                                    Penjumlahan</div>
+                                    Tambah</div>
                             </div>
                         </label>
                         <label class="cursor-pointer">
@@ -104,7 +109,7 @@
                                 class="p-4 rounded-2xl border-2 border-slate-100 peer-checked:border-rose-500 peer-checked:bg-rose-50 hover:bg-slate-50 transition-all text-center group">
                                 <div class="text-3xl mb-1 group-hover:scale-110 transition-transform">➖</div>
                                 <div class="font-bold text-slate-600 peer-checked:text-rose-700 text-sm md:text-base">
-                                    Pengurangan</div>
+                                    Kurang</div>
                             </div>
                         </label>
                         <label class="cursor-pointer">
@@ -113,7 +118,7 @@
                                 class="p-4 rounded-2xl border-2 border-slate-100 peer-checked:border-amber-500 peer-checked:bg-amber-50 hover:bg-slate-50 transition-all text-center group">
                                 <div class="text-3xl mb-1 group-hover:scale-110 transition-transform">✖️</div>
                                 <div class="font-bold text-slate-600 peer-checked:text-amber-700 text-sm md:text-base">
-                                    Perkalian</div>
+                                    Kali</div>
                             </div>
                         </label>
                         <label class="cursor-pointer">
@@ -123,15 +128,17 @@
                                 <div class="text-3xl mb-1 group-hover:scale-110 transition-transform">➗</div>
                                 <div
                                     class="font-bold text-slate-600 peer-checked:text-emerald-700 text-sm md:text-base">
-                                    Pembagian</div>
+                                    Bagi</div>
                             </div>
                         </label>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4 md:gap-5 bg-slate-50 p-4 md:p-5 rounded-2xl border border-slate-100">
+                <!-- Grid 1 kolom di HP, 2 kolom di Layar Besar (sm) -->
+                <div
+                    class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 bg-slate-50 p-4 md:p-5 rounded-2xl border border-slate-100">
                     <div>
-                        <label class="block text-xs md:text-sm font-bold text-slate-500 mb-2">Angka Pertama</label>
+                        <label class="block text-xs sm:text-sm font-bold text-slate-500 mb-2">Angka Pertama</label>
                         <div class="relative">
                             <select name="digit1"
                                 class="w-full pl-4 pr-10 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none font-bold text-slate-700 bg-white">
@@ -150,7 +157,7 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs md:text-sm font-bold text-slate-500 mb-2">Angka Kedua</label>
+                        <label class="block text-xs sm:text-sm font-bold text-slate-500 mb-2">Angka Kedua</label>
                         <div class="relative">
                             <select name="digit2"
                                 class="w-full pl-4 pr-10 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none font-bold text-slate-700 bg-white">
