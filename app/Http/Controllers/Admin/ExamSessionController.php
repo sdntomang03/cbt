@@ -138,28 +138,30 @@ class ExamSessionController extends Controller
 
     public function studentIndex(Request $request, ExamSession $examSession)
     {
-        // Ambil siswa yang SUDAH terdaftar di sesi ini
-        $enrolledStudents = $examSession->students()->with('school')->get();
+        // 1. Ambil siswa TERDAFTAR beserta relasi sekolah dan kelasnya
+        $enrolledStudents = $examSession->students()
+            ->with(['school', 'classrooms']) // Asumsi nama relasi di Model User adalah 'classrooms'
+            ->get();
+
         $enrolledIds = $enrolledStudents->pluck('id')->toArray();
 
-        // Query dasar untuk siswa yang BELUM terdaftar
-        $query = User::role('siswa')->whereNotIn('id', $enrolledIds)->with('school');
+        // 2. Query siswa BELUM TERDAFTAR
+        $query = User::role('siswa')
+            ->whereNotIn('id', $enrolledIds)
+            ->with(['school', 'classrooms']); // Tambahkan 'classrooms' di sini
 
-        // LOGIKA FILTER SEKOLAH
+        // Logika Filter Sekolah
         if (auth()->user()->hasRole('admin')) {
-            // Jika Super Admin memilih sekolah di dropdown
             if ($request->filled('school_id')) {
                 $query->where('school_id', $request->school_id);
             }
-            // Jika tidak memilih (kosong), akan menampilkan semua siswa lintas sekolah
         } else {
-            // Jika Admin Biasa / Guru, KUNCI hanya boleh melihat siswanya sendiri
-            $query->where('school_id', $examSession->school_id);
+            $query->where('school_id', auth()->user()->school_id);
         }
 
-        $availableStudents = $query->orderBy('name')->get();
+        // 3. Cukup urutkan berdasarkan NAMA saja untuk menghindari error pivot
+        $availableStudents = $query->orderBy('name', 'asc')->get();
 
-        // Kirim daftar sekolah untuk dropdown HANYA jika Super Admin
         $schools = auth()->user()->hasRole('admin') ? School::orderBy('name')->get() : [];
 
         return view('admin.sessions.students', compact('examSession', 'enrolledStudents', 'availableStudents', 'schools'));
