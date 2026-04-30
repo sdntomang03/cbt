@@ -36,21 +36,25 @@ class SoalController extends Controller
 
     public function store(Request $request, Exam $exam)
     {
+        // Tambahkan subject_id dan level_id ke dalam validasi agar tidak dibuang
         $data = $request->validate([
             'type' => 'required|in:single_choice,complex_choice,essay,true_false,matching',
             'content' => 'required',
             'options' => 'array',
+            'subject_id' => 'nullable', // Wajib ada agar masuk ke array $data
+            'level_id' => 'nullable',   // Wajib ada agar masuk ke array $data
         ]);
 
         try {
             return DB::transaction(function () use ($data, $request, $exam) {
+                // Gunakan operator ?? null untuk keamanan tambahan
                 $question = $exam->questions()->create([
                     'user_id' => Auth::id(),
                     'type' => $data['type'],
-                    'content' => base64_decode($data['content']), // Pastikan ini di-decode jika dikirim via Base64
-                    'subject_id' => $data['subject_id'],
-                    'level_id' => $data['level_id'],
-                    'school_id' => Auth::user()->school_id,
+                    'content' => base64_decode($data['content']),
+                    'subject_id' => $data['subject_id'] ?? null,
+                    'level_id' => $data['level_id'] ?? null,
+                    'school_id' => Auth::user()->school_id ?? Auth::user()->sekolah_id,
                 ]);
 
                 // Panggil detail saver
@@ -62,7 +66,6 @@ class SoalController extends Controller
                 ]);
             });
         } catch (\Exception $e) {
-            // Jika gagal, log errornya untuk debugging
             Log::error('Gagal menyimpan soal: '.$e->getMessage());
 
             return response()->json([
