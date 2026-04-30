@@ -54,8 +54,8 @@ class ExamController extends Controller
             'exam_type_id' => 'required|exists:exam_types,id', // Sesuai model
             'duration_minutes' => 'required|integer|min:1',
             'status' => ['required', Rule::enum(ExamStatus::class)],
-            'level_id' => 'required|exists:levels,id',
             'subject_id' => 'required|exists:subjects,id',
+            'level_id' => 'required|exists:levels,id',
         ]);
 
         $validated['slug'] = Str::slug($request->title).'-'.Str::random(5);
