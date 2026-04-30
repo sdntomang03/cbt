@@ -16,38 +16,30 @@ class ExamSessionController extends Controller
      * Menampilkan daftar sesi ujian.
      */
     public function index(Request $request)
-{
-    // 1. Ambil query dasar dengan relasi
-    $query = ExamSession::with(['exam', 'school']);
+    {
+        // Pastikan model ExamSession memiliki relasi ke 'school' dan 'exam'
+        $query = ExamSession::with(['exam', 'school']);
 
-    // 2. FILTER UTAMA: Filter berdasarkan exam_id dari URL (?exam_id=...)
-    if ($request->filled('exam_id')) {
-        $query->where('exam_id', $request->exam_id);[cite: 1]
+        // 1. Filter Dropdown: HANYA berlaku untuk Super Admin
+        if (auth()->user()->hasRole('admin') && $request->filled('school_id')) {
+            $query->where('school_id', $request->school_id);
+        }
+
+        // 2. Fitur Pencarian Teks (Berdasarkan nama sesi)
+        if ($request->filled('search')) {
+            $query->where('session_name', 'like', '%'.$request->search.'%');
+        }
+
+        $sessions = $query->latest()->paginate(12)->withQueryString();
+
+        // 3. Kirim data daftar sekolah ke layar (Hanya dikirim jika admin)
+        $schools = auth()->user()->hasRole('admin') ? School::orderBy('name')->get() : [];
+
+        // 4. Ambil data ujian untuk form modal (Create/Edit)
+        $exams = Exam::latest()->get();
+
+        return view('admin.sessions.index', compact('sessions', 'schools', 'exams'));
     }
-
-    // 3. Filter Dropdown School: HANYA untuk Super Admin
-    if (auth()->user()->hasRole('admin') && $request->filled('school_id')) {
-        $query->where('school_id', $request->school_id);[cite: 1]
-    }
-
-    // 4. Fitur Pencarian Teks
-    if ($request->filled('search')) {
-        $query->where('session_name', 'like', '%'.$request->search.'%');[cite: 1]
-    }
-
-    // 5. Eksekusi Query
-    $sessions = $query->latest()->paginate(12)->withQueryString();[cite: 1]
-
-    // 6. Data pendukung untuk View
-    $schools = auth()->user()->hasRole('admin') ? School::orderBy('name')->get() : [];[cite: 1]
-
-    // Ambil data ujian spesifik jika ada exam_id di URL (untuk judul halaman)
-    $selectedExam = $request->filled('exam_id') ? Exam::find($request->exam_id) : null;[cite: 1]
-
-    $exams = Exam::latest()->get();[cite: 1]
-
-    return view('admin.sessions.index', compact('sessions', 'schools', 'exams', 'selectedExam'));[cite: 1]
-}
 
     /**
      * Menyimpan sesi ujian baru (Dipanggil via Axios).
