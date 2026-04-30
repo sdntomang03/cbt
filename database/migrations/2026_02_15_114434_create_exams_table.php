@@ -11,17 +11,30 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // 1. BUAT TABEL MASTER TERLEBIH DAHULU
+        Schema::create('exam_types', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('school_id')->constrained()->cascadeOnDelete();
+            $table->string('name');
+            $table->timestamps();
+        });
+
+        // 2. BARU BUAT TABEL EXAMS
         Schema::create('exams', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('school_id')->constrained()->cascadeOnDelete(); // Filter sekolah
-    $table->foreignId('teacher_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('school_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('teacher_id')->constrained('users')->cascadeOnDelete();
+
+            // Tambahkan kolom foreign key ke exam_types di sini
+            $table->foreignId('exam_type_id')->nullable()->constrained('exam_types')->nullOnDelete();
+
             $table->string('title');
             $table->string('slug')->unique();
             $table->integer('duration_minutes')->default(60);
             $table->boolean('random_question')->default(false);
             $table->boolean('random_answer')->default(false);
             $table->enum('status', ['draft', 'published', 'closed'])->default('draft');
-            
+
             $table->timestamps();
         });
     }
@@ -31,6 +44,8 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Urutan hapus harus kebalikan dari urutan buat
         Schema::dropIfExists('exams');
+        Schema::dropIfExists('exam_types');
     }
 };

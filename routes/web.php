@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ClassroomController;
 use App\Http\Controllers\Admin\ExamSessionController;
 use App\Http\Controllers\Admin\MathExamController;
 use App\Http\Controllers\Admin\RegistrationSettingController;
@@ -54,6 +55,14 @@ Route::middleware(['auth', 'role:admin|guru'])
         Route::resource('schools', SchoolController::class)->except(['create', 'show', 'edit']);
         // Route untuk Detail Sekolah (Guru, Kelas, dan Siswa)
         Route::get('schools/{school}/details', [SchoolController::class, 'showDetails'])->name('schools.details');
+
+        Route::resource('classrooms', ClassroomController::class)->except(['show']);
+
+        // Route untuk atur anggota kelas (Siswa)
+        Route::get('classrooms/{classroom}/students', [ClassroomController::class, 'manageStudents'])->name('classrooms.students');
+        Route::put('classrooms/{classroom}/students', [ClassroomController::class, 'syncStudents'])->name('classrooms.sync-students');
+        Route::post('classrooms/{classroom}/students/attach', [ClassroomController::class, 'attachStudents'])->name('classrooms.attach-students');
+        Route::delete('classrooms/{classroom}/students/{student}/detach', [ClassroomController::class, 'detachStudent'])->name('classrooms.detach-student');
 
         // --- 2. Manajemen Ujian (Bank Soal) ---
         Route::get('/exams/{exam}/export', [ExamController::class, 'exportGrades'])->name('exams.export');

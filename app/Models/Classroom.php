@@ -36,7 +36,7 @@ class Classroom extends Model
     public function students()
     {
         return $this->belongsToMany(User::class, 'classroom_student', 'classroom_id', 'student_id')
-                    ->withTimestamps(); // Agar timestamps di pivot table otomatis terisi
+            ->withTimestamps(); // Agar timestamps di pivot table otomatis terisi
     }
 
     public function exams()
