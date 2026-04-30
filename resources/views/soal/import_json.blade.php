@@ -64,27 +64,56 @@
 
                 <div class="overflow-x-auto">
                     <pre
-                        class="text-xs text-slate-300 font-mono leading-relaxed bg-black/30 p-4 rounded-xl border border-slate-700/50"><code>[
+                        class="text-[11px] sm:text-xs text-slate-300 font-mono leading-relaxed bg-black/30 p-4 rounded-xl border border-slate-700/50 custom-scrollbar overflow-x-auto"><code>[
+    <span class="text-slate-500">// 1. Pilihan Ganda (Satu Jawaban Benar)</span>
     {
-        <span class="text-slate-500">// Tipe: single_choice, complex_choice, essay, true_false, matching</span>
         <span class="text-emerald-400">"type"</span>: <span class="text-amber-300">"single_choice"</span>,
-
-        <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Siapakah presiden pertama Indonesia?&lt;/p&gt;"</span>,
-
-        <span class="text-slate-500">// Optional ID</span>
-        <span class="text-emerald-400">"subject_id"</span>: <span class="text-indigo-400">null</span>,
-        <span class="text-emerald-400">"level_id"</span>: <span class="text-indigo-400">null</span>,
-
-        <span class="text-slate-500">// Pastikan array ini sesuai dengan Request->options Bapak</span>
+        <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Ibu kota negara Indonesia adalah...&lt;/p&gt;"</span>,
         <span class="text-emerald-400">"options"</span>: [
-            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"Soekarno"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> },
-            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"Soeharto"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">false</span> }
+            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"Jakarta"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> },
+            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"Bandung"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">false</span> }
         ]
     },
+
+    <span class="text-slate-500">// 2. Pilihan Ganda Kompleks (Lebih dari Satu Jawaban Benar)</span>
+    {
+        <span class="text-emerald-400">"type"</span>: <span class="text-amber-300">"complex_choice"</span>,
+        <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Hewan manakah yang termasuk mamalia?&lt;/p&gt;"</span>,
+        <span class="text-emerald-400">"options"</span>: [
+            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"Kucing"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> },
+            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"Ayam"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">false</span> },
+            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"Paus paus"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> }
+        ]
+    },
+
+    <span class="text-slate-500">// 3. Benar Salah (Pernyataan dan Kunci)</span>
+    {
+        <span class="text-emerald-400">"type"</span>: <span class="text-amber-300">"true_false"</span>,
+        <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Tentukan Benar/Salah pernyataan tata surya ini!&lt;/p&gt;"</span>,
+        <span class="text-emerald-400">"options"</span>: [
+            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"Matahari mengelilingi bumi."</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">false</span> },
+            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"Bumi adalah planet ke-3."</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> }
+        ]
+    },
+
+    <span class="text-slate-500">// 4. Isian Singkat (Masukkan variasi jawaban yang dianggap benar)</span>
     {
         <span class="text-emerald-400">"type"</span>: <span class="text-amber-300">"essay"</span>,
-        <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Sebutkan 3 ciri makhluk hidup!&lt;/p&gt;"</span>,
-        <span class="text-emerald-400">"options"</span>: []
+        <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Sebutkan dasar negara Indonesia!&lt;/p&gt;"</span>,
+        <span class="text-emerald-400">"options"</span>: [
+            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"Pancasila"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> },
+            { <span class="text-emerald-400">"text"</span>: <span class="text-amber-300">"pancasila"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> }
+        ]
+    },
+
+    <span class="text-slate-500">// 5. Menjodohkan (Gunakan premise untuk soal, target untuk jawaban)</span>
+    {
+        <span class="text-emerald-400">"type"</span>: <span class="text-amber-300">"matching"</span>,
+        <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Pasangkan negara berikut dengan ibukotanya!&lt;/p&gt;"</span>,
+        <span class="text-emerald-400">"options"</span>: [
+            { <span class="text-emerald-400">"premise"</span>: <span class="text-amber-300">"Jepang"</span>, <span class="text-emerald-400">"target"</span>: <span class="text-amber-300">"Tokyo"</span> },
+            { <span class="text-emerald-400">"premise"</span>: <span class="text-amber-300">"Malaysia"</span>, <span class="text-emerald-400">"target"</span>: <span class="text-amber-300">"Kuala Lumpur"</span> }
+        ]
     }
 ]</code></pre>
                 </div>

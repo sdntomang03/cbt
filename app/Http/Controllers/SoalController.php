@@ -207,7 +207,7 @@ class SoalController extends Controller
         // Enkripsi seluruh data JSON menjadi teks base64 untuk disisipkan ke form (Stateless)
         $jsonDataEncoded = base64_encode(json_encode($soals));
 
-        return view('soal.preview_json', compact('exam', 'soals', 'jsonDataEncoded'));
+        return view('soal.preview_json', compact('exam', 'soals', 'jsonDataEncoded')); // Sesuaikan path view-nya jika perlu
     }
 
     // Method untuk menyimpan data yang dicentang (Final)
@@ -242,6 +242,7 @@ class SoalController extends Controller
                 $isBase64 = (base64_encode(base64_decode($item['content'], true)) === $item['content']);
                 $kontenSoal = $isBase64 ? base64_decode($item['content']) : $item['content'];
 
+                // 1. Simpan Induk Soal
                 $question = $exam->questions()->create([
                     'user_id' => $userId,
                     'school_id' => $schoolId,
@@ -251,16 +252,35 @@ class SoalController extends Controller
                     'level_id' => $item['level_id'] ?? null,
                 ]);
 
+                // 2. Simpan Opsi (Pisahkan logika Matching dan PG/Essay)
                 if (isset($item['options']) && is_array($item['options'])) {
                     foreach ($item['options'] as $opsi) {
-                        if (! empty($opsi['text'])) {
-                            \App\Models\QuestionOption::create([
-                                'question_id' => $question->id,
-                                'school_id' => $schoolId,
-                                'option_text' => $opsi['text'],
-                                'is_correct' => (isset($opsi['is_correct']) && $opsi['is_correct'] == true) ? 1 : 0,
-                            ]);
+
+                        if ($item['type'] === 'matching') {
+                            // Deteksi key JSON untuk premise dan target (fleksibel)
+                            $premise = $opsi['premise_text'] ?? $opsi['premise'] ?? null;
+                            $target = $opsi['target_text'] ?? $opsi['target'] ?? null;
+
+                            if (! empty($premise) && ! empty($target)) {
+                                $question->matches()->create([
+                                    'school_id' => $schoolId,
+                                    'premise_text' => $premise,
+                                    'target_text' => $target,
+                                ]);
+                            }
+                        } else {
+                            // Deteksi key JSON untuk option text (fleksibel)
+                            $text = $opsi['option_text'] ?? $opsi['text'] ?? null;
+
+                            if (! empty($text)) {
+                                $question->options()->create([
+                                    'school_id' => $schoolId,
+                                    'option_text' => $text,
+                                    'is_correct' => (isset($opsi['is_correct']) && $opsi['is_correct'] == true) ? 1 : 0,
+                                ]);
+                            }
                         }
+
                     }
                 }
                 $jumlahDisimpan++;
@@ -273,10 +293,10 @@ class SoalController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Illuminate\Support\Facades\Log::error('Gagal simpan JSON soal: '.$e->getMessage());
+            Log::error('Gagal simpan JSON soal: '.$e->getMessage());
 
-            return redirect()->route('admin.soal.import_json_view', $exam->id)
-                ->withErrors(['error' => 'Terjadi kesalahan sistem saat menyimpan: '.$e->getMessage()]);
+            // Ubah route redirect gagal ini sesuai dengan nama route Bapak
+            return back()->withErrors(['error' => 'Terjadi kesalahan sistem saat menyimpan: '.$e->getMessage()]);
         }
     }
 }

@@ -80,7 +80,7 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         // --- 3. Manajemen Ujian (CBT & Bank Soal) ---
         Route::get('/exams/{exam}/export', [ExamController::class, 'exportGrades'])->name('exams.export');
         Route::resource('exams', ExamController::class);
-        Route::post('/exam-types', [\App\Http\Controllers\ExamController::class, 'storeType'])->name('exam-types.store');
+        Route::post('/exam-types', [ExamController::class, 'storeType'])->name('exam-types.store');
 
         // Nested resource Soal Utama
         Route::resource('exams.soal', SoalController::class)->except(['show']);
