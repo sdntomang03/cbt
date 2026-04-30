@@ -132,8 +132,8 @@ class SoalController extends Controller
                     // Simpan Matching 1 per 1
                     if (! empty($item['premise_text']) && ! empty($item['target_text'])) {
                         $question->matches()->create([
-                            'premise_text' => $item['premise_text'],
-                            'target_text' => $item['target_text'],
+                            'premise_text' => base64_decode($item['premise_text']), // Decode Base64 di sini jika perlu
+                            'target_text' => base64_decode($item['target_text']), // Decode Base64 di sini jika perlu
                             'school_id' => $schoolId,
                         ]);
                     }
