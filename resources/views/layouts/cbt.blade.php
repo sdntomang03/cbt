@@ -19,7 +19,7 @@
 <body class="font-sans antialiased text-gray-900 bg-gray-100">
     <div class="flex h-screen overflow-hidden" x-data="{ sidebarOpen: window.innerWidth >= 768 }">
 
-        @include('layouts.sidebar')
+
 
         <div class="flex flex-col flex-1 w-full overflow-hidden transition-all duration-300">
 
@@ -33,9 +33,7 @@
                     </svg>
                 </button>
 
-                <div class="ml-auto">
-                    @include('layouts.navigation')
-                </div>
+
             </div>
 
             @isset($header)
