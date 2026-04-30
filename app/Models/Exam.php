@@ -37,4 +37,32 @@ class Exam extends Model
     {
         return $this->hasMany(ExamSession::class);
     }
+
+    public function examType(): BelongsTo
+    {
+        return $this->belongsTo(ExamType::class);
+    }
+
+    public function totalParticipantsCount()
+    {
+        return \App\Models\ExamSession::where('exam_id', $this->id)
+            ->join('exam_session_user', 'exam_sessions.id', '=', 'exam_session_user.exam_session_id')
+            ->count();
+    }
+
+    /**
+     * Relasi ke Tingkat/Level Kelas
+     */
+    public function level(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Level::class);
+    }
+
+    /**
+     * Relasi ke Mata Pelajaran
+     */
+    public function subject(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Subject::class);
+    }
 }

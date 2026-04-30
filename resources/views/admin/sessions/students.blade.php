@@ -4,10 +4,20 @@
             searchRight: '',
             selectAllLeft: false,
             selectAllRight: false,
+            // Menyimpan state accordion (buka/tutup kelas)
+            openClasses: [],
+
+            toggleAccordion(className) {
+                if (this.openClasses.includes(className)) {
+                    this.openClasses = this.openClasses.filter(c => c !== className);
+                } else {
+                    this.openClasses.push(className);
+                }
+            },
 
             // Logika Panel Kiri (Tambah Siswa)
             get visibleLeft() {
-                return Array.from(document.querySelectorAll('.checkbox-left')).filter(cb => cb.closest('label').style.display !== 'none');
+                return Array.from(document.querySelectorAll('.checkbox-left')).filter(cb => cb.closest('.student-item-left').style.display !== 'none');
             },
             toggleLeft() {
                 this.visibleLeft.forEach(cb => cb.checked = this.selectAllLeft);
@@ -15,6 +25,16 @@
             checkLeft() {
                 const visible = this.visibleLeft;
                 this.selectAllLeft = visible.length > 0 && visible.every(cb => cb.checked);
+            },
+            // Fungsi untuk memilih semua siswa di dalam 1 kelas spesifik
+            toggleLeftClass(className, isChecked) {
+                const classCheckboxes = document.querySelectorAll(`.checkbox-left[data-class='${className}']`);
+                classCheckboxes.forEach(cb => {
+                    if (cb.closest('.student-item-left').style.display !== 'none') {
+                        cb.checked = isChecked;
+                    }
+                });
+                this.checkLeft();
             },
 
             // Logika Panel Kanan (Hapus Siswa)
@@ -72,6 +92,7 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
+                {{-- PANEL KIRI: SISWA TERSEDIA --}}
                 <div
                     class="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-gray-100 border border-white flex flex-col h-[650px]">
 
@@ -118,32 +139,69 @@
                         </div>
                         @endif
 
-                        <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
-                            @forelse($availableStudents as $student)
-                            <label
-                                x-show="search === '' || '{{ strtolower($student->name) }}'.includes(search.toLowerCase())"
-                                class="flex items-center p-4 rounded-2xl border border-gray-100 cursor-pointer hover:bg-indigo-50 hover:border-indigo-200 transition-all group">
-                                <input type="checkbox" name="student_ids[]" value="{{ $student->id }}"
-                                    @change="checkLeft"
-                                    class="checkbox-left w-5 h-5 text-indigo-600 rounded-lg border-gray-300 focus:ring-indigo-500">
-                                <div class="ml-4 flex-1">
-                                    <div class="flex items-center justify-between">
-                                        <p class="font-bold text-gray-700 group-hover:text-indigo-700">{{ $student->name
-                                            }}</p>
-                                        @if(auth()->user()->hasRole('admin'))
-                                        <span
-                                            class="text-[9px] font-black uppercase tracking-wider bg-gray-100 text-gray-500 px-2 py-1 rounded-md">{{
-                                            $student->school->name ?? 'Pusat' }}</span>
-                                        @endif
+                        <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
+                            {{-- PENGGUNAAN NULL-SAFE (?->) AGAR ERROR HILANG DAN MUNCUL 'Tanpa Kelas' JIKA PIVOT KOSONG
+                            --}}
+                            @forelse($availableStudents->groupBy(function($item) { return
+                            $item->classrooms->first()?->name ?? 'Tanpa Kelas'; }) as $className => $studentsInClass)
+
+                            <div class="border border-indigo-100 rounded-2xl overflow-hidden bg-white">
+                                <div class="bg-indigo-50/50 p-3 sm:p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-indigo-100/50 transition"
+                                    @click="toggleAccordion('{{ $className }}')">
+                                    <div class="flex items-center gap-3">
+                                        <input type="checkbox" @click.stop
+                                            @change="toggleLeftClass('{{ $className }}', $event.target.checked)"
+                                            class="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
+                                        <div>
+                                            <h4 class="font-black text-indigo-800 text-sm flex items-center gap-2">
+                                                <i class="fas fa-users-class text-indigo-400"></i> Kelas: {{ $className
+                                                }}
+                                            </h4>
+                                            <span
+                                                class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">{{
+                                                $studentsInClass->count() }} Siswa</span>
+                                        </div>
                                     </div>
-                                    <p class="text-xs text-gray-400 font-semibold mt-0.5">{{ $student->username }}</p>
+                                    <i class="fas fa-chevron-down text-indigo-300 transition-transform"
+                                        :class="openClasses.includes('{{ $className }}') ? 'rotate-180' : ''"></i>
                                 </div>
-                            </label>
+
+                                <div x-show="openClasses.includes('{{ $className }}')" x-collapse
+                                    class="p-3 bg-white space-y-2">
+                                    @foreach($studentsInClass as $student)
+                                    <label
+                                        x-show="search === '' || '{{ strtolower($student->name) }}'.includes(search.toLowerCase())"
+                                        class="student-item-left flex items-center p-3 sm:p-4 rounded-xl border border-gray-100 cursor-pointer hover:bg-indigo-50 hover:border-indigo-200 transition-all group">
+
+                                        <input type="checkbox" name="student_ids[]" value="{{ $student->id }}"
+                                            data-class="{{ $className }}" @change="checkLeft"
+                                            class="checkbox-left w-5 h-5 text-indigo-600 rounded-lg border-gray-300 focus:ring-indigo-500">
+
+                                        <div class="ml-4 flex-1 min-w-0">
+                                            <div class="flex items-center justify-between gap-2">
+                                                <p
+                                                    class="font-bold text-gray-700 text-sm group-hover:text-indigo-700 truncate">
+                                                    {{ $student->name }}</p>
+                                                @if(auth()->user()->hasRole('admin'))
+                                                <span
+                                                    class="text-[9px] font-black uppercase tracking-wider bg-gray-100 text-gray-500 px-2 py-1 rounded-md shrink-0">{{
+                                                    $student->school->name ?? 'Pusat' }}</span>
+                                                @endif
+                                            </div>
+                                            <p class="text-[10px] text-gray-400 font-semibold mt-0.5 truncate">{{
+                                                $student->username }}</p>
+                                        </div>
+                                    </label>
+                                    @endforeach
+                                </div>
+                            </div>
+
                             @empty
                             <div class="flex flex-col items-center justify-center h-full text-center">
-                                <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4"><i
-                                        class="fas fa-check-circle text-2xl text-emerald-400"></i></div>
-                                <p class="text-gray-500 font-bold">Semua siswa sudah terdaftar.</p>
+                                <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                    <i class="fas fa-check-circle text-2xl text-emerald-400"></i>
+                                </div>
+                                <p class="text-gray-500 font-bold">Semua siswa sudah terdaftar di sesi ini.</p>
                             </div>
                             @endforelse
                         </div>
@@ -158,6 +216,7 @@
                 </div>
 
 
+                {{-- PANEL KANAN: PESERTA TERDAFTAR --}}
                 <div
                     class="bg-slate-900 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden flex flex-col h-[650px] border-4 border-slate-800">
 
@@ -219,7 +278,10 @@
                                                 $student->school->name ?? 'Pusat' }}</span>
                                             @endif
                                         </div>
-                                        <p class="text-[10px] text-slate-400 font-medium">{{ $student->username }}</p>
+                                        {{-- NULL-SAFE UNTUK NAMA KELAS --}}
+                                        <p class="text-[10px] text-slate-400 font-medium">Kelas: {{
+                                            $student->classrooms->first()?->name ?? 'Tanpa Kelas' }} • {{
+                                            $student->username }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -227,7 +289,8 @@
                             <div
                                 class="flex flex-col items-center justify-center h-full text-center border-2 border-dashed border-slate-700 rounded-3xl p-6">
                                 <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4">
-                                    <i class="fas fa-user-slash text-2xl text-slate-500"></i></div>
+                                    <i class="fas fa-user-slash text-2xl text-slate-500"></i>
+                                </div>
                                 <p class="text-slate-400 font-bold">Belum ada peserta terdaftar.</p>
                             </div>
                             @endforelse

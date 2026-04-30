@@ -19,7 +19,7 @@ class SubjectSeeder extends Seeder
 
         foreach ($subjects as $name) {
             // firstOrCreate mencegah duplikasi jika seeder dijalankan 2x
-            Subject::firstOrCreate(['name' => $name]);
+            Subject::firstOrCreate(['name' => $name, 'school_id' => 1]);
         }
     }
 }

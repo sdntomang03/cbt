@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Enums\ExamStatus;
 use App\Exports\GradesExport;
 use App\Models\Exam; // Pastikan Enum sudah dibuat sebelumnya
-use App\Models\School;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -14,88 +13,69 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class ExamController extends Controller
 {
-    // Menampilkan daftar ujian milik guru yang login
     public function index(Request $request)
     {
         $user = Auth::user();
-        $schools = [];
+        $schoolId = $user->school_id;
 
-        // 1. Logika pengambilan data Ujian (Exams)
-        $query = Exam::query();
+        // Ambil semua Jenis Ujian untuk navigasi tab/sidebar
+        $examTypes = \App\Models\ExamType::where('school_id', $schoolId)->get();
 
-        if ($user->hasRole('admin')) {
-            // Jika Admin: Bisa melihat semua atau filter berdasarkan school_id
-            $schools = School::all(); // Isi variabel $schools agar tidak error di Blade
+        // AMBIL DATA LEVEL DAN SUBJECT UNTUK DROPDOWN MODAL
+        // Asumsi: Level dan Subject terikat dengan school_id.
+        // Jika tabel level bersifat global (tidak punya school_id), gunakan \App\Models\Level::all();
+        $levels = \App\Models\Level::where('school_id', $schoolId)->get();
+        $subjects = \App\Models\Subject::where('school_id', $schoolId)->get();
 
-            if ($request->filled('school_id')) {
-                $query->where('school_id', $request->school_id);
-            }
-        } else {
-            // Jika Guru/Operator: Hanya melihat ujian di sekolahnya atau miliknya sendiri
-            $query->where('school_id', $user->school_id);
-            // Jika ingin lebih spesifik hanya yang dia buat:
-            // $query->where('teacher_id', $user->id);
+        // Ambil ID tipe yang sedang aktif (default ke tipe pertama jika ada)
+        $activeTypeId = $request->get('exam_type_id', $examTypes->first()?->id);
+
+        // Query Ujian berdasarkan tipe yang dipilih
+        // Tambahkan 'level' dan 'subject' di dalam with() agar query lebih efisien
+        $query = Exam::with(['examType', 'level', 'subject'])
+            ->withCount('questions')
+            ->where('school_id', $schoolId);
+
+        if ($activeTypeId) {
+            $query->where('exam_type_id', $activeTypeId);
         }
 
         $exams = $query->latest()->paginate(10)->withQueryString();
+        $schools = $user->hasRole('admin') ? \App\Models\School::all() : [];
 
-        // 2. Kirim $exams DAN $schools ke view
-        return view('exams.index', compact('exams', 'schools'));
+        // Jangan lupa tambahkan 'levels' dan 'subjects' ke dalam compact()
+        return view('exams.index', compact('exams', 'examTypes', 'activeTypeId', 'schools', 'levels', 'subjects'));
     }
 
-    // Form Tambah Ujian
-    public function create()
-    {
-        $schools = School::all();
-
-        return view('exams.create', compact('schools'));
-    }
-
-    // Simpan Ujian Baru
     public function store(Request $request)
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'duration_minutes' => 'required|integer|min:1',
-            'status' => ['required', Rule::enum(ExamStatus::class)], // Validasi Enum
-        ]);
-
-        // Auto generate data
-        $validated['slug'] = Str::slug($request->title).'-'.Str::random(5);
-        $validated['teacher_id'] = Auth::id();
-        $validated['random_question'] = $request->has('random_question');
-        $validated['random_answer'] = $request->has('random_answer');
-        $validated['school_id'] = \Illuminate\Support\Facades\Auth::user()->school_id;
-        Exam::create($validated);
-
-        return redirect()->route('admin.exams.index')->with('success', 'Ujian berhasil dibuat!');
-    }
-
-    // Form Edit Ujian
-    public function edit(Exam $exam)
-    {
-        // Pastikan hanya pemilik yang bisa edit
-        if ($exam->teacher_id !== Auth::id()) {
-            abort(403);
-        }
-
-        return view('exams.edit', compact('exam'));
-    }
-
-    // Update Ujian
-    public function update(Request $request, Exam $exam)
-    {
-        if ($exam->teacher_id !== Auth::id()) {
-            abort(403);
-        }
-
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
+            'exam_type_id' => 'required|exists:exam_types,id', // Sesuai model
             'duration_minutes' => 'required|integer|min:1',
             'status' => ['required', Rule::enum(ExamStatus::class)],
         ]);
 
-        // Update Slug jika judul berubah
+        $validated['slug'] = Str::slug($request->title).'-'.Str::random(5);
+        $validated['teacher_id'] = Auth::id();
+        $validated['school_id'] = Auth::user()->school_id;
+        $validated['random_question'] = $request->has('random_question');
+        $validated['random_answer'] = $request->has('random_answer');
+
+        Exam::create($validated);
+
+        return redirect()->back()->with('success', 'Ujian berhasil dibuat!');
+    }
+
+    public function update(Request $request, Exam $exam)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'exam_type_id' => 'required|exists:exam_types,id', // Sesuai model
+            'duration_minutes' => 'required|integer|min:1',
+            'status' => ['required', Rule::enum(ExamStatus::class)],
+        ]);
+
         if ($request->title !== $exam->title) {
             $validated['slug'] = Str::slug($request->title).'-'.Str::random(5);
         }
@@ -105,7 +85,7 @@ class ExamController extends Controller
 
         $exam->update($validated);
 
-        return redirect()->route('admin.exams.index')->with('success', 'Ujian diperbarui!');
+        return redirect()->back()->with('success', 'Ujian diperbarui!');
     }
 
     // Hapus Ujian
@@ -136,5 +116,20 @@ class ExamController extends Controller
         $fileName = 'Nilai_Exam_'.$examId.'_'.now()->format('Y-m-d').'.xlsx';
 
         return Excel::download(new GradesExport($examId, $schoolIdFilter), $fileName);
+    }
+
+    // Method untuk menyimpan Tipe Ujian Baru
+    public function storeType(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        \App\Models\ExamType::create([
+            'name' => $request->name,
+            'school_id' => \Illuminate\Support\Facades\Auth::user()->school_id,
+        ]);
+
+        return redirect()->back()->with('success', 'Tipe Ujian baru berhasil ditambahkan!');
     }
 }

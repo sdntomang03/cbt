@@ -28,12 +28,19 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Redirect otomatis sesuai role saat login
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    $user = auth()->user();
+    if ($user->hasRole('siswa')) {
+        return redirect()->route('student.dashboard');
+    }
+
+    // Admin, Operator, atau Guru diarahkan ke halaman admin (misal index ujian)
+    return redirect()->route('admin.exams.index');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 // ==================================================================
-// GROUP PROFILE (Bawaan Breeze/Jetstream)
+// GROUP PROFILE (Semua Role Bisa Akses)
 // ==================================================================
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -42,78 +49,91 @@ Route::middleware('auth')->group(function () {
 });
 
 // ==================================================================
-// GROUP ADMIN & GURU
+// GROUP ADMIN, OPERATOR, & GURU
+// Operator dimasukkan agar bisa membantu manajemen sekolah & ujian
 // ==================================================================
-Route::middleware(['auth', 'role:admin|guru'])
+Route::middleware(['auth', 'role:admin|operator|guru'])
     ->prefix('admin')
-    ->name('admin.') // Menambahkan prefix 'admin.' pada semua name() di dalamnya
+    ->name('admin.')
     ->group(function () {
 
         // --- 1. Manajemen Sekolah ---
-        Route::get('/schools/export', [SchoolController::class, 'export'])->name('schools.export');
-        Route::delete('/schools/bulk-delete', [SchoolController::class, 'bulkDelete'])->name('schools.bulk-delete');
-        Route::resource('schools', SchoolController::class)->except(['create', 'show', 'edit']);
-        // Route untuk Detail Sekolah (Guru, Kelas, dan Siswa)
-        Route::get('schools/{school}/details', [SchoolController::class, 'showDetails'])->name('schools.details');
+        // Biasanya Guru tidak bisa menghapus/ekspor sekolah massal, sebaiknya dipisah untuk Admin saja
+        Route::middleware('role:admin|operator')->group(function () {
+            Route::get('/schools/export', [SchoolController::class, 'export'])->name('schools.export');
+            Route::delete('/schools/bulk-delete', [SchoolController::class, 'bulkDelete'])->name('schools.bulk-delete');
+            Route::resource('schools', SchoolController::class)->except(['create', 'show', 'edit']);
+            Route::get('schools/{school}/details', [SchoolController::class, 'showDetails'])->name('schools.details');
 
-        Route::resource('classrooms', ClassroomController::class)->except(['show']);
+            // Pengaturan Registrasi (Hanya Admin & Operator)
+            Route::get('settings/registration', [RegistrationSettingController::class, 'edit'])->name('settings.registration');
+            Route::put('settings/registration', [RegistrationSettingController::class, 'update'])->name('settings.registration.update');
+        });
 
-        // Route untuk atur anggota kelas (Siswa)
+        // --- 2. Manajemen Kelas ---
+        Route::resource('classrooms', ClassroomController::class)->except(['show', 'create', 'edit']); // create/edit dihapus karena pakai modal
         Route::get('classrooms/{classroom}/students', [ClassroomController::class, 'manageStudents'])->name('classrooms.students');
         Route::put('classrooms/{classroom}/students', [ClassroomController::class, 'syncStudents'])->name('classrooms.sync-students');
         Route::post('classrooms/{classroom}/students/attach', [ClassroomController::class, 'attachStudents'])->name('classrooms.attach-students');
         Route::delete('classrooms/{classroom}/students/{student}/detach', [ClassroomController::class, 'detachStudent'])->name('classrooms.detach-student');
 
-        // --- 2. Manajemen Ujian (Bank Soal) ---
+        // --- 3. Manajemen Ujian (CBT & Bank Soal) ---
         Route::get('/exams/{exam}/export', [ExamController::class, 'exportGrades'])->name('exams.export');
         Route::resource('exams', ExamController::class);
+        Route::post('/exam-types', [\App\Http\Controllers\ExamController::class, 'storeType'])->name('exam-types.store');
 
-        // --- 3. Manajemen Soal (AJAX) ---
+        // Nested resource Soal Utama
+        Route::resource('exams.soal', SoalController::class)->except(['show']);
+
+        // Import/Export Soal (Bisa diakses Admin/Operator/Guru)
+        Route::get('/soal/download-template', [SoalController::class, 'downloadTemplate'])->name('soal.template');
+        Route::post('/exams/{exam}/soal/import', [SoalController::class, 'import'])->name('exams.soal.import');
+        Route::get('/exams/{exam}/import-json', [SoalController::class, 'showImportJson'])->name('soal.import_json_view');
+        Route::post('/exams/{exam}/import-json/preview', [SoalController::class, 'previewImportJson'])->name('soal.import_json_preview');
+        Route::post('/exams/{exam}/import-json/store', [SoalController::class, 'storeImportJson'])->name('soal.import_json_store');
+
+        // --- 4. Manajemen Soal (AJAX) ---
         Route::get('/exams/{exam}/questions', [QuestionAjaxController::class, 'index'])->name('ajax.questions.index');
         Route::post('/exams/{exam}/questions', [QuestionAjaxController::class, 'store'])->name('ajax.questions.store');
         Route::put('/questions/{question}', [QuestionAjaxController::class, 'update'])->name('ajax.questions.update');
         Route::delete('/questions/{question}', [QuestionAjaxController::class, 'destroy'])->name('ajax.questions.destroy');
 
-        // --- 4. Upload Gambar (Summernote/CKEditor) ---
+        // --- 5. Upload Gambar (Summernote/CKEditor) ---
         Route::post('/upload-image', [ImageUploadController::class, 'store'])->name('image.upload');
 
-        // --- 5. Manajemen Sesi Ujian (Jadwal) ---
+        // --- 6. Manajemen Sesi Ujian (Jadwal) ---
         Route::post('exam-sessions/{exam_session}/regenerate-token', [ExamSessionController::class, 'regenerateToken'])->name('exam-sessions.regenerate-token');
         Route::get('exam-sessions/{exam_session}/students', [ExamSessionController::class, 'studentIndex'])->name('exam-sessions.students.index');
         Route::post('exam-sessions/{exam_session}/students', [ExamSessionController::class, 'studentStore'])->name('exam-sessions.students.store');
         Route::delete('exam-sessions/{examSession}/students/mass-destroy', [ExamSessionController::class, 'destroyMass'])->name('exam-sessions.students.destroyMass');
         Route::resource('exam-sessions', ExamSessionController::class);
 
-        // --- 6. Ujian Matematika (Admin) ---
+        // --- 7. Ujian Matematika (Admin/Guru) ---
         Route::get('/math-exams', [MathExamController::class, 'index'])->name('math.index');
         Route::get('/math-exams/create', [MathExamController::class, 'create'])->name('math.create');
         Route::post('/math-exams/store', [MathExamController::class, 'store'])->name('math.store');
         Route::get('/math-exams/{id}/show', [MathExamController::class, 'show'])->name('math.show');
         Route::delete('/math-exams/{id}', [MathExamController::class, 'destroy'])->name('math.destroy');
         Route::get('/math-exams/result/{examUserId}', [MathExamController::class, 'showStudentResult'])->name('math.student_result');
-        Route::post('/math/reset/{examUserId}', [MathExamController::class, 'resetStudentExam'])
-            ->name('math.resetStudent');
-        // Export Excel
+        Route::post('/math/reset/{examUserId}', [MathExamController::class, 'resetStudentExam'])->name('math.resetStudent');
         Route::get('/math-exams/{id}/export-recap', [MathExamController::class, 'exportRecap'])->name('math.recap_export');
         Route::get('/math-exams/result/{examUserId}/export', [MathExamController::class, 'exportStudentResult'])->name('math.student_result_export');
         Route::post('/math-exams/{id}/add-student', [MathExamController::class, 'addStudent'])->name('math.addStudent');
         Route::get('/math-exams/{id}/print', [MathExamController::class, 'printWorksheets'])->name('math.print');
-        // --- 7. Manajemen Users ---
+
+        // --- 8. Manajemen Users ---
         Route::delete('/users/bulk-delete', [UserController::class, 'bulkDelete'])->name('users.bulk-delete');
         Route::get('/users/export-selected', [UserController::class, 'exportSelected'])->name('users.export-selected');
         Route::post('/users/import', [UserController::class, 'importExcel'])->name('users.import');
         Route::get('/users/download-template', [UserController::class, 'downloadTemplate'])->name('users.download-template');
         Route::resource('users', UserController::class);
-
-        Route::get('settings/registration', [RegistrationSettingController::class, 'edit'])->name('settings.registration');
-        Route::put('settings/registration', [RegistrationSettingController::class, 'update'])->name('settings.registration.update');
-
     });
 
 // ==================================================================
 // GROUP PROCTOR / PENGAWAS
+// Bisa diakses oleh Admin, Operator, dan Guru
 // ==================================================================
-Route::middleware(['auth', 'role:admin|guru'])
+Route::middleware(['auth', 'role:admin|operator|guru'])
     ->prefix('proctor')
     ->name('proctor.')
     ->group(function () {
@@ -126,6 +146,7 @@ Route::middleware(['auth', 'role:admin|guru'])
 
 // ==================================================================
 // GROUP SISWA
+// Hanya bisa diakses jika role = siswa
 // ==================================================================
 Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
 
@@ -141,42 +162,21 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
     Route::post('/exam/record-violation', [StudentExamController::class, 'recordViolation'])->name('student.exam.violation');
 
     // --- 3. Ujian Matematika (Siswa) ---
-    Route::get('/math-exams', [StudentMathExamController::class, 'index'])->name('student.math.index');
+    Route::get('/math-exams/student', [StudentMathExamController::class, 'index'])->name('student.math.index'); // Hindari konflik URL dengan math-exams admin
     Route::get('/math-exam/{id}/run', [StudentMathExamController::class, 'run'])->name('student.math.run');
     Route::post('/math-exam/{id}/submit', [StudentMathExamController::class, 'submit'])->name('student.math.submit');
 
 });
 
-Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
-    // Nested resource untuk Soal
-    Route::resource('exams.soal', SoalController::class)->except(['show']);
-
-    // 1. Tampilkan form upload JSON
-    Route::get('/exams/{exam}/import-json', [SoalController::class, 'showImportJson'])->name('soal.import_json_view');
-
-    // 2. Proses upload file dan tampilkan preview (BARU)
-    Route::post('/exams/{exam}/import-json/preview', [SoalController::class, 'previewImportJson'])->name('soal.import_json_preview');
-
-    // 3. Simpan soal yang dicentang ke database (BARU)
-    Route::post('/exams/{exam}/import-json/store', [SoalController::class, 'storeImportJson'])->name('soal.import_json_store');
-    // 1. Rute Download Template
-    Route::get('/soal/download-template', [SoalController::class, 'downloadTemplate'])
-        ->name('soal.template'); // Menjadi: admin.soal.template
-
-    // 2. Rute Import Excel
-    Route::post('/exams/{exam}/soal/import', [SoalController::class, 'import'])
-        ->name('exams.soal.import'); // Menjadi: admin.exams.soal.import
-});
-
+// ==================================================================
+// GROUP KAWAN BELAJAR (Publik / Auth Opsional)
+// Asumsi ini fitur belajar tambahan
+// ==================================================================
 Route::prefix('kawan-hitung')->group(function () {
     Route::get('/', [KawanHitungController::class, 'index'])->name('hitung.index');
     Route::post('/generate', [KawanHitungController::class, 'generate'])->name('hitung.generate');
-
-    // Route untuk Mode Latihan (Banyak Soal)
     Route::get('/latihan', [KawanHitungController::class, 'latihan'])->name('hitung.latihan');
     Route::post('/submit', [KawanHitungController::class, 'submit'])->name('hitung.submit');
-
-    // Route BARU untuk Mode Belajar (1 Soal & Penjelasan)
     Route::get('/belajar', [KawanHitungController::class, 'belajar'])->name('hitung.belajar');
 });
 
@@ -185,4 +185,5 @@ Route::prefix('kawan-baca')->group(function () {
     Route::post('/generate', [KawanBacaController::class, 'generate'])->name('baca.generate');
     Route::get('/latihan', [KawanBacaController::class, 'latihan'])->name('baca.latihan');
 });
+
 require __DIR__.'/auth.php';

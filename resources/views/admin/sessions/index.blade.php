@@ -1,60 +1,108 @@
 <x-app-layout>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <x-slot name="header">
+        <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap"
+            rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+        <style>
+            [x-cloak] {
+                display: none !important;
+            }
 
-    <style>
-        [x-cloak] {
-            display: none !important;
-        }
+            body {
+                font-family: 'Nunito', sans-serif;
+                background-color: #f0f4f8;
+            }
 
-        body {
-            font-family: 'Nunito', sans-serif;
-            background-color: #f0f4f8;
-        }
+            .hover-lift {
+                transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
 
-        .hover-lift {
-            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
+            .hover-lift:hover {
+                transform: translateY(-4px);
+            }
+        </style>
 
-        .hover-lift:hover {
-            transform: translateY(-4px);
-        }
-    </style>
-
-    <div class="min-h-screen py-10" x-data="sessionManager()">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-            <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
-                <div class="flex items-center gap-5">
-                    <div
-                        class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-cyan-200 rotate-3">
-                        <i class="fas fa-calendar-alt text-white text-2xl"></i>
-                    </div>
-                    <div>
-                        <h2 class="font-black text-3xl text-slate-800 tracking-tight">Jadwal Ujian</h2>
-                        <p class="text-slate-400 font-bold text-sm">Kelola sesi, waktu, dan token akses siswa</p>
-                    </div>
+        <div class="flex flex-col md:flex-row justify-between items-center w-full gap-6 py-2 px-2" x-data>
+            <div class="flex items-center gap-5">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-cyan-200 rotate-3">
+                    <i class="fas fa-calendar-alt text-white text-2xl"></i>
                 </div>
-
-                <button @click="openModal()"
-                    class="bg-slate-900 hover:bg-black text-white px-6 py-3 rounded-full shadow-xl shadow-slate-300 transition-all active:scale-95 font-bold flex items-center gap-3">
-                    <div class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                        <i class="fas fa-plus text-xs"></i>
-                    </div>
-                    <span>Buat Sesi Baru</span>
-                </button>
+                <div>
+                    <h2 class="font-black text-3xl text-slate-800 tracking-tight">Jadwal Ujian</h2>
+                    <p class="text-slate-400 font-bold text-sm">Kelola sesi, waktu, dan token akses siswa</p>
+                </div>
             </div>
 
+            {{-- Kita dispatch custom event ke window agar bisa ditangkap oleh komponen Alpine utama di bawah --}}
+            <button @click="$dispatch('buka-modal-sesi')"
+                class="bg-slate-900 hover:bg-black text-white px-6 py-3 rounded-full shadow-xl shadow-slate-300 transition-all active:scale-95 font-bold flex items-center gap-3 shrink-0">
+                <div class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                    <i class="fas fa-plus text-xs"></i>
+                </div>
+                <span>Buat Sesi Baru</span>
+            </button>
+        </div>
+    </x-slot>
+
+    {{-- Kita tangkap event custom di scope utama ini --}}
+    <div class="min-h-screen py-10" x-data="sessionManager()" @buka-modal-sesi.window="openModal()">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+            {{-- TAMPILAN 1: DAFTAR UJIAN (Muncul jika URL tidak memiliki exam_id) --}}
+            @if(!request('exam_id') && !request('search'))
+            <div class="mb-8">
+                <h3 class="text-lg font-black text-slate-700 mb-4 px-2">Pilih Ujian untuk melihat jadwal sesinya:</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @forelse($exams as $exam)
+                    <a href="{{ request()->fullUrlWithQuery(['exam_id' => $exam->id]) }}"
+                        class="block bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 hover:border-indigo-400 hover:shadow-md transition-all hover-lift group">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-black text-lg text-slate-800 truncate">{{ $exam->title }}</h3>
+                                <p class="text-xs font-bold text-slate-400 mt-1"><i class="far fa-clock mr-1"></i> {{
+                                    $exam->duration_minutes }} Menit</p>
+                            </div>
+                        </div>
+                        <div
+                            class="flex items-center justify-between text-xs font-bold text-indigo-500 bg-indigo-50/50 px-4 py-2.5 rounded-xl">
+                            <span>Lihat Jadwal Sesi</span>
+                            <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                        </div>
+                    </a>
+                    @empty
+                    <div class="col-span-full py-12 text-center">
+                        <i class="fas fa-folder-open text-4xl text-slate-300 mb-3 block"></i>
+                        <p class="text-slate-500 font-bold">Belum ada ujian yang tersedia.</p>
+                    </div>
+                    @endforelse
+                </div>
+            </div>
+
+            {{-- TAMPILAN 2: DAFTAR SESI (Muncul setelah Ujian diklik) --}}
+            @else
             <div
-                class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 mb-8 flex justify-between items-center">
+                class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-100 mb-8 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+
+                <a href="{{ route('admin.exam-sessions.index') }}"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-50 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl font-bold text-sm transition-colors shrink-0">
+                    <i class="fas fa-arrow-left"></i> Kembali
+                </a>
+
                 <form method="GET" action="{{ route('admin.exam-sessions.index') }}"
-                    class="flex flex-wrap w-full md:max-w-3xl gap-3">
+                    class="flex flex-wrap w-full lg:w-auto lg:max-w-3xl gap-3">
+                    {{-- Pertahankan filter exam_id saat melakukan pencarian --}}
+                    <input type="hidden" name="exam_id" value="{{ request('exam_id') }}">
 
                     @if(auth()->user()->hasRole('admin'))
                     <div class="relative flex-1 min-w-[200px]">
                         <select name="school_id" onchange="this.form.submit()"
-                            class="w-full bg-slate-50 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition py-2.5 pl-4 pr-8 font-bold text-slate-600">
+                            class="w-full bg-slate-50 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition py-2.5 pl-4 pr-8 font-bold text-slate-600 text-sm">
                             <option value="">-- Semua Sekolah --</option>
                             @foreach($schools as $school)
                             <option value="{{ $school->id }}" {{ request('school_id')==$school->id ? 'selected' : '' }}>
@@ -63,24 +111,24 @@
                             @endforeach
                         </select>
                         <i
-                            class="fas fa-chevron-down absolute right-4 top-4 text-xs text-slate-400 pointer-events-none"></i>
+                            class="fas fa-chevron-down absolute right-4 top-3.5 text-xs text-slate-400 pointer-events-none"></i>
                     </div>
                     @endif
 
                     <div class="relative flex-1 min-w-[200px]">
-                        <i class="fas fa-search absolute left-4 top-3.5 text-slate-400"></i>
+                        <i class="fas fa-search absolute left-4 top-3.5 text-slate-400 text-sm"></i>
                         <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama sesi..."
-                            class="w-full pl-11 pr-4 py-2.5 bg-slate-50 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition font-bold text-slate-600">
+                            class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition font-bold text-slate-600 text-sm">
                     </div>
 
                     <button type="submit"
-                        class="bg-slate-900 text-white px-8 py-2.5 rounded-xl font-black shadow-lg shadow-slate-200 hover:bg-slate-800 transition bounce-active">
+                        class="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black shadow-md hover:bg-slate-800 transition active:scale-95 text-sm">
                         Cari
                     </button>
 
                     @if(request('search') || request('school_id'))
-                    <a href="{{ route('admin.exam-sessions.index') }}"
-                        class="bg-rose-50 text-rose-500 px-4 py-2.5 rounded-xl font-bold hover:bg-rose-500 hover:text-white transition flex items-center bounce-active"
+                    <a href="{{ route('admin.exam-sessions.index', ['exam_id' => request('exam_id')]) }}"
+                        class="bg-rose-50 text-rose-500 px-4 py-2.5 rounded-xl font-bold hover:bg-rose-500 hover:text-white transition flex items-center shadow-sm"
                         title="Reset Filter">
                         <i class="fas fa-times"></i>
                     </a>
@@ -107,7 +155,7 @@
                                     ? 'bg-blue-50 text-blue-600 border-blue-100'
                                     : 'bg-slate-50 text-slate-400 border-slate-100') }}">
                             @if(now()->between($session->start_time, $session->end_time))
-                            <i class="fas fa-circle text-[8px] mr-1 animate-pulse"></i> Sedang Berlangsung
+                            <i class="fas fa-circle text-[8px] mr-1 animate-pulse"></i> Berlangsung
                             @elseif(now()->lessThan($session->start_time))
                             <i class="fas fa-clock mr-1"></i> Akan Datang
                             @else
@@ -159,8 +207,8 @@
 
                         <h3 class="font-black text-xl text-slate-800 mb-1 leading-tight">{{ $session->session_name }}
                         </h3>
-                        <p class="text-sm font-bold text-indigo-500 mb-4">{{ $session->exam->title ?? 'Ujian Dihapus' }}
-                        </p>
+                        <p class="text-sm font-bold text-indigo-500 mb-4 line-clamp-1">{{ $session->exam->title ??
+                            'Ujian Dihapus' }}</p>
 
                         <div class="space-y-4">
                             <div class="flex items-center gap-3 text-sm font-semibold text-slate-500">
@@ -223,7 +271,7 @@
                     <div class="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-6">
                         <i class="fas fa-calendar-times text-4xl text-slate-300"></i>
                     </div>
-                    <h3 class="text-xl font-black text-slate-800">Belum Ada Jadwal</h3>
+                    <h3 class="text-xl font-black text-slate-800">Belum Ada Sesi Ujian</h3>
                     <p class="text-slate-400 font-bold max-w-md mx-auto mt-2">Buat sesi ujian baru untuk mulai
                         menjadwalkan tes bagi siswa.</p>
                 </div>
@@ -233,8 +281,10 @@
             <div class="mt-8">
                 {{ $sessions->links() }}
             </div>
+            @endif
         </div>
 
+        {{-- MODAL CRUD SESI --}}
         <div x-show="isModalOpen" x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
             class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" x-cloak>
@@ -299,20 +349,33 @@
                 </form>
             </div>
         </div>
-    </div>
 
+    </div> {{-- End Main Container for Alpine --}}
+
+    @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
-        function sessionManager() {
-            return {
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('sessionManager', () => ({
                 isModalOpen: false,
                 isEdit: false,
                 isLoading: false,
                 currentId: null,
                 form: { exam_id: '', session_name: '', start_time: '', end_time: '' },
 
+                init() {
+                    let token = document.head.querySelector('meta[name="csrf-token"]');
+                    if (token && window.axios) {
+                        axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
+                    }
+                },
+
                 openModal() {
                     this.isEdit = false;
-                    this.form = { exam_id: '', session_name: '', start_time: '', end_time: '' };
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const currentExamId = urlParams.get('exam_id');
+
+                    this.form = { exam_id: currentExamId || '', session_name: '', start_time: '', end_time: '' };
                     this.isModalOpen = true;
                 },
 
@@ -393,7 +456,8 @@
                         }
                     });
                 }
-            }
-        }
+            }));
+        });
     </script>
+    @endpush
 </x-app-layout>

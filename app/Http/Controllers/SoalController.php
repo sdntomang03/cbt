@@ -40,8 +40,6 @@ class SoalController extends Controller
             'type' => 'required|in:single_choice,complex_choice,essay,true_false,matching',
             'content' => 'required',
             'options' => 'array',
-            'subject_id' => 'nullable|exists:subjects,id',
-            'level_id' => 'nullable|exists:levels,id',
         ]);
 
         try {

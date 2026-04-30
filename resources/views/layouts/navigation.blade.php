@@ -32,40 +32,57 @@
         <span>Dashboard</span>
     </a>
 
-    <!-- Menu Administrasi -->
-    @hasanyrole('admin|guru')
-    <div class="text-xs font-black text-slate-400 uppercase tracking-widest mt-8 mb-3 px-4">Administrasi</div>
+    <!-- Menu Administrasi Inti (Hanya Admin & Operator) -->
+    @hasanyrole('admin|operator')
+    <div class="text-xs font-black text-slate-400 uppercase tracking-widest mt-8 mb-3 px-4">Administrasi Sekolah</div>
+
     <a href="{{ route('admin.schools.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('admin.schools.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-school w-6 text-center text-lg"></i>
         <span>Data Sekolah</span>
     </a>
+
     <a href="{{ route('admin.users.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('admin.users.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-users w-6 text-center text-lg"></i>
         <span>Data Users</span>
     </a>
+
+    {{-- Pengaturan Registrasi --}}
+    <a href="{{ route('admin.settings.registration') }}"
+        class="{{ $navClass }} {{ request()->routeIs('admin.settings.*') ? $activeClass : $inactiveClass }}">
+        <i class="fas fa-cogs w-6 text-center text-lg"></i>
+        <span>Pengaturan Sistem</span>
+    </a>
+    @endhasanyrole
+
+    <!-- Menu Akademik & Ujian (Admin, Operator, & Guru) -->
+    @hasanyrole('admin|operator|guru')
+    <div class="text-xs font-black text-slate-400 uppercase tracking-widest mt-8 mb-3 px-4">Manajemen Ujian</div>
+
     <a href="{{ route('admin.classrooms.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('admin.classrooms.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-chalkboard w-6 text-center text-lg"></i>
-        <span>Data Kelas</span>
+        <span>Manajemen Kelas</span>
     </a>
+
     <a href="{{ route('admin.exams.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('admin.exams.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-folder-open w-6 text-center text-lg"></i>
-        <span>Ujian</span>
+        <span>ujian</span>
     </a>
+
     <a href="{{ route('admin.exam-sessions.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('admin.exam-sessions.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-calendar-alt w-6 text-center text-lg"></i>
         <span>Jadwal Ujian</span>
     </a>
+
     <a href="{{ route('proctor.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('proctor.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-desktop w-6 text-center text-lg"></i>
         <span>Monitoring Ujian</span>
     </a>
-
 
     <a href="{{ route('admin.math.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('admin.math.*') ? $activeClass : $inactiveClass }}">
@@ -83,13 +100,14 @@
         <i class="fas fa-door-open w-6 text-center text-lg"></i>
         <span>Ruang Ujian</span>
     </a>
+
     <a href="{{ route('student.math.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('student.math.index') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-superscript w-6 text-center text-lg"></i>
         <span>Latihan Hitung</span>
     </a>
 
-    <!-- Modul Kawan Interaktif -->
+    <!-- Modul Kawan Interaktif (Untuk Siswa) -->
     <div class="text-xs font-black text-slate-400 uppercase tracking-widest mt-8 mb-3 px-4">Modul Interaktif</div>
 
     <a href="{{ route('hitung.index') }}"
@@ -97,6 +115,7 @@
         <span class="w-6 text-center text-xl">🧮</span>
         <span>Kawan Hitung</span>
     </a>
+
     <a href="{{ route('baca.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('baca.*') ? $activeClass : $inactiveClass }}">
         <span class="w-6 text-center text-xl">📖</span>

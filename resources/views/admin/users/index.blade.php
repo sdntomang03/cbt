@@ -1,42 +1,37 @@
 <x-app-layout>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <style>
-        [x-cloak] {
-            display: none !important;
-        }
-    </style>
-
     <x-slot name="header">
-        <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div class="flex items-center gap-4">
                 <div
-                    class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg text-white">
+                    class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg text-white shrink-0">
                     <i class="fas fa-users text-xl"></i>
                 </div>
-                <div>
-                    <h2 class="font-black text-2xl text-slate-800 tracking-tight">Manajemen User</h2>
-                    <p class="text-sm text-slate-500 font-bold">Kelola data siswa, guru, dan admin</p>
+                <div class="min-w-0">
+                    <h2 class="font-black text-xl sm:text-2xl text-slate-800 tracking-tight truncate">Manajemen User
+                    </h2>
+                    <p class="text-xs sm:text-sm text-slate-500 font-bold truncate">Kelola data siswa, guru, operator,
+                        dan admin</p>
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-3">
+            {{-- Action Buttons --}}
+            <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto mt-2 lg:mt-0">
                 <button x-data @click="$dispatch('buka-modal-import')"
-                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 active:scale-95 shadow-sm">
+                    class="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-all hover:bg-slate-50 hover:border-slate-300 active:scale-95 shadow-sm">
                     <i class="fas fa-file-excel text-emerald-500"></i>
                     <span>Import Excel</span>
                 </button>
 
                 <a href="{{ route('admin.users.download-template') }}"
-                    class="inline-flex items-center gap-2 px-4 py-2.5 text-slate-500 hover:text-emerald-600 rounded-xl font-medium text-sm transition-colors duration-200">
+                    class="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 text-slate-500 hover:text-emerald-600 rounded-xl font-medium text-sm transition-colors">
                     <i class="fas fa-download"></i>
-                    <span>Download Format</span>
+                    <span>Format</span>
                 </a>
 
-                <div class="hidden md:block h-6 w-px bg-slate-200 mx-1"></div>
+                <div class="hidden sm:block h-6 w-px bg-slate-200 mx-1"></div>
 
                 <a href="{{ route('admin.users.create') }}"
-                    class="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm transition-all duration-200 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200 active:transform active:scale-95 shadow-md">
+                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm transition-all hover:bg-indigo-700 hover:shadow-lg active:scale-95 shadow-md">
                     <i class="fas fa-plus"></i>
                     <span>Tambah User</span>
                 </a>
@@ -44,21 +39,20 @@
         </div>
     </x-slot>
 
-    <div class="py-8 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6" x-data="userManager()">
+    {{-- Hapus w-full dan max-w-full, biarkan mx-auto dan padding mengatur ruang natural --}}
+    <div class="py-8 mx-auto px-4 sm:px-6 lg:px-8 space-y-6" x-data="userManager()">
 
         {{-- Alert Success --}}
         @if(session('success'))
         <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
             x-transition:leave="transition ease-in duration-300"
-            x-transition:leave-start="opacity-100 transform translate-x-0"
-            x-transition:leave-end="opacity-0 transform translate-x-8"
             class="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-xl shadow-sm flex items-center justify-between mb-4">
             <div class="flex items-center gap-3">
-                <i class="fas fa-check-circle text-emerald-500 text-xl"></i>
-                <p class="text-emerald-700 font-bold">{{ session('success') }}</p>
+                <i class="fas fa-check-circle text-emerald-500 text-xl shrink-0"></i>
+                <p class="text-emerald-700 font-bold text-sm sm:text-base">{{ session('success') }}</p>
             </div>
             <button @click="show = false"
-                class="text-emerald-400 hover:text-emerald-700 transition w-8 h-8 rounded-full flex items-center justify-center hover:bg-emerald-100">
+                class="text-emerald-400 hover:text-emerald-700 transition w-8 h-8 rounded-full flex items-center justify-center hover:bg-emerald-100 shrink-0">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -68,83 +62,90 @@
         @if(session('error'))
         <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 7000)"
             x-transition:leave="transition ease-in duration-300"
-            x-transition:leave-start="opacity-100 transform translate-x-0"
-            x-transition:leave-end="opacity-0 transform translate-x-8"
             class="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl shadow-sm flex items-center justify-between mb-4">
             <div class="flex items-center gap-3">
-                <i class="fas fa-exclamation-circle text-rose-500 text-xl"></i>
-                <p class="text-rose-700 font-bold">{{ session('error') }}</p>
+                <i class="fas fa-exclamation-circle text-rose-500 text-xl shrink-0"></i>
+                <p class="text-rose-700 font-bold text-sm sm:text-base">{{ session('error') }}</p>
             </div>
             <button @click="show = false"
-                class="text-rose-400 hover:text-rose-700 transition w-8 h-8 rounded-full flex items-center justify-center hover:bg-rose-100">
+                class="text-rose-400 hover:text-rose-700 transition w-8 h-8 rounded-full flex items-center justify-center hover:bg-rose-100 shrink-0">
                 <i class="fas fa-times"></i>
             </button>
         </div>
         @endif
 
+        {{-- Toolbar: Bulk Action & Search Form --}}
         <div
-            class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
+            class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
 
-            <div class="flex items-center gap-2 w-full md:w-auto">
+            {{-- Tombol Aksi Massal --}}
+            <div class="flex items-center gap-2 w-full xl:w-auto shrink-0">
                 <button x-show="selected.length > 0" x-cloak @click="deleteSelected()"
-                    class="bg-rose-500 hover:bg-rose-600 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-sm flex items-center gap-2 whitespace-nowrap active:scale-95">
+                    class="bg-rose-500 hover:bg-rose-600 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-sm flex items-center justify-center gap-2 active:scale-95 flex-1 xl:flex-none">
                     <i class="fas fa-trash-alt"></i> Hapus (<span x-text="selected.length"></span>)
                 </button>
 
                 <button x-show="selected.length > 0" x-cloak @click="downloadSelected()"
-                    class="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-sm flex items-center gap-2 whitespace-nowrap active:scale-95">
+                    class="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-sm flex items-center justify-center gap-2 active:scale-95 flex-1 xl:flex-none">
                     <i class="fas fa-file-export"></i> Download (<span x-text="selected.length"></span>)
                 </button>
             </div>
 
+            {{-- Form Pencarian & Filter --}}
             <form method="GET" action="{{ route('admin.users.index') }}"
-                class="flex flex-wrap w-full md:max-w-3xl gap-3 justify-end">
+                class="flex flex-col sm:flex-row w-full xl:w-auto gap-3 justify-end items-stretch sm:items-center">
+
                 @if(auth()->user()->hasRole('admin'))
-                <div class="relative flex-1 min-w-[200px] md:max-w-[250px]">
+                <div class="relative w-full sm:w-48 shrink-0">
                     <select name="school_id" onchange="this.form.submit()"
-                        class="w-full bg-slate-50 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition py-2.5 pl-4 pr-10 font-bold text-slate-600 appearance-none">
-                        <option value="">-- Semua Sekolah --</option>
+                        class="w-full bg-slate-50 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition py-2.5 pl-4 pr-10 font-bold text-slate-600 appearance-none text-sm truncate">
+                        <option value="">Semua Sekolah</option>
                         @foreach($schools as $school)
                         <option value="{{ $school->id }}" {{ request('school_id')==$school->id ? 'selected' : '' }}>{{
                             $school->name }}</option>
                         @endforeach
                     </select>
                     <i
-                        class="fas fa-chevron-down absolute right-4 top-4 text-xs text-slate-400 pointer-events-none"></i>
+                        class="fas fa-chevron-down absolute right-4 top-3.5 text-xs text-slate-400 pointer-events-none"></i>
                 </div>
                 @endif
 
-                <div class="relative flex-[2] min-w-[250px] md:max-w-[300px]">
-                    <i class="fas fa-search absolute left-4 top-3.5 text-slate-400"></i>
+                <div class="relative w-full sm:w-64 xl:w-80 shrink-0">
+                    <i class="fas fa-search absolute left-4 top-3.5 text-slate-400 text-sm"></i>
                     <input type="text" name="search" value="{{ request('search') }}"
-                        placeholder="Cari nama atau username..."
-                        class="w-full pl-11 pr-4 py-2.5 bg-slate-50 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition font-bold text-slate-600">
+                        placeholder="Cari nama / username..."
+                        class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition font-bold text-slate-600 text-sm">
                 </div>
 
-                <button type="submit"
-                    class="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-slate-800 transition shadow-lg shadow-slate-200">Cari</button>
+                <div class="flex gap-2 w-full sm:w-auto shrink-0">
+                    <button type="submit"
+                        class="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-slate-800 transition shadow-md flex-1 sm:flex-none text-sm">Cari</button>
 
-                @if(request('search') || request('school_id'))
-                <a href="{{ route('admin.users.index') }}"
-                    class="bg-rose-50 text-rose-500 px-4 py-2.5 rounded-xl font-bold hover:bg-rose-500 hover:text-white transition flex items-center shadow-sm"
-                    title="Bersihkan Filter">
-                    <i class="fas fa-times"></i>
-                </a>
-                @endif
+                    @if(request('search') || request('school_id'))
+                    <a href="{{ route('admin.users.index') }}"
+                        class="bg-rose-50 text-rose-500 px-4 py-2.5 rounded-xl font-bold hover:bg-rose-500 hover:text-white transition flex items-center justify-center shadow-sm"
+                        title="Bersihkan Filter">
+                        <i class="fas fa-times"></i>
+                    </a>
+                    @endif
+                </div>
             </form>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <div class="overflow-x-auto">
+        {{-- Tabel Data --}}
+        {{-- Pembungkus overflow-hidden yang mencegah tabel melebar keluar batas putih --}}
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden min-w-0">
+            <div class="overflow-x-auto custom-scrollbar">
                 <table class="w-full text-left text-sm whitespace-nowrap">
-                    <thead class="bg-slate-50/50 text-slate-500 text-xs uppercase font-black tracking-wider">
+                    <thead
+                        class="bg-slate-50/50 text-slate-500 text-xs uppercase font-black tracking-wider border-b border-slate-100">
                         <tr>
                             <th class="px-6 py-4 w-12 text-center">
                                 <input type="checkbox" x-model="selectAll"
                                     class="rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 cursor-pointer">
                             </th>
                             <th class="px-6 py-4">Nama & Email</th>
-                            <th class="px-6 py-4">Username / NISN</th>
+                            <th class="px-6 py-4">Username</th>
                             <th class="px-6 py-4">Nama Sekolah</th>
                             <th class="px-6 py-4 text-center">Peran</th>
                             <th class="px-6 py-4 text-right">Aksi</th>
@@ -167,17 +168,21 @@
                             <td class="px-6 py-4">
                                 <div class="text-xs text-slate-500">{{ $user->school->name ?? '-' }}</div>
                             </td>
-                       <td class="px-6 py-4 text-center">
-    @if($user->hasRole('admin')) 
-        <span class="bg-rose-100 text-rose-600 px-3 py-1 rounded-full text-xs font-black uppercase">Admin</span>
-    @elseif($user->hasRole('operator')) 
-        <span class="bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-xs font-black uppercase">Operator</span>
-    @elseif($user->hasRole('guru')) 
-        <span class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-black uppercase">Guru</span>
-    @else 
-        <span class="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-xs font-black uppercase">Siswa</span>
-    @endif
-</td>
+                            <td class="px-6 py-4 text-center">
+                                @if($user->hasRole('admin'))
+                                <span
+                                    class="bg-rose-100 text-rose-600 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-block">Admin</span>
+                                @elseif($user->hasRole('operator'))
+                                <span
+                                    class="bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-block">Operator</span>
+                                @elseif($user->hasRole('guru'))
+                                <span
+                                    class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-block">Guru</span>
+                                @else
+                                <span
+                                    class="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-block">Siswa</span>
+                                @endif
+                            </td>
                             <td class="px-6 py-4 text-right space-x-2">
                                 <a href="{{ route('admin.users.edit', $user->id) }}"
                                     class="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition">
@@ -210,15 +215,17 @@
             </div>
             @endif
         </div>
-    </div> {{-- ================= MODAL IMPORT (DIPISAHKAN DARI WRAPPER) ================= --}}
+    </div>
+
+    {{-- MODAL IMPORT --}}
     <div x-data="{ isModalOpen: false }" @buka-modal-import.window="isModalOpen = true" x-show="isModalOpen"
-        style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
 
         <div x-show="isModalOpen" x-transition.opacity class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
             @click="isModalOpen = false"></div>
 
         <div x-show="isModalOpen" x-transition.scale.origin.bottom
-            class="bg-white rounded-[2rem] shadow-2xl max-w-md w-full relative z-10 overflow-hidden border-4 border-white">
+            class="bg-white rounded-[2rem] shadow-2xl max-w-md w-full relative z-[110] overflow-hidden border border-slate-100">
             <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
                 <h3 class="font-black text-slate-800"><i class="fas fa-file-excel text-emerald-500 mr-2"></i> Import
                     Data Excel</h3>
@@ -238,10 +245,10 @@
                 </div>
                 <div
                     class="bg-amber-50 text-amber-700 p-4 rounded-xl text-xs font-bold leading-relaxed border border-amber-100">
-                    <i class="fas fa-info-circle mr-1"></i> Pastikan baris pertama Excel berisi tulisan persis seperti
-                    ini (huruf kecil):
+                    <i class="fas fa-info-circle mr-1"></i> Pastikan baris pertama Excel berisi header kolom berikut
+                    (huruf kecil):
                     <span
-                        class="font-mono bg-white px-2 py-0.5 rounded text-amber-600 block mt-2 border border-amber-200">nama
+                        class="font-mono bg-white px-2 py-0.5 rounded text-amber-600 block mt-2 border border-amber-200 truncate overflow-hidden">nama
                         | username | email | password | role</span>
                 </div>
                 <button type="submit"
@@ -251,13 +258,16 @@
             </form>
         </div>
     </div>
-    {{-- ================= END MODAL ================= --}}
 
+    @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
-        let token = document.head.querySelector('meta[name="csrf-token"]');
-        if (token && window.axios) {
-            axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
-        }
+        document.addEventListener('alpine:init', () => {
+            let token = document.head.querySelector('meta[name="csrf-token"]');
+            if (token && window.axios) {
+                axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
+            }
+        });
 
         function userManager() {
             return {
@@ -281,9 +291,9 @@
                         title: 'Hapus ' + this.selected.length + ' User?',
                         text: "Data yang dipilih akan dihapus secara permanen!",
                         icon: 'warning',
-                        background: '#1e293b', color: '#fff',
+                        background: '#ffffff', color: '#1e293b',
                         showCancelButton: true,
-                        confirmButtonColor: '#f43f5e', cancelButtonColor: '#475569',
+                        confirmButtonColor: '#f43f5e', cancelButtonColor: '#94a3b8',
                         confirmButtonText: 'Ya, Hapus Semua', cancelButtonText: 'Batal'
                     }).then((result) => {
                         if (result.isConfirmed) {
@@ -310,4 +320,5 @@
             }
         }
     </script>
+    @endpush
 </x-app-layout>

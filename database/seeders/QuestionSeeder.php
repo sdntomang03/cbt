@@ -38,6 +38,8 @@ class QuestionSeeder extends Seeder
             'duration_minutes' => 60,
             'random_question' => true,
             'random_answer' => true,
+            'level_id' => 1,
+            'subject_id' => 1,
             'status' => 'published',
         ]);
 

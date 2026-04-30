@@ -20,11 +20,23 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
+        $user = auth()->user();
         $query = User::with(['school', 'roles']);
 
-        // Filter Dropdown: HANYA berlaku untuk Super Admin yang ingin melihat sekolah tertentu
-        if (auth()->user()->hasRole('admin') && $request->filled('school_id')) {
-            $query->where('school_id', $request->school_id);
+        // 1. Cek role di sini menggunakan 'admin'
+        if ($user->hasRole('admin')) {
+            // Jika Super Admin: Bebas melihat semua, atau filter berdasarkan dropdown
+            if ($request->filled('school_id')) {
+                $query->where('school_id', $request->school_id);
+            }
+        } else {
+            // Jika BUKAN Super Admin (misal: Operator):
+            // Paksa HANYA tampilkan user dari sekolahnya sendiri
+            $query->where('school_id', $user->school_id)
+                  // PENGAMAN EKSTRA: Sembunyikan akun yang memiliki role 'admin' dari daftar
+                ->whereDoesntHave('roles', function ($q) {
+                    $q->where('name', 'admin');
+                });
         }
 
         // Fitur Pencarian Teks
@@ -38,8 +50,8 @@ class UserController extends Controller
 
         $users = $query->latest()->paginate(20)->withQueryString();
 
-        // Kirim data daftar sekolah ke layar (Hanya dikirim jika super_admin)
-        $schools = auth()->user()->hasRole('admin') ? School::orderBy('name')->get() : [];
+        // 2. Gunakan 'admin' juga agar sama dengan pengecekan di atas
+        $schools = $user->hasRole('admin') ? \App\Models\School::orderBy('name')->get() : [];
 
         return view('admin.users.index', compact('users', 'schools'));
     }

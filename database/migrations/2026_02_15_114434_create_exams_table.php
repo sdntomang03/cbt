@@ -25,8 +25,12 @@ return new class extends Migration
             $table->foreignId('school_id')->constrained()->cascadeOnDelete();
             $table->foreignId('teacher_id')->constrained('users')->cascadeOnDelete();
 
-            // Tambahkan kolom foreign key ke exam_types di sini
+            // Tambahkan kolom foreign key ke exam_types
             $table->foreignId('exam_type_id')->nullable()->constrained('exam_types')->nullOnDelete();
+
+            // Tambahan Level dan Mata Pelajaran (Subject)
+            $table->foreignId('level_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('subject_id')->constrained()->cascadeOnDelete();
 
             $table->string('title');
             $table->string('slug')->unique();

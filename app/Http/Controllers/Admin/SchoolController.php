@@ -15,7 +15,19 @@ class SchoolController extends Controller
 {
     public function index(Request $request)
     {
-        $schools = School::orderBy('name', 'asc')->get();
+        $user = auth()->user();
+
+        // Mulai Query
+        $query = School::orderBy('name', 'asc');
+
+        // Pengecekan Role
+        if (! $user->hasRole('admin')) {
+            // Jika BUKAN admin (misal: Operator), hanya tampilkan sekolahnya sendiri
+            $query->where('id', $user->school_id);
+        }
+
+        // Eksekusi Query
+        $schools = $query->get();
 
         // Jika request datang dari proses AJAX (saat Alpine.js me-refresh tabel)
         if ($request->ajax() || $request->wantsJson()) {

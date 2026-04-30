@@ -51,4 +51,10 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->belongsTo(School::class);
     }
+
+    public function classrooms()
+    {
+        // Parameter: (Model Tujuan, Nama Tabel Pivot, Foreign Key di Pivot untuk Model Ini, Foreign Key di Pivot untuk Model Tujuan)
+        return $this->belongsToMany(Classroom::class, 'classroom_student', 'student_id', 'classroom_id');
+    }
 }
