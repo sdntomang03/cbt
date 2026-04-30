@@ -69,14 +69,20 @@
                 <div class="w-px h-8 bg-slate-200 hidden sm:block"></div>
 
                 {{-- ========================================== --}}
-                {{-- 2. FORM IMPORT EXCEL (TERSEMBUNYI) --}}
+                {{-- 2. FORM IMPORT EXCEL & JSON (TERSEMBUNYI) --}}
                 {{-- ========================================== --}}
+
+                {{-- Form Excel --}}
                 <form action="{{ route('admin.exams.soal.import', $exam->id) }}" method="POST"
                     enctype="multipart/form-data" id="formImportExcel" class="hidden">
                     @csrf
                     <input type="file" name="file_excel" id="fileExcel" accept=".xlsx, .xls, .csv"
                         onchange="document.getElementById('formImportExcel').submit()">
                 </form>
+
+
+
+
 
                 {{-- 3. TOMBOL DOWNLOAD TEMPLATE --}}
                 <a href="{{ route('admin.soal.template') }}" target="_blank"
@@ -86,15 +92,24 @@
                     <span class="hidden lg:inline">Template</span>
                 </a>
 
-                {{-- 4. TOMBOL IMPORT --}}
+                {{-- 4. TOMBOL IMPORT EXCEL --}}
                 <button type="button" onclick="document.getElementById('fileExcel').click()"
                     class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-100 px-4 md:px-5 py-3.5 rounded-full font-bold transition-all flex items-center gap-2 text-sm shadow-sm bounce-active"
                     title="Import dari Excel">
                     <i class="fas fa-file-excel text-emerald-500"></i>
-                    <span class="hidden lg:inline">Import</span>
+                    <span class="hidden lg:inline">Excel</span>
                 </button>
 
-                {{-- 5. TOMBOL MANUAL (Bawaan Anda) --}}
+                {{-- 5. TOMBOL IMPORT JSON (BARU) --}}
+
+                <a href="{{ route('admin.soal.import_json_view', $exam->id) }}"
+                    class="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-100 px-4 md:px-5 py-3.5 rounded-full font-bold transition-all flex items-center gap-2 text-sm shadow-sm bounce-active">
+                    <i class="fas fa-file-code text-amber-500"></i>
+                    <span class="hidden sm:inline">Import Json</span>
+                </a>
+
+
+                {{-- 6. TOMBOL MANUAL (Bawaan Anda) --}}
                 <a href="{{ route('admin.exams.soal.create', $exam->id) }}"
                     class="bg-slate-900 hover:bg-black text-white px-6 md:px-8 py-3.5 rounded-full shadow-xl shadow-slate-300 transition-all bounce-active font-bold flex items-center gap-2 md:gap-3 ml-1 text-sm md:text-base">
                     <i class="fas fa-plus-circle text-indigo-400"></i>
