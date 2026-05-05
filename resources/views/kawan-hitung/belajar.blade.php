@@ -102,25 +102,23 @@
             <div id="feedback-box" class="mt-6 p-4 rounded-xl font-bold text-lg hidden"></div>
         </div>
 
-        <!-- Ruang Penjelasan / Langkah Pengerjaan (Muncul setelah dicek) -->
+        <!-- Ruang Penjelasan / Langkah Pengerjaan -->
         <div id="ruang-petunjuk" class="w-full mt-8 fade-in hidden">
             <div class="flex items-center justify-center gap-3 mb-6">
                 <span class="bg-amber-400 text-white p-2 rounded-xl text-xl shadow-lg shadow-amber-200">💡</span>
                 <h3 class="text-2xl font-black text-slate-700">Langkah Pengerjaan</h3>
             </div>
 
-            <!-- Kontainer Penjelasan (Diisi oleh JavaScript) -->
             <div id="kontainer-langkah" class="w-full"></div>
 
-            <!-- Form Lanjut ke Soal Berikutnya -->
+            <!-- Form Lanjut -->
             <form action="{{ route('hitung.generate') }}" method="POST" class="mt-10 text-center">
                 @csrf
-                <!-- Mengirim ulang konfigurasi agar soal berikutnya sesuai dengan setting awal -->
                 <input type="hidden" name="mode" value="belajar">
                 <input type="hidden" name="operasi" value="{{ $config['operasi'] ?? $s['op'] }}">
                 <input type="hidden" name="digit1" value="{{ strlen((string)$s['n1']) }}">
                 <input type="hidden" name="digit2" value="{{ strlen((string)$s['n2']) }}">
-                <input type="hidden" name="jumlah_soal" value="1"> <!-- Paksa 1 soal -->
+                <input type="hidden" name="jumlah_soal" value="1">
 
                 <button type="submit"
                     class="bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-500 hover:to-teal-600 text-white font-black text-xl py-4 px-10 rounded-[2rem] transition-all duration-300 shadow-xl shadow-emerald-200 hover:-translate-y-1 flex items-center justify-center gap-3 mx-auto">
@@ -181,17 +179,12 @@
             }, 100);
         }
 
-        // ==========================================
-        // ALGORITMA CERITA VISUAL (SIMBOL & GAMBAR)
-        // ==========================================
-
-        // Fungsi menggambar objek, dilengkapi parameter 'isSmall' agar layar tidak penuh jika angkanya belasan/puluhan
         function renderObjek(jumlah, ikon, coret = false, isSmall = false) {
             let html = '';
             let sizeClass = isSmall ? 'text-xl m-0.5' : 'text-3xl m-1';
             let bgCoret = isSmall ? 'h-0.5' : 'h-1.5';
 
-            for(let i = 0; i < Math.min(jumlah, 100); i++) { // Max 100 agar aman
+            for(let i = 0; i < Math.min(jumlah, 100); i++) {
                 if(coret) {
                     html += `<span class="relative inline-block ${sizeClass} opacity-40 grayscale transition-transform hover:scale-110">${ikon}<div class="absolute inset-0 flex items-center justify-center"><div class="w-full ${bgCoret} bg-rose-500 rotate-45 rounded-full shadow-sm"></div></div></span>`;
                 } else {
@@ -202,19 +195,12 @@
         }
 
         function getVisualPenyelesaian(n1, n2, op) {
-            // 1. Kumpulan Buah-buahan
             const daftarBuah = [
-                { ikon: '🍎', nama: 'apel' },
-                { ikon: '🍊', nama: 'jeruk' },
-                { ikon: '🍓', nama: 'stroberi' },
-                { ikon: '🍇', nama: 'anggur' },
-                { ikon: '🍉', nama: 'semangka' },
-                { ikon: '🍌', nama: 'pisang' },
-                { ikon: '🍒', nama: 'ceri' },
-                { ikon: '🍍', nama: 'nanas' }
+                { ikon: '🍎', nama: 'apel' }, { ikon: '🍊', nama: 'jeruk' }, { ikon: '🍓', nama: 'stroberi' },
+                { ikon: '🍇', nama: 'anggur' }, { ikon: '🍉', nama: 'semangka' }, { ikon: '🍌', nama: 'pisang' },
+                { ikon: '🍒', nama: 'ceri' }, { ikon: '🍍', nama: 'nanas' }
             ];
 
-            // 2. Pilih buah secara acak
             const buahAcak = daftarBuah[Math.floor(Math.random() * daftarBuah.length)];
             const ikon = buahAcak.ikon;
             const nama = buahAcak.nama;
@@ -230,7 +216,7 @@
                 html += `<div class="text-4xl font-black text-slate-300">=</div>`;
                 html += `<div class="bg-yellow-50 border-2 border-yellow-200 p-4 rounded-xl">${renderObjek(kunci, ikon)}</div>`;
                 html += `</div>`;
-                html += `<p class="text-slate-600 text-lg font-medium leading-relaxed">Kamu memiliki <strong>${n1}</strong> ${nama}, kemudian ditambah lagi <strong>${n2}</strong> ${nama}. Jika digabungkan dan dihitung semuanya, jumlah ${nama} milikmu sekarang adalah <strong class="text-emerald-500 text-2xl">${kunci}</strong>.</p>`;
+                html += `<p class="text-slate-600 text-lg font-medium leading-relaxed">Kamu memiliki <strong>${n1}</strong> ${nama}, kemudian ditambah lagi <strong>${n2}</strong> ${nama}. Jika digabungkan, jumlah ${nama} milikmu sekarang adalah <strong class="text-emerald-500 text-2xl">${kunci}</strong>.</p>`;
             }
             else if (op === '-') {
                 let sisa = n1 - n2;
@@ -238,7 +224,7 @@
                 html += renderObjek(sisa, ikon);
                 html += renderObjek(n2, ikon, true);
                 html += `</div>`;
-                html += `<p class="text-slate-600 text-lg font-medium leading-relaxed">Awalnya ada <strong>${n1}</strong> ${nama}. Lalu, sebanyak <strong>${n2}</strong> ${nama} dicoret (dimakan). Coba hitung ${nama} yang masih utuh! Sisa ${nama} milikmu sekarang adalah <strong class="text-emerald-500 text-2xl">${kunci}</strong>.</p>`;
+                html += `<p class="text-slate-600 text-lg font-medium leading-relaxed">Awalnya ada <strong>${n1}</strong> ${nama}. Lalu, sebanyak <strong>${n2}</strong> ${nama} dicoret (dimakan). Sisa ${nama} milikmu sekarang adalah <strong class="text-emerald-500 text-2xl">${kunci}</strong>.</p>`;
             }
             else if (op === '*') {
                 html += `<div class="flex flex-col items-center justify-center gap-4 mb-6 bg-slate-50 p-6 rounded-2xl border-2 border-slate-100">`;
@@ -246,7 +232,7 @@
                     html += `<div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex items-center gap-3"><span class="bg-blue-100 text-blue-600 font-bold px-3 py-1 rounded-full text-sm whitespace-nowrap">Kotak ${i+1}</span> <div class="text-left">${renderObjek(n2, ikon)}</div></div>`;
                 }
                 html += `</div>`;
-                html += `<p class="text-slate-600 text-lg font-medium leading-relaxed">Perkalian adalah penjumlahan yang diulang-ulang. Bayangkan ada <strong>${n1} kotak</strong>, dan di dalam setiap kotak terdapat <strong>${n2} ${nama}</strong>. Jika kita hitung semua ${nama} di dalam kotak tersebut, totalnya adalah <strong class="text-emerald-500 text-2xl">${kunci}</strong> ${nama}.</p>`;
+                html += `<p class="text-slate-600 text-lg font-medium leading-relaxed">Bayangkan ada <strong>${n1} kotak</strong>, dan di dalam setiap kotak terdapat <strong>${n2} ${nama}</strong>. Jika dihitung semua, totalnya adalah <strong class="text-emerald-500 text-2xl">${kunci}</strong> ${nama}.</p>`;
             }
             else if (op === '/') {
                 let isSmallIcon = kunci >= 10;
@@ -260,8 +246,7 @@
                              </div>`;
                 }
                 html += `</div>`;
-                html += `<p class="text-slate-600 text-lg font-medium leading-relaxed">Konsep pembagian adalah berbagi sama rata. Bayangkan kamu memiliki <strong>${n1}</strong> ${nama} yang dibagikan kepada <strong>${n2}</strong> teman secara bergantian.</p>`;
-                html += `<p class="text-slate-600 text-lg font-medium leading-relaxed mt-2">Setelah dibagikan satu per satu sampai habis, ternyata masing-masing teman mendapatkan bagian <strong class="text-emerald-500 text-2xl">${kunci}</strong> ${nama}!</p>`;
+                html += `<p class="text-slate-600 text-lg font-medium leading-relaxed">Bayangkan kamu memiliki <strong>${n1}</strong> ${nama} yang dibagikan kepada <strong>${n2}</strong> teman secara bergantian. Masing-masing teman mendapatkan <strong class="text-emerald-500 text-2xl">${kunci}</strong> ${nama}!</p>`;
             }
 
             html += `</div>`;
@@ -274,42 +259,26 @@
         }
 
         function getLangkahPenyelesaian(n1, n2, op) {
-
-            // =================================================================================
-            // LOGIKA DETEKSI OTOMATIS: Kapan harus pakai gambar, kapan harus pakai bersusun?
-            // =================================================================================
             let gunakanGambarVisual = false;
-
-            // 1. Penjumlahan & Pengurangan: Jika angka <= 10
             if ((op === '+' || op === '-') && n1 <= 10 && n2 <= 10) gunakanGambarVisual = true;
-            // 2. Perkalian: Jika kotak <= 10 dan isi <= 10
             else if (op === '*' && n1 <= 10 && n2 <= 10) gunakanGambarVisual = true;
-            // 3. Pembagian: Jika 2 Angka dibagi 1 Angka (Contoh: 81 / 9, 24 / 3, 50 / 5)
             else if (op === '/' && n1 < 100 && n2 < 10) gunakanGambarVisual = true;
 
-            // Jalankan mode Visual Gambar
-            if (gunakanGambarVisual) {
-                return getVisualPenyelesaian(n1, n2, op);
-            }
+            if (gunakanGambarVisual) return getVisualPenyelesaian(n1, n2, op);
 
-            // --- JIKA ANGKA TERLALU BESAR, KEMBALI GUNAKAN ALGORITMA BERSUSUN BERCERITA ---
             let aStr = n1.toString();
             let bStr = n2.toString();
             let maxL = Math.max(aStr.length, bStr.length, kunci.toString().length) + 2;
             const fmt = (v, s = "") => v.toString().padStart(maxL - 1, " ") + " " + s;
 
             let html = `<div class="flex flex-col lg:flex-row gap-6 items-start w-full text-left">`;
-
-            html += `<div class="w-full lg:w-1/2 bg-slate-800 rounded-3xl overflow-hidden shadow-xl p-2 shrink-0">
+            html += `<div class="w-full lg:w-1/2 bg-slate-800 rounded-3xl overflow-hidden shadow-xl p-2 shrink-0 relative">
                         <div class="bg-slate-900 p-6 rounded-2xl overflow-x-auto flex justify-center">
-                            <pre class="text-slate-100 font-mono text-2xl md:text-3xl leading-relaxed">`;
+                            <pre class="text-slate-100 font-mono text-2xl md:text-3xl leading-relaxed relative">`;
 
             let cerita = `<div class="w-full lg:w-1/2 bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm">
                             <h4 class="font-black text-xl text-blue-600 mb-4 border-b pb-2">Mari kita bedah:</h4>
                             <ul class="space-y-4 text-slate-600 font-medium text-lg">`;
-
-            // (Logika Bersusun untuk +, -, *, dan / jika angkanya ratusan/ribuan)
-            // ... [Kode bersusun tetap dipertahankan untuk angka yang sangat besar] ...
 
             if (op === '+') {
                 let s1 = aStr.padStart(maxL - 2, '0'); let s2 = bStr.padStart(maxL - 2, '0');
@@ -324,7 +293,7 @@
                         txt += ` = <strong>${sum}</strong>. `;
                         if (sum > 9 && i > 0) {
                             carry = Math.floor(sum / 10); simpananTeks = carry.toString() + simpananTeks;
-                            txt += `Hasilnya puluhan, tulis <strong class="text-emerald-500 text-xl">${sum % 10}</strong> dan <strong class="text-amber-500">simpan ${carry}</strong> di depan.</li>`;
+                            txt += `Tulis <strong class="text-emerald-500 text-xl">${sum % 10}</strong> dan <strong class="text-amber-500">simpan ${carry}</strong> di depan.</li>`;
                         } else {
                             simpananTeks = " " + simpananTeks; carry = 0;
                             txt += `Tulis <strong class="text-emerald-500 text-xl">${sum}</strong> di bawah garis.</li>`;
@@ -332,7 +301,10 @@
                         stepVisual.unshift(txt);
                     } else { simpananTeks = " " + simpananTeks; }
                 }
-                if (simpananTeks.trim().length > 0) html += `<span class="text-amber-400 font-bold text-sm absolute -mt-4">${" ".repeat(maxL - simpananTeks.length)}${simpananTeks}</span>\n`;
+                // Memasukkan angka simpanan di baris paling atas tanpa absolute
+                if (simpananTeks.trim().length > 0) {
+                    html += `<span class="text-amber-400 font-bold text-sm block -mb-2">${simpananTeks.padStart(maxL - 1, " ")}</span>\n`;
+                }
                 cerita += stepVisual.reverse().join("");
                 html += fmt(n1) + "\n" + fmt(n2, "+") + "\n" + "-".repeat(maxL).padStart(maxL) + "\n" + `<span class="text-emerald-400 font-bold">${fmt(kunci)}</span>`;
             }
@@ -346,6 +318,9 @@
                         aArr[p] -= 1; pinjamanVisual[p] = aArr[p].toString();
                         for(let k = p + 1; k < i; k++) { aArr[k] = 9; pinjamanVisual[k] = "9"; }
                         let newVal = top + 10;
+                        // Tandai angka yang dipinjam dengan angka kecil di atasnya
+                        pinjamanVisual[i] = newVal.toString();
+
                         cerita += `<li><span class="font-bold text-slate-800">${tempat}:</span> ${top} - ${bot} tidak bisa! Kita <strong class="text-rose-500">pinjam 1</strong> dari angka depannya. Angka ${top} jadi <strong>${newVal}</strong>. Maka, ${newVal} - ${bot} = <strong class="text-emerald-500 text-xl">${newVal - bot}</strong>.</li>`;
                         hasilVisual.unshift(newVal - bot);
                     } else {
@@ -353,13 +328,38 @@
                         hasilVisual.unshift(top - bot);
                     }
                 }
-                let barisPinjam = ""; for(let v of pinjamanVisual) barisPinjam += v;
-                if(barisPinjam.trim().length > 0) html += `<span class="text-rose-400 font-bold text-sm absolute -mt-4">${barisPinjam.padStart(maxL - 2, " ")} </span>\n`;
+                // Memasukkan angka pinjaman di baris paling atas
+                let barisPinjamStr = pinjamanVisual.join("");
+                if(barisPinjamStr.trim() !== "") {
+                    html += `<span class="text-rose-400 font-bold text-sm block -mb-2">${barisPinjamStr.padStart(maxL - 2, " ")} </span>\n`;
+                }
                 html += fmt(n1) + "\n" + fmt(n2, "-") + "\n" + "-".repeat(maxL).padStart(maxL) + "\n" + `<span class="text-emerald-400 font-bold">${fmt(kunci)}</span>`;
             }
             else if (op === '*') {
+                // Proses mencari carry (simpanan) selama perkalian
+                let carriesStr = [];
+                for (let i = 0; i < bStr.length; i++) {
+                    let botDigit = parseInt(bStr[bStr.length - 1 - i]);
+                    let carry = 0; let carryRow = Array(aStr.length).fill(" ");
+                    for(let j = 0; j < aStr.length; j++) {
+                        let topDigit = parseInt(aStr[aStr.length - 1 - j]);
+                        let tempProd = (botDigit * topDigit) + carry;
+                        if(tempProd > 9 && j < aStr.length - 1) {
+                            carry = Math.floor(tempProd / 10);
+                            carryRow[aStr.length - 2 - j] = carry.toString();
+                        } else { carry = 0; }
+                    }
+                    if (carryRow.join("").trim() !== "") carriesStr.push(carryRow.join(""));
+                }
+
+                // Tampilkan angka simpanan (carry) di atas n1
+                for(let cRow of carriesStr) {
+                    html += `<span class="text-amber-400 font-bold text-sm block -mb-2">${cRow.padStart(maxL - 2, " ")} </span>\n`;
+                }
+
                 html += fmt(n1) + "\n" + fmt(n2, "×") + "\n" + "-".repeat(maxL).padStart(maxL) + "\n";
                 cerita += `<li>Kita kalikan <strong class="text-blue-600">${n1}</strong> dengan tiap angka dari <strong class="text-rose-500">${n2}</strong>, mulai dari belakang.</li>`;
+
                 for (let i = 0; i < bStr.length; i++) {
                     let botDigit = parseInt(bStr[bStr.length - 1 - i]); let carry = 0; let barisHasil = "";
                     cerita += `<li class="mt-6"><span class="bg-blue-100 text-blue-700 font-black px-3 py-1 rounded-lg">Tahap ${i+1}</span> Kalikan <strong class="text-blue-600">${n1}</strong> dengan <strong class="text-rose-500 text-xl">${botDigit}</strong>:</li><ul class="list-disc ml-6 mt-2 space-y-3 text-base text-slate-500">`;
