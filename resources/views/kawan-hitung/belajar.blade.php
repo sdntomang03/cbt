@@ -411,7 +411,6 @@
                     }
                 }
             }
-
             html += `</pre></div></div>`;
             cerita += `</ul></div>`;
             return html + cerita + `</div>`;
