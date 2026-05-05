@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kawan Hitung | SD Negeri Tomang 03</title>
+    <title>Setup Latihan KawanHitung</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
@@ -35,22 +35,18 @@
         <div
             class="absolute -bottom-10 -left-10 w-32 h-32 bg-blue-300 rounded-full mix-blend-multiply filter blur-2xl opacity-40">
         </div>
-
+        <div class="absolute top-0 left-0">
+            <a href="{{ route('welcome') }}"
+                class="inline-flex items-center gap-2 text-slate-400 hover:text-blue-600 font-bold text-sm bg-slate-50 hover:bg-blue-50 px-3 py-2 rounded-xl transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Kembali
+            </a>
+        </div>
         <div class="relative z-10">
-
-            <!-- TOMBOL KEMBALI -->
-            <div class="absolute top-0 left-0">
-                <a href="{{ route('welcome') }}"
-                    class="inline-flex items-center gap-2 text-slate-400 hover:text-blue-600 font-bold text-sm bg-slate-50 hover:bg-blue-50 px-3 py-2 rounded-xl transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
-                            d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                    </svg>
-                    Kembali
-                </a>
-            </div>
-
-            <div class="text-center mb-8 mt-12 sm:mt-0">
+            <div class="text-center mb-8">
                 <div
                     class="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-blue-100 text-blue-500 rounded-3xl mb-4 shadow-inner transform rotate-3 hover:rotate-0 transition-transform duration-300">
                     <svg class="w-8 h-8 sm:w-10 sm:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"
