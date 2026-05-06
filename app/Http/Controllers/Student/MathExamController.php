@@ -70,7 +70,7 @@ class MathExamController extends Controller
         }
 
         // 3. Hitung sisa waktu
-        $duration = (int) $examUser->exam->duration_minutes;
+        $duration = 30;
         $deadline = $startTime->copy()->addMinutes($duration);
         $timeLeftSeconds = $now->diffInSeconds($deadline, false);
 
