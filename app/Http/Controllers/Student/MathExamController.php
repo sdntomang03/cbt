@@ -13,17 +13,21 @@ class MathExamController extends Controller
 {
     public function index()
     {
-        // 1. Ambil data dari tabel Sesi Siswa (math_exam_users)
-        $examUsers = MathExamUser::with('exam')
+        // MATIKAN FILTER SCHOOL_ID SEMENTARA (DEBUGGING)
+        $examUsers = MathExamUser::withoutGlobalScopes()
+            ->with(['exam' => function ($query) {
+                $query->withoutGlobalScopes(); // Matikan juga di tabel induk
+            }])
             ->where('student_id', Auth::id())
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // 2. Mapping agar format variabelnya tetap dikenali oleh view Blade lama
+        // BUKA KOMENTAR DI BAWAH INI UNTUK MELIHAT ISI DATANYA MENTAH-MENTAH
+        // dd($examUsers);
+
         $exams = $examUsers->map(function ($examUser) {
             $exam = $examUser->exam;
 
-            // PENGAMAN: Jika ujian induknya ADA, baru masukkan statusnya
             if ($exam !== null) {
                 $exam->status = $examUser->status;
                 $exam->score = $examUser->score;
@@ -32,9 +36,8 @@ class MathExamController extends Controller
                 return $exam;
             }
 
-            // Jika ujian induknya hilang/null, jangan lakukan apa-apa
             return null;
-        })->filter(); // Buang semua data kosong dari daftar
+        })->filter();
 
         return view('student.math.index', compact('exams'));
     }
