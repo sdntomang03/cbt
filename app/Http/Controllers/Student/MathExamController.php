@@ -19,7 +19,6 @@ class MathExamController extends Controller
             ->where('student_id', Auth::id())
             ->orderBy('created_at', 'desc')
             ->get();
-
         // 2. Mapping agar format variabelnya tetap dikenali oleh view Blade lama
         $exams = $examUsers->map(function ($examUser) {
             $exam = $examUser->exam;
