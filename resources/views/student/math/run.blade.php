@@ -85,7 +85,7 @@
                             Tes Matematika</h1>
                         <h1 class="font-black text-sm text-slate-800 uppercase tracking-widest sm:hidden">Tes MTK</h1>
                         <p class="text-[10px] md:text-xs font-bold text-slate-400">Soal <span
-                                x-text="currentIndex + 1"></span> dari {{ $exam->total_questions }}</p>
+                                x-text="currentIndex + 1"></span> dari 10</p>
                     </div>
                 </div>
 
