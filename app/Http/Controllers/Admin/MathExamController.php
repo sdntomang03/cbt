@@ -11,7 +11,6 @@ use App\Models\School;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 
 class MathExamController extends Controller
@@ -77,7 +76,7 @@ class MathExamController extends Controller
                 'math_exam_id' => $exam->id,
                 'student_id' => $studentId,
                 'status' => 'not_started',
-                'school_id' => Auth::user()->school_id,
+                'school_id' => auth()->user()->school_id,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
@@ -96,7 +95,7 @@ class MathExamController extends Controller
                     'num2' => $questionData['num2'],
                     'operator' => $questionData['operator'],
                     'correct_answer' => $questionData['correct_answer'],
-                    'school_id' => Auth::user()->school_id,
+                    'school_id' => auth()->user()->school_id,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
