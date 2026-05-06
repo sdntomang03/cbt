@@ -54,7 +54,7 @@ class MathExamController extends Controller
                 'status' => 'ongoing',
                 'started_at' => $now,
             ]);
-            $startTime = $now;
+            $startTime = $now; // baru
         } else {
             $startTime = Carbon::parse($examUser->started_at)->timezone('Asia/Jakarta');
         }
