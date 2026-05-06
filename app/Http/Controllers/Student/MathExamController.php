@@ -15,6 +15,7 @@ class MathExamController extends Controller
     {
         // 1. Ambil data dari tabel Sesi Siswa (math_exam_users)
         $examUsers = MathExamUser::with('exam')
+            ->has('exam') // <--- TAMBAHKAN BARIS INI (Hanya ambil data yang ujian induknya ada)
             ->where('student_id', Auth::id())
             ->orderBy('created_at', 'desc')
             ->get();
@@ -22,12 +23,16 @@ class MathExamController extends Controller
         // 2. Mapping agar format variabelnya tetap dikenali oleh view Blade lama
         $exams = $examUsers->map(function ($examUser) {
             $exam = $examUser->exam;
-            $exam->status = $examUser->status; // Pakai status dari sesi siswa
-            $exam->score = $examUser->score;   // Pakai skor dari sesi siswa
-            $exam->assigned_at = $examUser->created_at; // Waktu ujian ditugaskan
+
+            // Cek pengaman (opsional, karena has('exam') di atas sudah menangani ini)
+            if ($exam) {
+                $exam->status = $examUser->status;
+                $exam->score = $examUser->score;
+                $exam->assigned_at = $examUser->created_at;
+            }
 
             return $exam;
-        });
+        })->filter(); // <--- TAMBAHKAN FILTER (Untuk menghapus nilai null dari array jika ada)
 
         return view('student.math.index', compact('exams'));
     }
