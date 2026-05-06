@@ -52,6 +52,13 @@ class MathExamController extends Controller
             ->where('student_id', $userId)
             ->firstOrFail();
 
+        // --- WAJIB TAMBAHKAN BLOK PENGAMAN INI ---
+        if (! $examUser->exam) {
+            return redirect()->route('student.math.index')
+                ->with('info', 'Maaf, ujian ini tidak valid atau ID Sekolah tidak sesuai.');
+        }
+        // ------------------------------------------
+
         if ($examUser->status === 'completed') {
             return redirect()->route('student.dashboard')->with('info', 'Anda sudah menyelesaikan ujian matematika ini.');
         }
@@ -64,13 +71,13 @@ class MathExamController extends Controller
                 'status' => 'ongoing',
                 'started_at' => $now,
             ]);
-            $startTime = $now; // baru
+            $startTime = $now;
         } else {
             $startTime = Carbon::parse($examUser->started_at)->timezone('Asia/Jakarta');
         }
 
-        // 3. Hitung sisa waktu
-        $duration = 30;
+        // 3. Hitung sisa waktu (Sekarang aman pakai duration_minutes aslinya)
+        $duration = (int) $examUser->exam->duration_minutes;
         $deadline = $startTime->copy()->addMinutes($duration);
         $timeLeftSeconds = $now->diffInSeconds($deadline, false);
 
