@@ -32,6 +32,21 @@ class MathExamController extends Controller
         return view('admin.math.create', compact('students', 'schools'));
     }
 
+    public function toggleExplanation($id)
+    {
+        // Cari ujian berdasarkan ID (dan pastikan itu milik sekolah guru tersebut jika ada filter)
+        $exam = MathExam::findOrFail($id);
+
+        // Balikkan nilai boolean-nya (Jika true jadi false, jika false jadi true)
+        $exam->update([
+            'show_explanation' => ! $exam->show_explanation,
+        ]);
+
+        $status = $exam->show_explanation ? 'diaktifkan' : 'dimatikan';
+
+        return back()->with('success', "Pembahasan untuk ujian {$exam->title} berhasil {$status}.");
+    }
+
     public function store(Request $request)
     {
         $request->validate([

@@ -108,22 +108,61 @@
                             </td>
 
                             <td class="p-5">
-                                <div class="flex items-center justify-center gap-2">
+                                <div class="flex items-center justify-center gap-3">
+
+                                    {{-- Tombol Toggle Pembahasan (Desain Profesional) --}}
+                                    <form action="{{ route('admin.math.toggle-explanation', $exam->id) }}" method="POST"
+                                        x-data="{ aktif: {{ $exam->show_explanation ? 'true' : 'false' }} }"
+                                        class="flex items-center gap-3 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm hover:border-indigo-300 transition-all"
+                                        title="Klik toggle untuk mengubah">
+                                        @csrf
+                                        @method('PATCH')
+
+                                        {{-- Label & Status Teks --}}
+                                        <div class="flex flex-col text-left">
+                                            <span
+                                                class="text-[9px] font-black uppercase tracking-widest text-slate-400">Pembahasan</span>
+                                            <div class="flex items-center gap-1">
+                                                <div class="w-1.5 h-1.5 rounded-full"
+                                                    :class="aktif ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'">
+                                                </div>
+                                                <span class="text-xs font-bold"
+                                                    :class="aktif ? 'text-emerald-600' : 'text-slate-500'"
+                                                    x-text="aktif ? 'DIBUKA' : 'DITUTUP'"></span>
+                                            </div>
+                                        </div>
+
+                                        {{-- Saklar Toggle --}}
+                                        <button type="submit" @click="aktif = !aktif"
+                                            :class="aktif ? 'bg-emerald-500' : 'bg-slate-300'"
+                                            class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+
+                                            {{-- Lingkaran Putih pada Toggle --}}
+                                            <span aria-hidden="true"
+                                                :style="aktif ? 'transform: translateX(1.25rem);' : 'transform: translateX(0);'"
+                                                class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform duration-200 ease-in-out">
+                                            </span>
+                                        </button>
+                                    </form>
+
+                                    {{-- Tombol Rekap --}}
                                     <a href="{{ route('admin.math.show', $exam->id) }}"
-                                        class="bg-slate-100 hover:bg-indigo-500 text-slate-500 hover:text-white px-4 py-2 rounded-xl font-bold text-xs transition-all shadow-sm">
+                                        class="bg-slate-100 hover:bg-indigo-500 text-slate-500 hover:text-white px-4 py-2 rounded-xl font-bold text-xs transition-all shadow-sm flex items-center h-10">
                                         <i class="fas fa-list-ol mr-1"></i> Rekap
                                     </a>
 
+                                    {{-- Tombol Hapus --}}
                                     <form action="{{ route('admin.math.destroy', $exam->id) }}" method="POST"
                                         onsubmit="return confirm('AWAS! Yakin ingin menghapus ujian ini? Seluruh data soal dan nilai siswa terkait akan terhapus permanen.');">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit"
-                                            class="bg-rose-50 hover:bg-rose-500 text-rose-500 hover:text-white w-8 h-8 rounded-xl flex items-center justify-center transition-all shadow-sm"
+                                            class="bg-rose-50 hover:bg-rose-500 text-rose-500 hover:text-white w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm"
                                             title="Hapus Ujian">
                                             <i class="fas fa-trash-alt"></i>
                                         </button>
                                     </form>
+
                                 </div>
                             </td>
                         </tr>

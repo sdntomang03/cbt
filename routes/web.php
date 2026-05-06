@@ -127,6 +127,7 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         Route::post('/users/import', [UserController::class, 'importExcel'])->name('users.import');
         Route::get('/users/download-template', [UserController::class, 'downloadTemplate'])->name('users.download-template');
         Route::resource('users', UserController::class);
+        Route::patch('/math/{id}/toggle-explanation', [MathExamController::class, 'toggleExplanation'])->name('math.toggle-explanation');
     });
 
 // ==================================================================
@@ -167,6 +168,7 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
     Route::get('/math-exam/{id}/run', [StudentMathExamController::class, 'run'])->name('student.math.run');
     Route::post('/math-exam/{id}/submit', [StudentMathExamController::class, 'submit'])->name('student.math.submit');
     Route::get('/math-exam/{id}/result', [StudentExamController::class, 'result'])->name('student.math.result');
+
 });
 
 // ==================================================================
