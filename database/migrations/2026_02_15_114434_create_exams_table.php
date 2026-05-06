@@ -37,6 +37,7 @@ return new class extends Migration
             $table->integer('duration_minutes')->default(60);
             $table->boolean('random_question')->default(false);
             $table->boolean('random_answer')->default(false);
+            $table->boolean('show_explanation')->default(false);
             $table->enum('status', ['draft', 'published', 'closed'])->default('draft');
 
             $table->timestamps();

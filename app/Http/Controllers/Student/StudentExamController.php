@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Controller;
 use App\Models\ExamSession;
 use App\Models\ExamSessionUser;
+use App\Models\MathExamQuestion;
+use App\Models\MathExamUser;
 use App\Models\Question;
 use App\Models\RegistrationSetting;
 use App\Models\StudentAnswer; // Pastikan Model ini ada
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -38,6 +41,30 @@ class StudentExamController extends Controller
         return view('student.exams.index', compact('mySessions'));
     }
 
+    public function result($id)
+    {
+        $userId = Auth::id();
+
+        // 1. Ambil data sesi ujian siswa
+        $examUser = MathExamUser::with('exam')
+            ->where('math_exam_id', $id)
+            ->where('student_id', $userId)
+            ->firstOrFail();
+
+        // 2. Pastikan ujian sudah berstatus 'completed'
+        if ($examUser->status !== 'completed') {
+            return redirect()->route('student.math.index')
+                ->with('info', 'Anda belum menyelesaikan ujian ini.');
+        }
+
+        // 3. Ambil data soal dan jawaban siswa tersebut
+        $questions = MathExamQuestion::where('math_exam_id', $id)
+            ->where('student_id', $userId)
+            ->get();
+
+        return view('student.math.result', compact('examUser', 'questions'));
+    }
+
     public function run($exam_id)
     {
         if (! session()->has('verified_exam_'.$exam_id)) {
@@ -46,7 +73,7 @@ class StudentExamController extends Controller
         }
         $user = Auth::user();
         // Paksa timezone ke Jakarta agar sinkron dengan jadwal di database
-        $now = \Carbon\Carbon::now('Asia/Jakarta');
+        $now = Carbon::now('Asia/Jakarta');
 
         $session = ExamSession::where('exam_id', $exam_id)
             ->whereHas('students', fn ($q) => $q->where('users.id', $user->id))
@@ -54,7 +81,7 @@ class StudentExamController extends Controller
             ->firstOrFail();
 
         $pivot = $session->students()->where('users.id', $user->id)->first()->pivot;
-        $examUser = \App\Models\ExamSessionUser::where('exam_session_id', $session->id)
+        $examUser = ExamSessionUser::where('exam_session_id', $session->id)
             ->where('user_id', $user->id)
             ->firstOrFail();
         if (request()->ajax()) {
@@ -91,7 +118,7 @@ class StudentExamController extends Controller
         } else {
             // Jika sudah ada isinya, JANGAN UPDATE 'started_at' lagi.
             // Gunakan waktu yang sudah tersimpan di DB.
-            $startTime = \Carbon\Carbon::parse($pivot->started_at)->timezone('Asia/Jakarta');
+            $startTime = Carbon::parse($pivot->started_at)->timezone('Asia/Jakarta');
 
             // Optional: Fix status jika datanya tidak konsisten (ada waktu tapi status not_started)
             if ($pivot->status === 'not_started') {
@@ -103,7 +130,7 @@ class StudentExamController extends Controller
         $duration = (int) $session->exam->duration_minutes; // Durasi dalam menit
         // dd($duration);
         $deadlinePersonal = $startTime->copy()->addMinutes($duration);
-        $deadlineSession = \Carbon\Carbon::parse($session->end_time)->timezone('Asia/Jakarta');
+        $deadlineSession = Carbon::parse($session->end_time)->timezone('Asia/Jakarta');
 
         // Ambil waktu tersingkat antara durasi personal vs jadwal sesi
         $realDeadline = $deadlinePersonal->min($deadlineSession);
@@ -181,7 +208,7 @@ class StudentExamController extends Controller
 
         // 1. Cari Exam Session User (Pivot)
         // Gunakan Model ExamSessionUser agar casting boolean terbaca
-        $examUser = \App\Models\ExamSessionUser::whereHas('session', function ($q) use ($request) {
+        $examUser = ExamSessionUser::whereHas('session', function ($q) use ($request) {
             $q->where('exam_id', $request->exam_id);
         })->where('user_id', $user->id)->firstOrFail();
 
@@ -196,7 +223,7 @@ class StudentExamController extends Controller
         // -----------------------------
 
         // Lanjut simpan jawaban jika aman
-        \App\Models\StudentAnswer::updateOrCreate(
+        StudentAnswer::updateOrCreate(
             [
                 'exam_session_id' => $examUser->exam_session_id,
                 'user_id' => $user->id,

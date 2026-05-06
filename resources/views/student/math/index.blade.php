@@ -124,13 +124,27 @@
                     </div>
 
                     @if($exam->status === 'completed')
-                    <div class="bg-slate-100 p-4 rounded-2xl flex items-center justify-between border border-slate-200">
-                        <span class="font-bold text-slate-500">Nilai Akhir:</span>
-                        <span
-                            class="text-2xl font-black {{ $exam->score >= 70 ? 'text-emerald-500' : 'text-rose-500' }}">{{
-                            $exam->score }}</span>
+                    <div class="flex flex-col gap-3">
+                        {{-- Kotak Nilai Akhir --}}
+                        <div
+                            class="bg-slate-100 p-4 rounded-2xl flex items-center justify-between border border-slate-200">
+                            <span class="font-bold text-slate-500">Nilai Akhir:</span>
+                            <span
+                                class="text-2xl font-black {{ $exam->score >= 70 ? 'text-emerald-500' : 'text-rose-500' }}">
+                                {{ $exam->score }}
+                            </span>
+                        </div>
+
+                        {{-- Tombol Lihat Pembahasan (Hanya muncul jika show_explanation aktif/1) --}}
+                        @if($exam->show_explanation)
+                        <a href="{{ route('student.math.result', $exam->id) }}"
+                            class="w-full block text-center py-3 rounded-xl font-bold text-sm transition-all duration-300 bg-indigo-50 text-indigo-600 border border-indigo-100 hover:bg-indigo-100 hover:text-indigo-700 shadow-sm hover:shadow-md">
+                            <i class="fas fa-book-open mr-1"></i> Lihat Pembahasan
+                        </a>
+                        @endif
                     </div>
                     @else
+                    {{-- Tombol Mulai / Lanjutkan Ujian --}}
                     <a href="{{ route('student.math.run', $exam->id) }}"
                         class="w-full block text-center py-4 rounded-2xl font-black text-lg transition-all duration-300 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl hover:shadow-indigo-200 hover:-translate-y-1">
                         {{ $exam->status === 'ongoing' ? 'Lanjutkan Ujian' : 'Mulai Kerjakan' }} <i

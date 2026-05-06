@@ -214,6 +214,7 @@
                                 x-model="$store.examModule.formData.duration_minutes" required
                                 class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 font-bold text-slate-700 py-3.5 px-4 shadow-sm">
                         </div>
+
                     </div>
 
                     <div class="grid grid-cols-2 gap-6 items-center">
@@ -246,6 +247,15 @@
                                 <span
                                     class="text-[10px] font-black text-slate-500 uppercase group-hover:text-indigo-600 transition">Acak
                                     Jawaban</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer group">
+                                <input type="checkbox" name="show_explanation"
+                                    :checked="$store.examModule.formData.show_explanation"
+                                    @change="$store.examModule.formData.show_explanation = $event.target.checked"
+                                    class="rounded text-indigo-600 border-slate-300 w-5 h-5">
+                                <span
+                                    class="text-[10px] font-black text-slate-500 uppercase group-hover:text-indigo-600 transition">Tampilkan
+                                    Pembahasan</span>
                             </label>
                         </div>
                     </div>
@@ -318,6 +328,7 @@
                     duration_minutes: 60,
                     status: 'draft',
                     random_question: false,
+                    show_explanation: false,
                     random_answer: false
                 },
                 newExam() {
@@ -331,6 +342,7 @@
                         duration_minutes: 60,
                         status: 'draft',
                         random_question: false,
+                        show_explanation: false,
                         random_answer: false
                     };
                     this.openModal = true;
@@ -346,6 +358,7 @@
                         duration_minutes: exam.duration_minutes,
                         status: exam.status,
                         random_question: !!exam.random_question,
+                        show_explanation: !!exam.show_explanation,
                         random_answer: !!exam.random_answer
                     };
                     this.openModal = true;

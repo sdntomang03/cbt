@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use App\Enums\ExamStatus;
 use App\Exports\GradesExport;
 use App\Models\Exam; // Pastikan Enum sudah dibuat sebelumnya
+use App\Models\ExamType;
+use App\Models\Level;
+use App\Models\School;
+use App\Models\Subject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -19,13 +23,13 @@ class ExamController extends Controller
         $schoolId = $user->school_id;
 
         // Ambil semua Jenis Ujian untuk navigasi tab/sidebar
-        $examTypes = \App\Models\ExamType::where('school_id', $schoolId)->get();
+        $examTypes = ExamType::where('school_id', $schoolId)->get();
 
         // AMBIL DATA LEVEL DAN SUBJECT UNTUK DROPDOWN MODAL
         // Asumsi: Level dan Subject terikat dengan school_id.
         // Jika tabel level bersifat global (tidak punya school_id), gunakan \App\Models\Level::all();
-        $levels = \App\Models\Level::where('school_id', $schoolId)->get();
-        $subjects = \App\Models\Subject::where('school_id', $schoolId)->get();
+        $levels = Level::where('school_id', $schoolId)->get();
+        $subjects = Subject::where('school_id', $schoolId)->get();
 
         // Ambil ID tipe yang sedang aktif (default ke tipe pertama jika ada)
         $activeTypeId = $request->get('exam_type_id', $examTypes->first()?->id);
@@ -41,7 +45,7 @@ class ExamController extends Controller
         }
 
         $exams = $query->latest()->paginate(10)->withQueryString();
-        $schools = $user->hasRole('admin') ? \App\Models\School::all() : [];
+        $schools = $user->hasRole('admin') ? School::all() : [];
 
         // Jangan lupa tambahkan 'levels' dan 'subjects' ke dalam compact()
         return view('exams.index', compact('exams', 'examTypes', 'activeTypeId', 'schools', 'levels', 'subjects'));
@@ -56,6 +60,7 @@ class ExamController extends Controller
             'status' => ['required', Rule::enum(ExamStatus::class)],
             'level_id' => 'required|exists:levels,id',
             'subject_id' => 'required|exists:subjects,id',
+            'show_explanation' => 'boolean',
         ]);
 
         $validated['slug'] = Str::slug($request->title).'-'.Str::random(5);
@@ -63,6 +68,7 @@ class ExamController extends Controller
         $validated['school_id'] = Auth::user()->school_id;
         $validated['random_question'] = $request->has('random_question');
         $validated['random_answer'] = $request->has('random_answer');
+        $validated['show_explanation'] = $request->has('show_explanation');
 
         Exam::create($validated);
 
@@ -78,6 +84,7 @@ class ExamController extends Controller
             'status' => ['required', Rule::enum(ExamStatus::class)],
             'level_id' => 'required|exists:levels,id',
             'subject_id' => 'required|exists:subjects,id',
+            'show_explanation' => 'boolean',
         ]);
 
         if ($request->title !== $exam->title) {
@@ -86,7 +93,7 @@ class ExamController extends Controller
 
         $validated['random_question'] = $request->has('random_question');
         $validated['random_answer'] = $request->has('random_answer');
-
+        $validated['show_explanation'] = $request->has('show_explanation');
         $exam->update($validated);
 
         return redirect()->back()->with('success', 'Ujian diperbarui!');
@@ -129,9 +136,9 @@ class ExamController extends Controller
             'name' => 'required|string|max:255',
         ]);
 
-        \App\Models\ExamType::create([
+        ExamType::create([
             'name' => $request->name,
-            'school_id' => \Illuminate\Support\Facades\Auth::user()->school_id,
+            'school_id' => Auth::user()->school_id,
         ]);
 
         return redirect()->back()->with('success', 'Tipe Ujian baru berhasil ditambahkan!');

@@ -152,6 +152,7 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
 
     // --- 1. Dashboard Utama Siswa ---
     Route::get('/siswa', [StudentExamController::class, 'index'])->name('student.dashboard');
+    // Route untuk melihat hasil ujian siswa
 
     // --- 2. Ujian Biasa (Reguler) ---
     Route::get('/exam/{exam}/verify', [StudentExamController::class, 'showVerifyPage'])->name('student.exam.verify.show');
@@ -162,10 +163,10 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
     Route::post('/exam/record-violation', [StudentExamController::class, 'recordViolation'])->name('student.exam.violation');
 
     // --- 3. Ujian Matematika (Siswa) ---
-    Route::get('/math-exams/student', [StudentMathExamController::class, 'index'])->name('student.math.index'); // Hindari konflik URL dengan math-exams admin
+    Route::get('/math-exam/', [StudentMathExamController::class, 'index'])->name('student.math.index'); // Hindari konflik URL dengan math-exams admin
     Route::get('/math-exam/{id}/run', [StudentMathExamController::class, 'run'])->name('student.math.run');
     Route::post('/math-exam/{id}/submit', [StudentMathExamController::class, 'submit'])->name('student.math.submit');
-
+    Route::get('/math-exam/{id}/result', [StudentExamController::class, 'result'])->name('student.math.result');
 });
 
 // ==================================================================
