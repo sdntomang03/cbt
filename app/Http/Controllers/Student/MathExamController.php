@@ -13,26 +13,21 @@ class MathExamController extends Controller
 {
     public function index()
     {
-        // Tambahkan withoutGlobalScopes() untuk mematikan filter school_id sementara
-        $examUsers = MathExamUser::withoutGlobalScopes()
-            ->with(['exam' => function ($query) {
-                $query->withoutGlobalScopes(); // Matikan juga di tabel induk
-            }])
+        // 1. Ambil data dari tabel Sesi Siswa (math_exam_users)
+        $examUsers = MathExamUser::with('exam')
             ->where('student_id', Auth::id())
+            ->orderBy('created_at', 'desc')
             ->get();
 
-        // dd($examUsers); // Buka komen ini jika ingin melihat datanya mentah-mentah
-
+        // 2. Mapping agar format variabelnya tetap dikenali oleh view Blade lama
         $exams = $examUsers->map(function ($examUser) {
             $exam = $examUser->exam;
-            if ($exam) {
-                $exam->status = $examUser->status;
-                $exam->score = $examUser->score;
-                $exam->assigned_at = $examUser->created_at;
-            }
+            $exam->status = $examUser->status; // Pakai status dari sesi siswa
+            $exam->score = $examUser->score;   // Pakai skor dari sesi siswa
+            $exam->assigned_at = $examUser->created_at; // Waktu ujian ditugaskan
 
             return $exam;
-        })->filter();
+        });
 
         return view('student.math.index', compact('exams'));
     }
