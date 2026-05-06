@@ -50,6 +50,7 @@ class MathExamController extends Controller
             'digits' => $request->digits,
             'total_questions' => $request->total_questions,
             'duration_minutes' => $request->duration_minutes,
+            'school_id' => auth()->user()->school_id,
         ]);
 
         $selectedTypes = $request->types;
