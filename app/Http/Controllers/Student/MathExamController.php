@@ -15,6 +15,7 @@ class MathExamController extends Controller
     {
         // 1. Ambil data dari tabel Sesi Siswa (math_exam_users)
         $examUsers = MathExamUser::with('exam')
+            ->has('exam') // <-- PERBAIKAN: Hanya ambil yang ujian induknya ada
             ->where('student_id', Auth::id())
             ->orderBy('created_at', 'desc')
             ->get();
@@ -22,12 +23,18 @@ class MathExamController extends Controller
         // 2. Mapping agar format variabelnya tetap dikenali oleh view Blade lama
         $exams = $examUsers->map(function ($examUser) {
             $exam = $examUser->exam;
-            $exam->status = $examUser->status; // Pakai status dari sesi siswa
-            $exam->score = $examUser->score;   // Pakai skor dari sesi siswa
-            $exam->assigned_at = $examUser->created_at; // Waktu ujian ditugaskan
 
-            return $exam;
-        });
+            // <-- PERBAIKAN: Pastikan $exam tidak null
+            if ($exam) {
+                $exam->status = $examUser->status; // Pakai status dari sesi siswa
+                $exam->score = $examUser->score;   // Pakai skor dari sesi siswa
+                $exam->assigned_at = $examUser->created_at; // Waktu ujian ditugaskan
+
+                return $exam;
+            }
+
+            return null;
+        })->filter(); // <-- PERBAIKAN: Buang data yang null jika ada
 
         return view('student.math.index', compact('exams'));
     }
@@ -38,6 +45,7 @@ class MathExamController extends Controller
 
         // 1. Cari Sesi Ujian Siswa ini
         $examUser = MathExamUser::with('exam')
+            ->has('exam') // <-- PERBAIKAN: Cegah error duration_minutes on null
             ->where('math_exam_id', $id)
             ->where('student_id', $userId)
             ->firstOrFail();
@@ -86,7 +94,8 @@ class MathExamController extends Controller
         $userId = Auth::id();
 
         // Cari sesi siswa
-        $examUser = MathExamUser::where('math_exam_id', $id)
+        $examUser = MathExamUser::has('exam') // <-- PERBAIKAN: Pengaman tambahan
+            ->where('math_exam_id', $id)
             ->where('student_id', $userId)
             ->firstOrFail();
 
