@@ -22,12 +22,19 @@ class MathExamController extends Controller
         // 2. Mapping agar format variabelnya tetap dikenali oleh view Blade lama
         $exams = $examUsers->map(function ($examUser) {
             $exam = $examUser->exam;
-            $exam->status = $examUser->status; // Pakai status dari sesi siswa
-            $exam->score = $examUser->score;   // Pakai skor dari sesi siswa
-            $exam->assigned_at = $examUser->created_at; // Waktu ujian ditugaskan
 
-            return $exam;
-        });
+            // PENGAMAN: Jika ujian induknya ADA, baru masukkan statusnya
+            if ($exam !== null) {
+                $exam->status = $examUser->status;
+                $exam->score = $examUser->score;
+                $exam->assigned_at = $examUser->created_at;
+
+                return $exam;
+            }
+
+            // Jika ujian induknya hilang/null, jangan lakukan apa-apa
+            return null;
+        })->filter(); // Buang semua data kosong dari daftar
 
         return view('student.math.index', compact('exams'));
     }
