@@ -18,7 +18,7 @@ class MathExamController extends Controller
             ->with(['exam' => function ($query) {
                 $query->withoutGlobalScopes(); // Matikan juga di tabel induk
             }])
-            ->where('student_id', Auth::id())
+            ->where('student_id', Auth::id()) d
             ->orderBy('created_at', 'desc')
             ->get();
 
