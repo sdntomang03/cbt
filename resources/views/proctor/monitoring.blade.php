@@ -103,12 +103,24 @@
                             class="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 text-slate-700 shadow-sm">
                     </div>
 
-                    <button @click="toggleAutoUpdate"
-                        :class="isAutoUpdate ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-slate-200 text-slate-600 shadow-slate-200'"
-                        class="px-5 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 w-full sm:w-auto">
-                        <i class="fas" :class="isAutoUpdate ? 'fa-sync fa-spin' : 'fa-play'"></i>
-                        <span x-text="isAutoUpdate ? 'Auto On' : 'Auto Off'"></span>
-                    </button>
+                    <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+
+                        {{-- Tombol Auto Update (Milik Anda) --}}
+                        <button @click="toggleAutoUpdate"
+                            :class="isAutoUpdate ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-slate-200 text-slate-600 shadow-slate-200'"
+                            class="px-5 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 w-full sm:w-auto">
+                            <i class="fas" :class="isAutoUpdate ? 'fa-sync fa-spin' : 'fa-play'"></i>
+                            <span x-text="isAutoUpdate ? 'Auto On' : 'Auto Off'"></span>
+                        </button>
+
+                        {{-- Tombol Baru: Download Excel --}}
+                        <a href="{{ route('exams.export', $exam->id) }}"
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200/50 px-5 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 w-full sm:w-auto">
+                            <i class="fas fa-file-excel"></i>
+                            <span>Export Excel</span>
+                        </a>
+
+                    </div>
                 </div>
             </div>
 
