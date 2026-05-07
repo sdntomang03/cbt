@@ -111,6 +111,10 @@ class ExamController extends Controller
         return redirect()->route('admin.exams.index')->with('success', 'Ujian dihapus!');
     }
 
+    // <-- Jangan lupa tambahkan ini di bagian atas file Controller Anda
+    use App\Models\Exam;
+    use Illuminate\Support\Str; // <-- Sesuaikan dengan model Anda (Exam atau MathExam)
+
     public function exportGrades(Request $request, $examId)
     {
         $user = auth()->user();
@@ -124,7 +128,15 @@ class ExamController extends Controller
             $schoolIdFilter = $user->school_id;
         }
 
-        $fileName = 'Nilai_Exam_'.$examId.'_'.now()->format('Y-m-d').'.xlsx';
+        // 1. Ambil data ujian dari database
+        // (Ganti 'Exam' menjadi 'MathExam' jika Anda menggunakan model MathExam)
+        $exam = Exam::findOrFail($examId);
+
+        // 2. Bersihkan judul dari spasi dan karakter aneh (misal: "Ujian MTK 1!" menjadi "ujian_mtk_1")
+        $safeTitle = Str::slug($exam->title, '_');
+
+        // 3. Rangkai nama file dengan judul ujian
+        $fileName = 'Nilai_'.$safeTitle.'_'.now()->format('Y-m-d').'.xlsx';
 
         return Excel::download(new GradesExport($examId, $schoolIdFilter), $fileName);
     }
