@@ -17,7 +17,8 @@
 </div>
 
 <!-- Daftar Menu -->
-<nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto overflow-x-hidden">
+<nav @click="if(window.innerWidth < 1024) sidebarOpen = false"
+    class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto overflow-x-hidden">
 
     @php
     $navClass = "flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all duration-200

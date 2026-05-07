@@ -63,7 +63,8 @@
 
         <!-- KOLOM 1: ASIDE (SIDEBAR) -->
         <!-- Logika: Di HP mainkan translate-x (geser), Di Laptop mainkan width (lebar) -->
-        <aside :class="sidebarOpen ? 'translate-x-0 lg:w-72' : '-translate-x-full lg:translate-x-0 lg:w-0'"
+        <aside @click.outside="if(window.innerWidth < 1024) sidebarOpen = false"
+            :class="sidebarOpen ? 'translate-x-0 lg:w-72' : '-translate-x-full lg:translate-x-0 lg:w-0'"
             class="fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200 transition-all duration-300 ease-in-out lg:static lg:flex-shrink-0 overflow-hidden shadow-2xl lg:shadow-none flex flex-col">
 
             <!-- Dibungkus div w-72 agar teks menu tidak gepeng saat sidebar mengecil -->
@@ -80,7 +81,7 @@
                 class="bg-white/90 backdrop-blur-md border-b border-slate-200 h-20 shrink-0 flex items-center justify-between px-4 sm:px-6 lg:px-8 shadow-sm relative z-30">
 
                 <!-- Tombol Hamburger -->
-                <button @click="sidebarOpen = !sidebarOpen"
+                <button @click.stop="sidebarOpen = !sidebarOpen"
                     class="text-slate-500 hover:text-indigo-600 focus:outline-none p-2 rounded-lg hover:bg-slate-100 transition">
                     <i class="fas fa-bars text-2xl"></i>
                 </button>
