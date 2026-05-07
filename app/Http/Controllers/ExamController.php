@@ -111,10 +111,6 @@ class ExamController extends Controller
         return redirect()->route('admin.exams.index')->with('success', 'Ujian dihapus!');
     }
 
-    // <-- Jangan lupa tambahkan ini di bagian atas file Controller Anda
-    use App\Models\Exam;
-    use Illuminate\Support\Str; // <-- Sesuaikan dengan model Anda (Exam atau MathExam)
-
     public function exportGrades(Request $request, $examId)
     {
         $user = auth()->user();
