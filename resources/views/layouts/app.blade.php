@@ -74,7 +74,8 @@
         </aside>
 
         <!-- KOLOM 2: MAIN AREA -->
-        <div class="flex-1 flex flex-col min-w-0 bg-slate-50 h-screen overflow-hidden">
+        <div @click="if(window.innerWidth < 1024 && sidebarOpen) sidebarOpen = false"
+            class="flex-1 flex flex-col min-w-0 bg-slate-50 h-screen overflow-hidden">
 
             <!-- TOPBAR (Di dalam kolom 2) -->
             <header
