@@ -114,7 +114,7 @@
                         </button>
 
                         {{-- Tombol Baru: Download Excel --}}
-                        <a href="{{ route('exams.export', $exam->id) }}"
+                        <a href="{{ route('admin.exams.export', $exam->id) }}"
                             class="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200/50 px-5 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 w-full sm:w-auto">
                             <i class="fas fa-file-excel"></i>
                             <span>Export Excel</span>
