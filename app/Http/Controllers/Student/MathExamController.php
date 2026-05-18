@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Models\MathExam;
 use App\Models\MathExamQuestion;
 use App\Models\MathExamUser;
 use Carbon\Carbon;
@@ -46,35 +47,47 @@ class MathExamController extends Controller
     {
         $userId = Auth::id();
 
-        // 1. Cari Sesi Ujian Siswa ini (Gunakan first, bukan firstOrFail)
+        // ========================================================================
+        // 🛠️ BLOK DEBUGGING (Hapus tanda // pada dd() di bawah ini jika masih error)
+        // Ini akan membongkar apa sebenarnya yang sedang dibaca oleh sistem Laravel
+        // ========================================================================
+        /*
+        dd([
+            '1_URL_ID_Ujian' => $id,
+            '2_ID_User_Login' => $userId,
+            '3_Apakah_Ujian_Ada?' => \App\Models\MathExam::find($id) ? 'ADA' : 'TIDAK ADA',
+            '4_Apakah_Siswa_Terdaftar?' => \App\Models\MathExamUser::where('math_exam_id', $id)->where('student_id', $userId)->exists() ? 'TERDAFTAR' : 'TIDAK TERDAFTAR',
+        ]);
+        */
+
+        // --- CEK LAPIS 1: Apakah Ujian (Induk) dengan ID tersebut ada di sistem? ---
+        $exam = MathExam::find($id);
+        if (! $exam) {
+            return redirect()->route('student.dashboard')
+                ->with('error', 'Ujian tidak ditemukan. Pastikan link atau ID ujian benar.');
+        }
+
+        // --- CEK LAPIS 2: Apakah Siswa yang sedang login terdaftar di ujian ini? ---
         $examUser = MathExamUser::with('exam')
             ->where('math_exam_id', $id)
             ->where('student_id', $userId)
             ->first();
-        $math = MathExamUser::with('exam')->get();
-        dd($math);
 
-        // --- PENGAMAN 1: Jika Siswa tidak terdaftar di ujian ini ---
         if (! $examUser) {
-            return redirect()->route('student.dashboard') // Sesuaikan route kembalinya jika perlu
-                ->with('error', 'Akses ditolak! Anda belum terdaftar dalam ujian ini atau ID ujian salah.');
-        }
-
-        // --- PENGAMAN 2: Jika Data Ujian Utama (Induk) tidak ada ---
-        if (! $examUser->exam) {
             return redirect()->route('student.dashboard')
-                ->with('info', 'Maaf, ujian ini tidak valid, sudah ditutup, atau telah dihapus.');
+                ->with('error', 'Akses ditolak! Anda tidak terdaftar sebagai peserta pada ujian ini.');
         }
 
-        // --- PENGAMAN 3: Jika Siswa sudah selesai ujian ---
+        // --- CEK LAPIS 3: Apakah siswa sudah pernah menyelesaikan ujian ini? ---
         if ($examUser->status === 'completed') {
             return redirect()->route('student.dashboard')
-                ->with('info', 'Anda sudah menyelesaikan ujian matematika ini.');
+                ->with('info', 'Anda sudah menyelesaikan ujian ini. Ujian tidak dapat diulang.');
         }
 
+        // --- MANAJEMEN WAKTU & STATUS PENGERJAAN ---
         $now = Carbon::now('Asia/Jakarta');
 
-        // 2. Set waktu mulai (started_at) jika siswa baru pertama kali buka
+        // Jika statusnya belum mulai, set waktu mulainya (started_at) sekarang
         if ($examUser->status === 'not_started' || $examUser->started_at === null) {
             $examUser->update([
                 'status' => 'ongoing',
@@ -82,31 +95,35 @@ class MathExamController extends Controller
             ]);
             $startTime = $now;
         } else {
-            // Jika siswa refresh halaman/keluar masuk, ambil waktu mulai yang awal
+            // Jika sudah mulai (misal refresh halaman), ambil waktu start aslinya
             $startTime = Carbon::parse($examUser->started_at)->timezone('Asia/Jakarta');
         }
 
-        // 3. Hitung sisa waktu berdasarkan duration_minutes
+        // --- CEK LAPIS 4: Kalkulasi Sisa Waktu Ujian ---
         $duration = (int) $examUser->exam->duration_minutes;
         $deadline = $startTime->copy()->addMinutes($duration);
-        $timeLeftSeconds = $now->diffInSeconds($deadline, false);
+        $timeLeftSeconds = $now->diffInSeconds($deadline, false); // false agar bisa bernilai minus
 
-        // Beri toleransi delay jaringan 1 menit (-60 detik)
+        // Toleransi delay jaringan 1 menit (-60 detik)
         if ($timeLeftSeconds <= 0 && $timeLeftSeconds > -60) {
-            $timeLeftSeconds = 60; // Paksa beri 60 detik terakhir untuk ngumpulin
+            $timeLeftSeconds = 60; // Beri waktu 1 menit terakhir untuk mengumpulkan
         } elseif ($timeLeftSeconds <= -60) {
-            // Jika lewat dari 1 menit, paksa submit otomatis dari backend
+            // Jika lewat dari 1 menit, langsung paksa submit otomatis dari backend
             return $this->submitForm($examUser);
         }
 
-        // 4. PENTING: Ambil khusus soal yang di-generate untuk student_id ini
+        // --- CEK LAPIS 5: Ambil soal khusus untuk siswa ini ---
         $questions = MathExamQuestion::where('math_exam_id', $id)
             ->where('student_id', $userId)
             ->get();
 
-        $exam = $examUser->exam;
+        // Jika karena suatu hal soal untuk siswa ini belum di-generate oleh admin
+        if ($questions->isEmpty()) {
+            return redirect()->route('student.dashboard')
+                ->with('error', 'Soal ujian belum disiapkan untuk Anda. Silakan lapor ke guru.');
+        }
 
-        // Tampilkan halaman ujian CBT
+        // Lolos semua pengecekan, tampilkan halaman ujian CBT!
         return view('student.math.run', compact('exam', 'questions', 'timeLeftSeconds'));
     }
 
