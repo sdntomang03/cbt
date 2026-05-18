@@ -577,7 +577,7 @@
     {{-- Form Submit Hidden --}}
     <form id="math-submit-form" action="{{ route('student.math.submit', $exam->id) }}" method="POST" class="hidden">
         @csrf
-        <input type="hidden" name="answers" :value="JSON.stringify(answers)">
+        <input type="hidden" name="answers">
     </form>
 
     {{-- Anti-Cheat Protection Scripts --}}
@@ -854,10 +854,20 @@
                     });
                 },
 
-                forceSubmit() {
-                    clearInterval(this.timerInterval);
-                    document.getElementById('math-submit-form').submit();
-                }
+              forceSubmit() {
+    clearInterval(this.timerInterval);
+
+    // 1. Ambil elemen form dan input hidden
+    const form = document.getElementById('math-submit-form');
+    let inputAnswers = form.querySelector('input[name="answers"]');
+
+    // 2. Suntikkan (inject) data jawaban secara paksa ke dalam input
+    // Menggunakan Alpine.raw() untuk memastikan kita mengambil data asli, bukan Proxy object
+    inputAnswers.value = JSON.stringify(Alpine.raw(this.answers));
+
+    // 3. Submit form
+    form.submit();
+}
             }));
         });
     </script>
