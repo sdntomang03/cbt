@@ -51,6 +51,7 @@ class MathExamController extends Controller
             ->where('math_exam_id', $id)
             ->where('student_id', $userId)
             ->first();
+        $math = MathExamUser::with('exam')->get();
 
         // --- PENGAMAN 1: Jika Siswa tidak terdaftar di ujian ini ---
         if (! $examUser) {
