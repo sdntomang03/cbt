@@ -21,9 +21,16 @@ trait BelongsToSchool
             if (Auth::hasUser()) {
                 $user = Auth::user();
 
+                // Jika user BUKAN admin (misal: guru atau siswa)
                 if (! $user->hasRole('admin')) {
-                    // Gunakan nama tabel secara spesifik agar tidak error jika ada fitur JOIN
-                    $builder->where($builder->getModel()->getTable().'.school_id', $user->school_id);
+                    $tableName = $builder->getModel()->getTable();
+
+                    // BUNGKUS DENGAN CLOSURE (Fungsi) agar query menjadi (A OR B)
+                    // Jika tidak dibungkus, orWhereNull akan merusak query (Where C And A Or B)
+                    $builder->where(function ($query) use ($tableName, $user) {
+                        $query->where($tableName.'.school_id', $user->school_id)
+                            ->orWhereNull($tableName.'.school_id'); // <-- Membaca Data Global Superadmin
+                    });
                 }
             }
         });
@@ -38,6 +45,8 @@ trait BelongsToSchool
             if (Auth::hasUser()) {
                 $user = Auth::user();
 
+                // Jika BUKAN admin, paksa school_id sesuai sekolah user yang membuat
+                // Jika Admin, baris ini dilewati, sehingga school_id default-nya adalah NULL (Global)
                 if (! $user->hasRole('admin')) {
                     $model->school_id = $user->school_id;
                 }
