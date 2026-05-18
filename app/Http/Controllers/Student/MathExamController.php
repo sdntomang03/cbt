@@ -46,26 +46,33 @@ class MathExamController extends Controller
     {
         $userId = Auth::id();
 
-        // 1. Cari Sesi Ujian Siswa ini
+        // 1. Cari Sesi Ujian Siswa ini (Gunakan first, bukan firstOrFail)
         $examUser = MathExamUser::with('exam')
             ->where('math_exam_id', $id)
             ->where('student_id', $userId)
-            ->firstOrFail();
+            ->first();
 
-        // --- WAJIB TAMBAHKAN BLOK PENGAMAN INI ---
-        if (! $examUser->exam) {
-            return redirect()->route('student.math.index')
-                ->with('info', 'Maaf, ujian ini tidak valid atau ID Sekolah tidak sesuai.');
+        // --- PENGAMAN 1: Jika Siswa tidak terdaftar di ujian ini ---
+        if (! $examUser) {
+            return redirect()->route('student.dashboard') // Sesuaikan route kembalinya jika perlu
+                ->with('error', 'Akses ditolak! Anda belum terdaftar dalam ujian ini atau ID ujian salah.');
         }
-        // ------------------------------------------
 
+        // --- PENGAMAN 2: Jika Data Ujian Utama (Induk) tidak ada ---
+        if (! $examUser->exam) {
+            return redirect()->route('student.dashboard')
+                ->with('info', 'Maaf, ujian ini tidak valid, sudah ditutup, atau telah dihapus.');
+        }
+
+        // --- PENGAMAN 3: Jika Siswa sudah selesai ujian ---
         if ($examUser->status === 'completed') {
-            return redirect()->route('student.dashboard')->with('info', 'Anda sudah menyelesaikan ujian matematika ini.');
+            return redirect()->route('student.dashboard')
+                ->with('info', 'Anda sudah menyelesaikan ujian matematika ini.');
         }
 
         $now = Carbon::now('Asia/Jakarta');
 
-        // 2. Set waktu mulai (started_at) jika belum mulai
+        // 2. Set waktu mulai (started_at) jika siswa baru pertama kali buka
         if ($examUser->status === 'not_started' || $examUser->started_at === null) {
             $examUser->update([
                 'status' => 'ongoing',
@@ -73,28 +80,31 @@ class MathExamController extends Controller
             ]);
             $startTime = $now;
         } else {
+            // Jika siswa refresh halaman/keluar masuk, ambil waktu mulai yang awal
             $startTime = Carbon::parse($examUser->started_at)->timezone('Asia/Jakarta');
         }
 
-        // 3. Hitung sisa waktu (Sekarang aman pakai duration_minutes aslinya)
+        // 3. Hitung sisa waktu berdasarkan duration_minutes
         $duration = (int) $examUser->exam->duration_minutes;
         $deadline = $startTime->copy()->addMinutes($duration);
         $timeLeftSeconds = $now->diffInSeconds($deadline, false);
 
-        // Beri toleransi delay jaringan 1 menit (-60)
+        // Beri toleransi delay jaringan 1 menit (-60 detik)
         if ($timeLeftSeconds <= 0 && $timeLeftSeconds > -60) {
-            $timeLeftSeconds = 60;
+            $timeLeftSeconds = 60; // Paksa beri 60 detik terakhir untuk ngumpulin
         } elseif ($timeLeftSeconds <= -60) {
+            // Jika lewat dari 1 menit, paksa submit otomatis dari backend
             return $this->submitForm($examUser);
         }
 
-        // 4. PENTING: Ambil khusus soal yang dibuat untuk student_id ini
+        // 4. PENTING: Ambil khusus soal yang di-generate untuk student_id ini
         $questions = MathExamQuestion::where('math_exam_id', $id)
             ->where('student_id', $userId)
             ->get();
 
         $exam = $examUser->exam;
 
+        // Tampilkan halaman ujian CBT
         return view('student.math.run', compact('exam', 'questions', 'timeLeftSeconds'));
     }
 
