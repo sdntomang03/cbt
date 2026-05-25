@@ -26,7 +26,19 @@ class MathExamController extends Controller
 
     public function create()
     {
-        $students = User::role('siswa')->with('school')->orderBy('name')->get();
+        // Ambil siswa beserta relasi sekolah dan kelasnya
+        $students = User::role('siswa')
+            ->with(['school', 'classrooms']) // <-- Tambahkan 'classrooms' di sini
+            ->orderBy('name')
+            ->get()
+            ->map(function ($student) {
+                // Karena relasinya Many-to-Many (bisa punya banyak kelas di tahun berbeda),
+                // kita ambil nama kelas yang pertama/terbaru
+                $student->kelas = $student->classrooms->first()->name ?? '';
+
+                return $student;
+            });
+
         $schools = School::orderBy('name')->get();
 
         return view('admin.math.create', compact('students', 'schools'));
