@@ -163,6 +163,7 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
 Route::get('/dashboard', function () {
     return 'welcome to dashboard';
 });
+
 // ==================================================================
 // GROUP KAWAN BELAJAR (Publik / Auth Opsional)
 // Asumsi ini fitur belajar tambahan
