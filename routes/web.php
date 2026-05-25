@@ -28,6 +28,17 @@ Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
 
+// Redirect otomatis sesuai role saat login
+Route::get('/dashboard', function () {
+    $user = auth()->user();
+    if ($user->hasRole('siswa')) {
+        return redirect()->route('student.dashboard');
+    }
+
+    // Admin, Operator, atau Guru diarahkan ke halaman admin (misal index ujian)
+    return redirect()->route('admin.exams.index');
+})->middleware(['auth', 'verified'])->name('dashboard');
+
 // ==================================================================
 // GROUP PROFILE (Semua Role Bisa Akses)
 // ==================================================================
@@ -158,10 +169,6 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
     Route::post('/math-exam/{id}/submit', [StudentMathExamController::class, 'submit'])->name('student.math.submit');
     Route::get('/math-exam/{id}/result', [StudentExamController::class, 'result'])->name('student.math.result');
 
-});
-
-Route::get('/dashboard', function () {
-    return 'welcome to dashboard';
 });
 
 // ==================================================================
