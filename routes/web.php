@@ -28,28 +28,6 @@ Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
 
-// Redirect otomatis sesuai role saat login
-Route::get('/dashboard', function () {
-    $user = auth()->user();
-
-    // OPSI 1: Melihat seluruh data user yang sedang login
-    // dd($user);
-
-    // OPSI 2: Mengecek apakah method hasRole('siswa') menghasilkan true atau false
-    // dd($user->hasRole('siswa'));
-
-    // OPSI 3: Melihat daftar semua role yang dimiliki user tersebut
-    // (Jika Anda menggunakan package Spatie Permission)
-    // dd($user->getRoleNames());
-
-    if ($user->hasRole('siswa')) {
-        return redirect()->route('student.dashboard');
-    }
-
-    // Admin, Operator, atau Guru diarahkan ke halaman admin (misal index ujian)
-    return redirect()->route('admin.exams.index');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
 // ==================================================================
 // GROUP PROFILE (Semua Role Bisa Akses)
 // ==================================================================
