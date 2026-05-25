@@ -178,4 +178,7 @@ Route::prefix('kawan-baca')->group(function () {
     Route::get('/latihan', [KawanBacaController::class, 'latihan'])->name('baca.latihan');
 });
 
+Route::get('/dashboard', function () {
+    return 'welcome to dashboard';
+});
 require __DIR__.'/auth.php';
