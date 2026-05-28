@@ -36,55 +36,29 @@ class SoalController extends Controller
 
     public function store(Request $request, Exam $exam)
     {
-        $content = $request->input('content');
-
-        // Pastikan konten adalah string UTF-8 yang valid
-        $cleanContent = mb_convert_encoding($content, 'UTF-8', 'UTF-8');
+        // Tambahkan subject_id dan level_id ke dalam validasi agar tidak dibuang
         $data = $request->validate([
             'type' => 'required|in:single_choice,complex_choice,essay,true_false,matching',
             'content' => 'required',
             'options' => 'array',
-            'subject_id' => 'nullable',
-            'level_id' => 'nullable',
+            'subject_id' => 'nullable', // Wajib ada agar masuk ke array $data
+            'level_id' => 'nullable',   // Wajib ada agar masuk ke array $data
         ]);
 
         try {
             return DB::transaction(function () use ($data, $request, $exam) {
-
-                // 1. Ekstrak Base64 menjadi WebP untuk Konten (Narasi Utama)
-                $decodedContent = base64_decode($data['content']);
-                $cleanContent = $this->processBase64ImagesToWebp($decodedContent);
-
+                // Gunakan operator ?? null untuk keamanan tambahan
                 $question = $exam->questions()->create([
                     'user_id' => Auth::id(),
                     'type' => $data['type'],
-                    'content' => $cleanContent, // Masukkan versi yang sudah berupa URL
+                    'content' => base64_decode($data['content']),
                     'subject_id' => $data['subject_id'] ?? null,
                     'level_id' => $data['level_id'] ?? null,
                     'school_id' => Auth::user()->school_id ?? Auth::user()->sekolah_id,
                 ]);
 
-                // 2. Ekstrak Base64 menjadi WebP untuk Opsi Jawaban
-                $cleanOptions = [];
-                if (! empty($request->options)) {
-                    foreach ($request->options as $opt) {
-                        $newOpt = $opt;
-                        // Proses dan amankan gambar di masing-masing kolom
-                        if (isset($opt['option_text'])) {
-                            $newOpt['option_text'] = $this->processBase64ImagesToWebp(base64_decode($opt['option_text']));
-                        }
-                        if (isset($opt['premise_text'])) {
-                            $newOpt['premise_text'] = $this->processBase64ImagesToWebp(base64_decode($opt['premise_text']));
-                        }
-                        if (isset($opt['target_text'])) {
-                            $newOpt['target_text'] = $this->processBase64ImagesToWebp(base64_decode($opt['target_text']));
-                        }
-                        $cleanOptions[] = $newOpt;
-                    }
-                }
-
-                // Panggil detail saver dengan $cleanOptions (bukan $request->options yang masih mentah)
-                $this->saveQuestionDetails($question, $cleanOptions, $data['type']);
+                // Panggil detail saver
+                $this->saveQuestionDetails($question, $request->options, $data['type']);
 
                 return response()->json([
                     'status' => 'success',
@@ -374,19 +348,5 @@ class SoalController extends Controller
 
             return $matches[0]; // Jika gagal konversi, kembalikan ke teks asal
         }, $htmlContent);
-    }
-
-    private function cleanUtf8($data)
-    {
-        if (is_array($data)) {
-            return array_map([$this, 'cleanUtf8'], $data);
-        }
-
-        if (is_string($data)) {
-            // Hapus karakter yang bukan UTF-8
-            return mb_convert_encoding($data, 'UTF-8', 'UTF-8');
-        }
-
-        return $data;
     }
 }
