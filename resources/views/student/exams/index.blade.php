@@ -118,12 +118,13 @@
                                 {{ $session->session_name }}
                             </span>
 
-                            @if($session->user_status == 'completed')
+                            {{-- PERBAIKAN: Gunakan ->pivot->status --}}
+                            @if($session->pivot->status == 'completed' || $session->pivot->status == 'selesai')
                             <span
                                 class="bg-emerald-50 text-emerald-600 text-[10px] font-black px-3 py-1.5 rounded-full border border-emerald-100 flex items-center gap-1.5">
                                 <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> SELESAI
                             </span>
-                            @elseif($session->is_open && $session->user_status != 'completed')
+                            @elseif($session->is_open)
                             <span
                                 class="bg-indigo-50 text-indigo-600 text-[10px] font-black px-3 py-1.5 rounded-full border border-indigo-100 flex items-center gap-1.5">
                                 <span class="relative flex h-2 w-2">
@@ -197,14 +198,15 @@
                         </div>
 
                         <div class="mt-auto">
-                            @if($session->user_status == 'completed')
+                            {{-- PERBAIKAN: Gunakan ->pivot->status --}}
+                            @if($session->pivot->status == 'completed' || $session->pivot->status == 'selesai')
                             <div
                                 class="w-full bg-emerald-50/50 text-emerald-600 py-4 rounded-2xl font-black flex flex-col items-center justify-center border border-emerald-100">
                                 <span class="text-[10px] uppercase tracking-widest opacity-60">Nilai Kamu</span>
-                                <span class="text-2xl">{{ $session->user_score }}</span>
+                                {{-- PERBAIKAN: Gunakan ->pivot->score --}}
+                                <span class="text-2xl">{{ $session->pivot->score ?? 0 }}</span>
                             </div>
                             @elseif($session->is_open)
-
                             <a href="{{ route('student.exam.verify.show', $session->exam) }}"
                                 class="group/btn relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-black rounded-2xl text-white bg-slate-900 hover:bg-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-200 shadow-xl shadow-slate-200 hover:shadow-indigo-200 transition-all active:scale-95">
                                 <span class="flex items-center gap-2">
@@ -214,9 +216,9 @@
                             </a>
                             @else
                             <div x-data="{
-                                    startsAt: new Date('{{ \Carbon\Carbon::parse($session->start_time)->toIso8601String() }}'),
-                                    now: new Date()
-                                }" class="text-center w-full">
+                        startsAt: new Date('{{ \Carbon\Carbon::parse($session->start_time)->toIso8601String() }}'),
+                        now: new Date()
+                    }" class="text-center w-full">
 
                                 <template x-if="startsAt > now">
                                     <button disabled

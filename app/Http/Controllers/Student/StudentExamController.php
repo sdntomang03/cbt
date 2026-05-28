@@ -21,16 +21,19 @@ class StudentExamController extends Controller
 
         // Ambil sesi ujian via relasi Many-to-Many
         $mySessions = $user->examSessions()
-        // PERBAIKAN DI SINI:
-        // Gunakan array callback untuk memanggil withCount pada relasi 'exam'
+            // ----------------------------------------------------
+            // KUNCI PERBAIKANNYA ADA DI BARIS INI:
+            ->withPivot('status', 'score')
+            // ----------------------------------------------------
             ->with(['exam' => function ($query) {
                 $query->withCount('questions');
             }])
-        // ------------------
             ->orderBy('start_time', 'asc')
             ->get()
             ->map(function ($session) {
                 $session->is_open = now()->between($session->start_time, $session->end_time);
+
+                // Sekarang $session->pivot->status tidak akan null lagi
                 $session->user_status = $session->pivot->status;
                 $session->user_score = $session->pivot->score;
 
