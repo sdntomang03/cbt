@@ -20,6 +20,17 @@
             .hover-lift:hover {
                 transform: translateY(-4px);
             }
+
+            /* Custom Scrollbar untuk Table */
+            .custom-scrollbar::-webkit-scrollbar {
+                height: 8px;
+                width: 8px;
+            }
+
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 10px;
+            }
         </style>
 
         <div class="flex flex-col md:flex-row justify-between items-center w-full gap-6 py-2 px-2" x-data>
@@ -34,7 +45,6 @@
                 </div>
             </div>
 
-            {{-- Kita dispatch custom event ke window agar bisa ditangkap oleh komponen Alpine utama di bawah --}}
             <button @click="$dispatch('buka-modal-sesi')"
                 class="bg-slate-900 hover:bg-black text-white px-6 py-3 rounded-full shadow-xl shadow-slate-300 transition-all active:scale-95 font-bold flex items-center gap-3 shrink-0">
                 <div class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
@@ -45,11 +55,10 @@
         </div>
     </x-slot>
 
-    {{-- Kita tangkap event custom di scope utama ini --}}
     <div class="min-h-screen py-10" x-data="sessionManager()" @buka-modal-sesi.window="openModal()">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            {{-- TAMPILAN 1: DAFTAR UJIAN (Muncul jika URL tidak memiliki exam_id) --}}
+            {{-- TAMPILAN 1: DAFTAR UJIAN (Tetap menggunakan Card karena berfungsi sebagai menu pilihan) --}}
             @if(!request('exam_id') && !request('search'))
             <div class="mb-8">
                 <h3 class="text-lg font-black text-slate-700 mb-4 px-2">Pilih Ujian untuk melihat jadwal sesinya:</h3>
@@ -84,10 +93,10 @@
                 </div>
             </div>
 
-            {{-- TAMPILAN 2: DAFTAR SESI (Muncul setelah Ujian diklik) --}}
+            {{-- TAMPILAN 2: DAFTAR SESI (DIUBAH MENJADI FORMAT DATATABLE) --}}
             @else
             <div
-                class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-100 mb-8 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-100 mb-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
 
                 <a href="{{ route('admin.exam-sessions.index') }}"
                     class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-50 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl font-bold text-sm transition-colors shrink-0">
@@ -96,7 +105,6 @@
 
                 <form method="GET" action="{{ route('admin.exam-sessions.index') }}"
                     class="flex flex-wrap w-full lg:w-auto lg:max-w-3xl gap-3">
-                    {{-- Pertahankan filter exam_id saat melakukan pencarian --}}
                     <input type="hidden" name="exam_id" value="{{ request('exam_id') }}">
 
                     @if(auth()->user()->hasRole('admin'))
@@ -136,149 +144,127 @@
                 </form>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                @forelse($sessions as $session)
-                <div
-                    class="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100 hover:border-indigo-100 transition-all hover-lift group relative flex flex-col h-full">
-
-                    <div class="absolute inset-0 overflow-hidden rounded-[2.5rem] pointer-events-none">
-                        <div
-                            class="absolute -right-6 -top-6 w-24 h-24 bg-slate-50 rounded-full group-hover:bg-indigo-50 transition-colors">
-                        </div>
-                    </div>
-
-                    <div class="flex justify-between items-start mb-4 relative z-50">
-                        <div class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border
-                            {{ now()->between($session->start_time, $session->end_time)
-                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                : (now()->lessThan($session->start_time)
-                                    ? 'bg-blue-50 text-blue-600 border-blue-100'
-                                    : 'bg-slate-50 text-slate-400 border-slate-100') }}">
-                            @if(now()->between($session->start_time, $session->end_time))
-                            <i class="fas fa-circle text-[8px] mr-1 animate-pulse"></i> Berlangsung
-                            @elseif(now()->lessThan($session->start_time))
-                            <i class="fas fa-clock mr-1"></i> Akan Datang
-                            @else
-                            <i class="fas fa-check-circle mr-1"></i> Selesai
-                            @endif
-                        </div>
-
-                        <div x-data="{ open: false }" class="relative">
-                            <button @click="open = !open" @click.outside="open = false"
-                                class="text-slate-300 hover:text-slate-600 transition">
-                                <i class="fas fa-ellipsis-v"></i>
-                            </button>
-
-                            <div x-show="open" x-transition:enter="transition ease-out duration-100"
-                                x-transition:enter-start="transform opacity-0 scale-95"
-                                x-transition:enter-end="transform opacity-100 scale-100"
-                                x-transition:leave="transition ease-in duration-75"
-                                x-transition:leave-start="transform opacity-100 scale-100"
-                                x-transition:leave-end="transform opacity-0 scale-95"
-                                class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50 origin-top-right">
-
-                                <a href="{{ route('admin.exam-sessions.students.index', $session->id) }}"
-                                    class="block px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-indigo-600">
-                                    <i class="fas fa-users mr-2"></i> Kelola Peserta
-                                </a>
-                                <a href="#" @click.prevent="editSession({{ $session }})"
-                                    class="block px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-indigo-600">
-                                    <i class="fas fa-edit mr-2"></i> Edit Sesi
-                                </a>
-                                <form action="{{ route('admin.exam-sessions.destroy', $session->id) }}" method="POST"
-                                    class="block">
-                                    @csrf @method('DELETE')
-                                    <button type="button" @click="confirmDelete($event)"
-                                        class="w-full text-left px-4 py-2 text-sm font-bold text-rose-500 hover:bg-rose-50">
-                                        <i class="fas fa-trash-alt mr-2"></i> Hapus
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-6 relative z-10 flex-1">
-                        @if(auth()->user()->hasRole('admin') && $session->school)
-                        <div
-                            class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center">
-                            <i class="fas fa-school mr-1.5 opacity-70"></i> {{ $session->school->name }}
-                        </div>
-                        @endif
-
-                        <h3 class="font-black text-xl text-slate-800 mb-1 leading-tight">{{ $session->session_name }}
-                        </h3>
-                        <p class="text-sm font-bold text-indigo-500 mb-4 line-clamp-1">{{ $session->exam->title ??
-                            'Ujian Dihapus' }}</p>
-
-                        <div class="space-y-4">
-                            <div class="flex items-center gap-3 text-sm font-semibold text-slate-500">
-                                <div
-                                    class="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500 shadow-sm border border-emerald-100 shrink-0">
-                                    <i class="fas fa-calendar-plus"></i>
-                                </div>
-                                <div class="flex flex-col">
-                                    <span
-                                        class="text-[10px] font-black uppercase tracking-wider text-slate-400 leading-none mb-1">Mulai</span>
-                                    <span class="text-slate-700 leading-none">{{
-                                        \Carbon\Carbon::parse($session->start_time)->format('d M Y, H:i') }} WIB</span>
-                                </div>
-                            </div>
-
-                            <div class="flex items-center gap-3 text-sm font-semibold text-slate-500">
-                                <div
-                                    class="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-500 shadow-sm border border-rose-100 shrink-0">
-                                    <i class="fas fa-calendar-check"></i>
-                                </div>
-                                <div class="flex flex-col">
-                                    <span
-                                        class="text-[10px] font-black uppercase tracking-wider text-slate-400 leading-none mb-1">Berakhir</span>
-                                    <span class="text-slate-700 leading-none">{{
-                                        \Carbon\Carbon::parse($session->end_time)->format('d M Y, H:i') }} WIB</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mt-auto pt-4 relative z-10 border-t border-slate-50">
-                        <div
-                            class="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center justify-between group-hover:border-indigo-100 transition-colors">
-                            <div>
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Token
-                                    Akses</p>
-                                <div class="font-mono font-black text-2xl text-slate-800 tracking-widest"
-                                    id="token-{{ $session->id }}">
-                                    {{ $session->token ?? '------' }}
-                                </div>
-                            </div>
-                            <div class="flex gap-2">
-                                <button @click="copyToken({{ $session->id }})"
-                                    class="w-10 h-10 rounded-xl bg-white text-slate-400 hover:text-indigo-600 shadow-sm hover:shadow-md transition flex items-center justify-center border border-slate-100"
-                                    title="Salin Token">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                                <button @click="regenerateToken({{ $session->id }})"
-                                    class="w-10 h-10 rounded-xl bg-white text-slate-400 hover:text-orange-500 shadow-sm hover:shadow-md transition flex items-center justify-center border border-slate-100"
-                                    title="Acak Ulang Token">
-                                    <i class="fas fa-sync-alt"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
+            {{-- FORMAT TABEL BARU --}}
+            <div class="bg-white shadow-sm sm:rounded-[2rem] border border-slate-100 overflow-hidden mb-6">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left border-collapse whitespace-nowrap">
+                        <thead>
+                            <tr
+                                class="bg-slate-50/80 border-b border-slate-100 text-[10px] uppercase tracking-widest text-slate-400 font-black">
+                                <th class="px-6 py-5 rounded-tl-[2rem]">Informasi Sesi</th>
+                                <th class="px-6 py-5">Jadwal Pelaksanaan</th>
+                                <th class="px-6 py-5 text-center">Status</th>
+                                <th class="px-6 py-5">Token Akses</th>
+                                <th class="px-6 py-5 text-right rounded-tr-[2rem]">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50 text-sm">
+                            @forelse($sessions as $session)
+                            <tr class="hover:bg-slate-50/50 transition-colors group">
+                                <td class="px-6 py-4">
+                                    <div class="font-black text-slate-800 text-base mb-1">{{ $session->session_name }}
+                                    </div>
+                                    <div class="text-xs font-bold text-indigo-500 line-clamp-1">{{ $session->exam->title
+                                        ?? 'Ujian Dihapus' }}</div>
+                                    @if(auth()->user()->hasRole('admin') && $session->school)
+                                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                                        <i class="fas fa-school mr-1 opacity-70"></i> {{ $session->school->name }}
+                                    </div>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-col gap-1.5">
+                                        <div
+                                            class="flex items-center gap-2 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md w-fit">
+                                            <i class="fas fa-play-circle opacity-70"></i>
+                                            {{ \Carbon\Carbon::parse($session->start_time)->format('d M Y, H:i') }}
+                                        </div>
+                                        <div
+                                            class="flex items-center gap-2 text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md w-fit">
+                                            <i class="fas fa-stop-circle opacity-70"></i>
+                                            {{ \Carbon\Carbon::parse($session->end_time)->format('d M Y, H:i') }}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <div class="inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border
+                                        {{ now()->between($session->start_time, $session->end_time)
+                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                            : (now()->lessThan($session->start_time)
+                                                ? 'bg-blue-50 text-blue-600 border-blue-100'
+                                                : 'bg-slate-50 text-slate-400 border-slate-100') }}">
+                                        @if(now()->between($session->start_time, $session->end_time))
+                                        <i class="fas fa-circle text-[8px] mr-1.5 animate-pulse"></i> Berlangsung
+                                        @elseif(now()->lessThan($session->start_time))
+                                        <i class="fas fa-clock mr-1.5"></i> Akan Datang
+                                        @else
+                                        <i class="fas fa-check-circle mr-1.5"></i> Selesai
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="font-mono font-black text-lg text-slate-800 tracking-widest bg-slate-100 px-3 py-1 rounded-lg border border-slate-200"
+                                            id="token-{{ $session->id }}">
+                                            {{ $session->token ?? '------' }}
+                                        </div>
+                                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button @click="copyToken({{ $session->id }})"
+                                                class="w-8 h-8 rounded-lg bg-white text-slate-400 hover:text-indigo-600 shadow-sm border border-slate-200 flex items-center justify-center transition"
+                                                title="Salin Token">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                            <button @click="regenerateToken({{ $session->id }})"
+                                                class="w-8 h-8 rounded-lg bg-white text-slate-400 hover:text-orange-500 shadow-sm border border-slate-200 flex items-center justify-center transition"
+                                                title="Acak Ulang Token">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex justify-end gap-2">
+                                        <a href="{{ route('admin.exam-sessions.students.index', $session->id) }}"
+                                            class="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition font-bold text-xs flex items-center gap-1"
+                                            title="Kelola Peserta">
+                                            <i class="fas fa-users"></i> Peserta
+                                        </a>
+                                        <button @click="editSession({{ $session }})"
+                                            class="w-8 h-8 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-500 hover:text-white transition flex items-center justify-center"
+                                            title="Edit Sesi">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <form action="{{ route('admin.exam-sessions.destroy', $session->id) }}"
+                                            method="POST" class="inline">
+                                            @csrf @method('DELETE')
+                                            <button type="button" @click="confirmDelete($event)"
+                                                class="w-8 h-8 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-600 hover:text-white transition flex items-center justify-center"
+                                                title="Hapus Sesi">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" class="py-20 text-center">
+                                    <div
+                                        class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <i class="fas fa-calendar-times text-3xl text-slate-300"></i>
+                                    </div>
+                                    <h3 class="text-lg font-black text-slate-700">Belum Ada Sesi Ujian</h3>
+                                    <p class="text-slate-400 font-bold text-sm mt-1">Buat sesi ujian baru untuk
+                                        menjadwalkan tes.</p>
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
-                @empty
-                <div class="col-span-full flex flex-col items-center justify-center py-20 text-center">
-                    <div class="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-6">
-                        <i class="fas fa-calendar-times text-4xl text-slate-300"></i>
-                    </div>
-                    <h3 class="text-xl font-black text-slate-800">Belum Ada Sesi Ujian</h3>
-                    <p class="text-slate-400 font-bold max-w-md mx-auto mt-2">Buat sesi ujian baru untuk mulai
-                        menjadwalkan tes bagi siswa.</p>
-                </div>
-                @endforelse
             </div>
 
-            <div class="mt-8">
+            <div>
                 {{ $sessions->links() }}
             </div>
             @endif
