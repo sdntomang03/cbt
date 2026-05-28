@@ -392,11 +392,11 @@ class StudentExamController extends Controller
         ]);
     }
 
-    public function showVerifyPage($exam_id)
+    public function showVerifyPage(Exam $exam)
     {
         $user = Auth::user();
 
-        $session = ExamSession::where('exam_id', $exam_id)
+        $session = ExamSession::where('exam_id', $exam->id)
             ->whereHas('students', fn ($q) => $q->where('users.id', $user->id))
             ->with('exam')
             ->firstOrFail();
@@ -420,8 +420,8 @@ class StudentExamController extends Controller
         }
 
         // Jika sudah pernah diverifikasi sebelumnya dan ujian masih 'ongoing', langsung lompat (opsional)
-        if (session()->has('verified_exam_'.$exam_id) && $pivot->status === 'ongoing') {
-            return redirect()->route('student.exam.run', $exam_id);
+        if (session()->has('verified_exam_'.$exam->id) && $pivot->status === 'ongoing') {
+            return redirect()->route('student.exam.run', $exam->id);
         }
 
         // LOGIKA BARU: Cek apakah sekolah siswa terdaftar di registration_settings
