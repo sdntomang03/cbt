@@ -96,12 +96,6 @@
         <span>Monitoring Ujian</span>
     </a>
 
-    <a href="{{ route('admin.analysis.index') }}"
-        class="w-8 h-8 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-600 hover:text-white transition flex items-center justify-center"
-        title="Analisis Butir Soal">
-        <i class="fas fa-chart-pie"></i>
-    </a>
-
     <a href="{{ route('admin.math.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('admin.math.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-calculator w-6 text-center text-lg"></i>
