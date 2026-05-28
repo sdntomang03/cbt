@@ -53,9 +53,10 @@ class ExamController extends Controller
 
     public function store(Request $request)
     {
+        // 1. Validasi tetap di luar agar fungsi bawaan Laravel (menampilkan pesan error form) tetap berjalan
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'exam_type_id' => 'required|exists:exam_types,id', // Sesuai model
+            'exam_type_id' => 'required|exists:exam_types,id',
             'duration_minutes' => 'required|integer|min:1',
             'status' => ['required', Rule::enum(ExamStatus::class)],
             'level_id' => 'required|exists:levels,id',
@@ -63,16 +64,26 @@ class ExamController extends Controller
             'show_explanation' => 'boolean',
         ]);
 
-        $validated['slug'] = Str::slug($request->title).'-'.Str::random(5);
-        $validated['teacher_id'] = Auth::id();
-        $validated['school_id'] = Auth::user()->school_id;
-        $validated['random_question'] = $request->has('random_question');
-        $validated['random_answer'] = $request->has('random_answer');
-        $validated['show_explanation'] = $request->has('show_explanation');
+        // 2. Mulai tangkap potensi error saat memproses dan menyimpan data
+        try {
+            $validated['slug'] = Str::slug($request->title).'-'.Str::random(5);
+            $validated['teacher_id'] = Auth::id();
+            $validated['school_id'] = Auth::user()->school_id;
+            $validated['random_question'] = $request->has('random_question');
+            $validated['random_answer'] = $request->has('random_answer');
+            $validated['show_explanation'] = $request->has('show_explanation');
 
-        Exam::create($validated);
+            Exam::create($validated);
 
-        return redirect()->back()->with('success', 'Ujian berhasil dibuat!');
+            return redirect()->back()->with('success', 'Ujian berhasil dibuat!');
+
+        } catch (\Exception $e) {
+            // 3. Jika gagal, tangkap pesan error aslinya dan kembalikan ke halaman sebelumnya
+            // withInput() digunakan agar isian form yang sudah diketik tidak hilang
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal menyimpan ujian: '.$e->getMessage());
+        }
     }
 
     public function update(Request $request, Exam $exam)
