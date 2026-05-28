@@ -13,14 +13,6 @@
                 background-color: #f0f4f8;
             }
 
-            .hover-lift {
-                transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-            }
-
-            .hover-lift:hover {
-                transform: translateY(-4px);
-            }
-
             /* Custom Scrollbar untuk Table */
             .custom-scrollbar::-webkit-scrollbar {
                 height: 8px;
@@ -58,42 +50,87 @@
     <div class="min-h-screen py-10" x-data="sessionManager()" @buka-modal-sesi.window="openModal()">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            {{-- TAMPILAN 1: DAFTAR UJIAN (Tetap menggunakan Card karena berfungsi sebagai menu pilihan) --}}
+            {{-- TAMPILAN 1: DAFTAR UJIAN (DIUBAH MENJADI DATATABLE) --}}
             @if(!request('exam_id') && !request('search'))
             <div class="mb-8">
                 <h3 class="text-lg font-black text-slate-700 mb-4 px-2">Pilih Ujian untuk melihat jadwal sesinya:</h3>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    @forelse($exams as $exam)
-                    <a href="{{ request()->fullUrlWithQuery(['exam_id' => $exam->id]) }}"
-                        class="block bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 hover:border-indigo-400 hover:shadow-md transition-all hover-lift group">
-                        <div class="flex items-center gap-4 mb-4">
-                            <div
-                                class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
-                                <i class="fas fa-file-alt"></i>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <h3 class="font-black text-lg text-slate-800 truncate">{{ $exam->title }}</h3>
-                                <p class="text-xs font-bold text-slate-400 mt-1"><i class="far fa-clock mr-1"></i> {{
-                                    $exam->duration_minutes }} Menit</p>
-                            </div>
-                        </div>
-                        <div
-                            class="flex items-center justify-between text-xs font-bold text-indigo-500 bg-indigo-50/50 px-4 py-2.5 rounded-xl">
-                            <span>Lihat Jadwal Sesi</span>
-                            <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
-                        </div>
-                    </a>
-                    @empty
-                    <div class="col-span-full py-12 text-center">
-                        <i class="fas fa-folder-open text-4xl text-slate-300 mb-3 block"></i>
-                        <p class="text-slate-500 font-bold">Belum ada ujian yang tersedia.</p>
+                <div class="bg-white shadow-sm sm:rounded-[2rem] border border-slate-100 overflow-hidden mb-6">
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left border-collapse whitespace-nowrap">
+                            <thead>
+                                <tr
+                                    class="bg-slate-50/80 border-b border-slate-100 text-[10px] uppercase tracking-widest text-slate-400 font-black">
+                                    <th class="px-6 py-5 rounded-tl-[2rem]">Informasi Ujian</th>
+                                    <th class="px-6 py-5 text-center">Durasi</th>
+                                    <th class="px-6 py-5 text-right rounded-tr-[2rem]">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-50 text-sm">
+                                @forelse($exams as $exam)
+                                {{-- Baris tabel bisa langsung diklik --}}
+                                <tr class="hover:bg-slate-50/50 transition-colors group cursor-pointer"
+                                    onclick="window.location='{{ request()->fullUrlWithQuery(['exam_id' => $exam->id]) }}'">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-4">
+                                            <div
+                                                class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
+                                                <i class="fas fa-file-alt"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-black text-slate-800 text-base mb-1">{{ $exam->title }}
+                                                </div>
+                                                <div
+                                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 flex flex-wrap gap-2 items-center">
+                                                    <span class="bg-slate-100 px-2 py-0.5 rounded-md"><i
+                                                            class="fas fa-layer-group mr-1 opacity-70"></i> {{
+                                                        $exam->level->name ?? 'Umum' }}</span>
+                                                    <span class="bg-slate-100 px-2 py-0.5 rounded-md"><i
+                                                            class="fas fa-book mr-1 opacity-70"></i> {{
+                                                        $exam->subject->name ?? 'Umum' }}</span>
+                                                    <span class="bg-indigo-50 text-indigo-500 px-2 py-0.5 rounded-md"><i
+                                                            class="fas fa-question-circle mr-1"></i> {{
+                                                        $exam->questions_count }} Soal</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <div
+                                            class="inline-flex items-center gap-2 text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200/60">
+                                            <i class="far fa-clock text-slate-400"></i> {{ $exam->duration_minutes }}
+                                            Menit
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <div
+                                            class="inline-flex items-center justify-between text-xs font-bold text-indigo-600 bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white px-4 py-2.5 rounded-xl transition-colors">
+                                            <span>Lihat Sesi</span>
+                                            <i
+                                                class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                                        </div>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="3" class="py-20 text-center">
+                                        <div
+                                            class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <i class="fas fa-folder-open text-3xl text-slate-300"></i>
+                                        </div>
+                                        <h3 class="text-lg font-black text-slate-700">Belum Ada Ujian</h3>
+                                        <p class="text-slate-400 font-bold text-sm mt-1">Belum ada ujian yang tersedia
+                                            untuk dikelola sesinya.</p>
+                                    </td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
-                    @endforelse
                 </div>
             </div>
 
-            {{-- TAMPILAN 2: DAFTAR SESI (DIUBAH MENJADI FORMAT DATATABLE) --}}
+            {{-- TAMPILAN 2: DAFTAR SESI (DATATABLE) --}}
             @else
             <div
                 class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-100 mb-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
@@ -144,7 +181,6 @@
                 </form>
             </div>
 
-            {{-- FORMAT TABEL BARU --}}
             <div class="bg-white shadow-sm sm:rounded-[2rem] border border-slate-100 overflow-hidden mb-6">
                 <div class="overflow-x-auto custom-scrollbar">
                     <table class="w-full text-left border-collapse whitespace-nowrap">
