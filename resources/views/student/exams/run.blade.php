@@ -825,6 +825,7 @@
 function openLightbox(src) {
     const lb  = document.getElementById('lightbox');
     const img = document.getElementById('lightbox-img');
+    if (!lb || !img) return;
     img.src = src;
     img.classList.remove('zoomed');
     lb.classList.add('open');
@@ -834,6 +835,7 @@ function openLightbox(src) {
 function hideLightbox() {
     const lb  = document.getElementById('lightbox');
     const img = document.getElementById('lightbox-img');
+    if (!lb || !img) return;
     lb.classList.remove('open');
     img.classList.remove('zoomed');
     img.src = '';
@@ -841,32 +843,39 @@ function hideLightbox() {
 }
 
 function closeLightbox(e) {
-    // Tutup hanya jika klik di luar gambar
     if (e.target === document.getElementById('lightbox')) hideLightbox();
 }
 
 function toggleZoom(e) {
     e.stopPropagation();
-    document.getElementById('lightbox-img').classList.toggle('zoomed');
+    const img = document.getElementById('lightbox-img');
+    if (img) img.classList.toggle('zoomed');
 }
 
 function lbKeyHandler(e) {
     if (e.key === 'Escape') hideLightbox();
 }
 
-// Scroll wheel untuk zoom
-document.getElementById('lightbox-img').addEventListener('wheel', function(e) {
-    e.preventDefault();
-    const img    = this;
-    const isZoomed = img.classList.contains('zoomed');
-    if (e.deltaY < 0 && !isZoomed) img.classList.add('zoomed');
-    if (e.deltaY > 0 && isZoomed)  img.classList.remove('zoomed');
-}, { passive: false });
+// Jalankan setelah DOM siap
+document.addEventListener('DOMContentLoaded', function () {
+    // Scroll wheel zoom
+    const img = document.getElementById('lightbox-img');
+    if (img) {
+        img.addEventListener('wheel', function(e) {
+            e.preventDefault();
+            if (e.deltaY < 0) this.classList.add('zoomed');
+            else               this.classList.remove('zoomed');
+        }, { passive: false });
+    }
 
-// Delegasi event: tangkap semua klik gambar di dalam soal
-document.getElementById('question-viewport').addEventListener('click', function(e) {
-    if (e.target.tagName === 'IMG') {
-        openLightbox(e.target.src);
+    // Delegasi klik gambar di dalam soal
+    const viewport = document.getElementById('question-viewport');
+    if (viewport) {
+        viewport.addEventListener('click', function(e) {
+            if (e.target.tagName === 'IMG') {
+                openLightbox(e.target.src);
+            }
+        });
     }
 });
     </script>
