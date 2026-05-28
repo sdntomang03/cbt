@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -305,14 +306,39 @@ class SoalController extends Controller
 
     public function uploadImage(Request $request)
     {
-        $request->validate([
-            'image' => 'required|image|mimes:jpg,jpeg,png,gif,webp|max:2048',
-        ]);
+        try {
+            $request->validate([
+                'image' => 'required|image|mimes:jpg,jpeg,png,gif,webp|max:2048',
+            ]);
 
-        $path = $request->file('image')->store('questions', 'public');
+            if (! $request->hasFile('image')) {
+                return response()->json(['error' => 'Tidak ada file yang diterima'], 422);
+            }
 
-        return response()->json([
-            'url' => asset('storage/'.$path),
-        ]);
+            if (! $request->file('image')->isValid()) {
+                return response()->json(['error' => 'File tidak valid'], 422);
+            }
+
+            $path = $request->file('image')->store('questions', 'public');
+
+            if (! $path) {
+                return response()->json(['error' => 'Gagal menyimpan file ke storage'], 500);
+            }
+
+            return response()->json([
+                'url' => asset('storage/'.$path),
+            ]);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'error' => 'Validasi gagal',
+                'detail' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Server error',
+                'detail' => $e->getMessage(),
+            ], 500);
+        }
     }
 }
