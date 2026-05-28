@@ -106,8 +106,8 @@
     @role('siswa')
     <div class="text-xs font-black text-slate-400 uppercase tracking-widest mt-8 mb-3 px-4">Menu Siswa</div>
 
-    <a href="{{ route('student.dashboard') }}"
-        class="{{ $navClass }} {{ request()->routeIs('student.dashboard') ? $activeClass : $inactiveClass }}">
+    <a href="{{ route('student.index') }}"
+        class="{{ $navClass }} {{ request()->routeIs('student.index') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-door-open w-6 text-center text-lg"></i>
         <span>Ruang Ujian</span>
     </a>
