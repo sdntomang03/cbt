@@ -385,7 +385,7 @@ class MathExamController extends Controller
             $questionId = $request->question_id;
             $answer = $request->answer;
 
-            // Memastikan data ujian dicari dengan mengabaikan global scope (seperti yang Anda lakukan di index)
+            // Memastikan data ujian dicari dengan mengabaikan global scope
             $examUser = MathExamUser::withoutGlobalScopes()
                 ->where('math_exam_id', $id)
                 ->where('student_id', $userId)
@@ -405,7 +405,9 @@ class MathExamController extends Controller
 
             if ($question) {
                 $studentAns = ($answer !== null && $answer !== '') ? (int) $answer : null;
-                $isCorrect = ($studentAns === clone $question->correct_answer && $studentAns !== null);
+
+                // PERBAIKAN: Hapus kata 'clone' di sini
+                $isCorrect = ($studentAns === $question->correct_answer && $studentAns !== null);
 
                 // Update data
                 $question->update([
@@ -418,14 +420,14 @@ class MathExamController extends Controller
 
             return response()->json(['status' => 'error', 'message' => 'Soal tidak ditemukan.'], 404);
 
-        } catch (\Exception $e) {
-            // JIKA ADA ERROR PHP, KITA TANGKAP DAN KIRIM KE BROWSER!
+        } catch (\Throwable $e) {
+            // Menggunakan \Throwable akan menangkap Fatal Error PHP sekalipun
             return response()->json([
                 'status' => 'error',
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
-            ], 400); // Sengaja dikirim sebagai 400 agar ditangkap Axios
+            ], 400);
         }
     }
 }
