@@ -110,6 +110,85 @@
             z-index: 20000 !important;
         }
 
+        /* ── Lightbox ── */
+        #lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: rgba(0, 0, 0, 0.92);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .2s;
+        }
+
+        #lightbox.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        #lightbox img {
+            max-width: 90vw;
+            max-height: 90vh;
+            border-radius: 1rem;
+            transform: scale(1);
+            transform-origin: center;
+            transition: transform .1s;
+            cursor: zoom-in;
+            user-select: none;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
+        }
+
+        #lightbox img.zoomed {
+            transform: scale(2);
+            cursor: zoom-out;
+        }
+
+        #lightbox-close {
+            position: absolute;
+            top: 1.2rem;
+            right: 1.5rem;
+            background: rgba(255, 255, 255, .15);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background .15s;
+        }
+
+        #lightbox-close:hover {
+            background: rgba(255, 255, 255, .3);
+        }
+
+        #lightbox-hint {
+            position: absolute;
+            bottom: 1.5rem;
+            color: rgba(255, 255, 255, .4);
+            font-size: .78rem;
+            letter-spacing: .05em;
+        }
+
+        /* Buat gambar di dalam soal tampak klikable */
+        #question-viewport img {
+            cursor: zoom-in;
+            border-radius: .5rem;
+            transition: opacity .15s, box-shadow .15s;
+            max-width: 100%;
+        }
+
+        #question-viewport img:hover {
+            opacity: .9;
+            box-shadow: 0 0 0 3px #4f46e5;
+        }
+
         [x-cloak] {
             display: none !important;
         }
@@ -742,6 +821,61 @@
                     }
                 }));
             });
+            // ── LIGHTBOX ──
+function openLightbox(src) {
+    const lb  = document.getElementById('lightbox');
+    const img = document.getElementById('lightbox-img');
+    img.src = src;
+    img.classList.remove('zoomed');
+    lb.classList.add('open');
+    document.addEventListener('keydown', lbKeyHandler);
+}
+
+function hideLightbox() {
+    const lb  = document.getElementById('lightbox');
+    const img = document.getElementById('lightbox-img');
+    lb.classList.remove('open');
+    img.classList.remove('zoomed');
+    img.src = '';
+    document.removeEventListener('keydown', lbKeyHandler);
+}
+
+function closeLightbox(e) {
+    // Tutup hanya jika klik di luar gambar
+    if (e.target === document.getElementById('lightbox')) hideLightbox();
+}
+
+function toggleZoom(e) {
+    e.stopPropagation();
+    document.getElementById('lightbox-img').classList.toggle('zoomed');
+}
+
+function lbKeyHandler(e) {
+    if (e.key === 'Escape') hideLightbox();
+}
+
+// Scroll wheel untuk zoom
+document.getElementById('lightbox-img').addEventListener('wheel', function(e) {
+    e.preventDefault();
+    const img    = this;
+    const isZoomed = img.classList.contains('zoomed');
+    if (e.deltaY < 0 && !isZoomed) img.classList.add('zoomed');
+    if (e.deltaY > 0 && isZoomed)  img.classList.remove('zoomed');
+}, { passive: false });
+
+// Delegasi event: tangkap semua klik gambar di dalam soal
+document.getElementById('question-viewport').addEventListener('click', function(e) {
+    if (e.target.tagName === 'IMG') {
+        openLightbox(e.target.src);
+    }
+});
     </script>
+    <div id="lightbox" onclick="closeLightbox(event)">
+        <button id="lightbox-close" onclick="hideLightbox()">
+            <i class="fas fa-times"></i>
+        </button>
+        <img id="lightbox-img" src="" alt="Preview" onclick="toggleZoom(event)">
+        <span id="lightbox-hint">Klik gambar untuk zoom · Klik luar untuk tutup · Scroll untuk zoom</span>
+    </div>
     @endif
 </x-cbt-layout>
