@@ -137,7 +137,7 @@
                                     </button>
                                     <a href="{{ route('admin.analysis.index', $exam->id) }}"
                                         class="bg-purple-50 text-purple-600 border border-purple-100 hover:bg-purple-600 hover:text-white px-4 py-2 rounded-xl text-xs font-black shadow-sm transition-all flex items-center gap-2 active:scale-95 inline-flex">
-                                        <i class="fas fa-chart-pie"></i> <span>Analisis</span>
+                                        <i class="fas fa-chart-pie"></i>
                                     </a>
                                     <form action="{{ route('admin.exams.destroy', $exam) }}" method="POST"
                                         onsubmit="return confirm('Hapus ujian ini beserta seluruh soalnya?')">
