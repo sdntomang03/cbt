@@ -690,7 +690,7 @@
 
                                 // HEARTBEAT: Cek status diam-diam setiap 30 detik
                            if (this.timeLeft % 30 === 0) {
-    axios.get('{{ route("student.exam.status", $exam->id) }}')
+    axios.get('{{ route("student.exam.status", $exam) }}')
         .then(res => {
             if (res.data.status === 'completed' || res.data.is_locked) {
                 this.triggerForceEnd();
