@@ -11,9 +11,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
-use Intervention\Image\Facades\Image;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -308,42 +305,37 @@ class SoalController extends Controller
 
     public function uploadImage(Request $request)
     {
-        try {
-            $request->validate([
-                'image' => 'required|image|mimes:jpg,jpeg,png,gif,webp|max:2048',
-            ]);
+        $request->validate([
+            'image' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
+        ]);
 
-            if (! $request->hasFile('image')) {
-                return response()->json(['error' => 'Tidak ada file yang diterima'], 422);
-            }
+        $file = $request->file('image');
+        $filename = 'questions/'.uniqid().'.webp';
+        $path = storage_path('app/public/'.$filename);
 
-            $file = $request->file('image');
+        // 1. Ambil konten file
+        $fileContent = file_get_contents($file->getRealPath());
 
-            // 1. Buat nama file unik dengan ekstensi .webp
-            $filename = 'questions/'.uniqid().'_'.time().'.webp';
+        // 2. Buat resource gambar dari string
+        $img = @imagecreatefromstring($fileContent);
 
-            // 2. Proses gambar menjadi WebP (Kualitas 80%)
-            $image = Image::make($file);
-
-            // Konversi ke WebP dan simpan ke disk 'public'
-            // 'questions/' adalah folder di dalam storage/app/public/
-            $result = Storage::disk('public')->put(
-                $filename,
-                (string) $image->encode('webp', 80)
-            );
-
-            if (! $result) {
-                return response()->json(['error' => 'Gagal menyimpan file ke storage'], 500);
-            }
-
-            return response()->json([
-                'url' => asset('storage/'.$filename),
-            ]);
-
-        } catch (ValidationException $e) {
-            return response()->json(['error' => 'Validasi gagal', 'detail' => $e->errors()], 422);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Server error', 'detail' => $e->getMessage()], 500);
+        if (! $img) {
+            return response()->json(['error' => 'Gagal memproses gambar'], 422);
         }
+
+        // 3. Pastikan folder tujuan ada
+        if (! file_exists(dirname($path))) {
+            mkdir(dirname($path), 0755, true);
+        }
+
+        // 4. Konversi & Simpan ke WebP
+        // 80 adalah kualitas (0-100)
+        if (imagewebp($img, $path, 80)) {
+            imagedestroy($img);
+
+            return response()->json(['url' => asset('storage/'.$filename)]);
+        }
+
+        return response()->json(['error' => 'Gagal menyimpan gambar ke server'], 500);
     }
 }
