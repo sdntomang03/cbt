@@ -637,12 +637,21 @@
             triggerAutosave(questionId) {
                 const answerValue = this.answers[questionId] !== undefined ? this.answers[questionId] : '';
 
-                axios.post(`/math-exam/${this.examId}/autosave`, {
+                // Ambil CSRF Token dari tag meta HTML
+                const metaToken = document.querySelector('meta[name="csrf-token"]');
+                const csrfToken = metaToken ? metaToken.getAttribute('content') : '';
+
+                axios.post(`/student/math-exam/${this.examId}/autosave`, {
                     question_id: questionId,
                     answer: answerValue
+                }, {
+                    // Tambahkan Headers ini
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    }
                 })
                 .then(response => {
-                    // Berhasil disimpan di background (tidak perlu alert agar tidak mengganggu)
                     console.log('Autosave sukses soal ID:', questionId);
                 })
                 .catch(error => {
