@@ -11,8 +11,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
-use Intervention\Image\ImageManager;
+use Intervention\Image\Facades\Image;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -316,28 +317,22 @@ class SoalController extends Controller
                 return response()->json(['error' => 'Tidak ada file yang diterima'], 422);
             }
 
-            if (! $request->file('image')->isValid()) {
-                return response()->json(['error' => 'File tidak valid'], 422);
-            }
-
             $file = $request->file('image');
 
-            // Buat instance ImageManager
-            $manager = new ImageManager(new Driver);
-
-            // Baca gambar dan konversi ke WebP
-            $image = $manager->read($file);
-
-            // Encode ke WebP dengan kualitas 80% (default)
-            $encoded = $image->toWebp(80);
-
-            // Generate nama file unik dengan ekstensi .webp
+            // 1. Buat nama file unik dengan ekstensi .webp
             $filename = 'questions/'.uniqid().'_'.time().'.webp';
 
-            // Simpan ke storage
-            $path = Storage::disk('public')->put($filename, $encoded);
+            // 2. Proses gambar menjadi WebP (Kualitas 80%)
+            $image = Image::make($file);
 
-            if (! $path) {
+            // Konversi ke WebP dan simpan ke disk 'public'
+            // 'questions/' adalah folder di dalam storage/app/public/
+            $result = Storage::disk('public')->put(
+                $filename,
+                (string) $image->encode('webp', 80)
+            );
+
+            if (! $result) {
                 return response()->json(['error' => 'Gagal menyimpan file ke storage'], 500);
             }
 
@@ -346,15 +341,9 @@ class SoalController extends Controller
             ]);
 
         } catch (ValidationException $e) {
-            return response()->json([
-                'error' => 'Validasi gagal',
-                'detail' => $e->errors(),
-            ], 422);
+            return response()->json(['error' => 'Validasi gagal', 'detail' => $e->errors()], 422);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Server error',
-                'detail' => $e->getMessage(),
-            ], 500);
+            return response()->json(['error' => 'Server error', 'detail' => $e->getMessage()], 500);
         }
     }
 }
