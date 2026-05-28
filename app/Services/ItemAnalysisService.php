@@ -19,14 +19,14 @@ class ItemAnalysisService
             ->get();
 
         if ($answers->isEmpty()) {
-            return ['error' => 'Belum ada jawaban yang masuk.'];
+            return ['error' => 'Belum ada jawaban yang masuk pada sesi ini.'];
         }
 
-        // 2. Kelompokkan per siswa → hitung skor total per siswa
+        // 2. Kelompokkan per siswa → ambil skor dari DB
         $studentScores = $this->buildStudentScoreMatrix($answers);
 
         if (count($studentScores) < 2) {
-            return ['error' => 'Minimal 2 peserta dibutuhkan untuk analisis.'];
+            return ['error' => 'Minimal 2 peserta dibutuhkan untuk melakukan analisis statistik.'];
         }
 
         // 3. Ambil semua soal
@@ -71,108 +71,22 @@ class ItemAnalysisService
         foreach ($answers as $ans) {
             $uid = $ans->user_id;
             $q = $ans->question;
+
             if (! $q) {
                 continue;
             }
 
-            $score = $this->scoreAnswer($q, $ans->answer);
-
-            $matrix[$uid]['items'][$q->id] = $score;
+            // PERBAIKAN FATAL: Langsung ambil skor dari Database,
+            // Jangan dihitung ulang agar mendukung nilai Essay atau nilai override manual dari guru.
+            $matrix[$uid]['items'][$q->id] = (float) $ans->score;
         }
 
-        // Hitung total skor per siswa
+        // Hitung total skor per siswa (hanya dari butir soal yang dianalisis)
         foreach ($matrix as $uid => &$data) {
             $data['total'] = array_sum($data['items']);
         }
 
         return $matrix;
-    }
-
-    /**
-     * Hitung skor 0–1 dari satu jawaban.
-     */
-    private function scoreAnswer($q, $rawAnswer): float
-    {
-        // Karena Model sudah cast 'json', $rawAnswer bisa sudah array.
-        // Normalisasi dulu ke bentuk yang konsisten.
-        $ans = $rawAnswer;
-
-        if (is_string($ans)) {
-            $decoded = json_decode($ans, true);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                $ans = $decoded;
-            }
-        }
-
-        // Jika masih null/false setelah decode, anggap tidak dijawab
-        if ($ans === null || $ans === false || $ans === '') {
-            return 0.0;
-        }
-
-        switch ($q->type) {
-            case 'single_choice':
-                $correct = $q->options->firstWhere('is_correct', true);
-
-                // Paksa string agar perbandingan tidak gagal jika $ans adalah int
-                return ($correct && (string) $ans === (string) $correct->id) ? 1.0 : 0.0;
-
-            case 'complex_choice':
-                $correctIds = $q->options->where('is_correct', true)
-                    ->pluck('id')->map(fn ($v) => (string) $v)
-                    ->sort()->values()->toArray();
-                $studentIds = is_array($ans)
-                                ? collect($ans)->map(fn ($v) => (string) $v)->sort()->values()->toArray()
-                                : [];
-
-                return ($correctIds == $studentIds) ? 1.0 : 0.0;
-
-            case 'true_false':
-            case 'true_false_multi':
-                $total = $q->options->count();
-                if ($total === 0) {
-                    return 0.0;
-                }
-                $correct = 0;
-                $userAns = is_array($ans) ? $ans : [];
-                foreach ($q->options as $opt) {
-                    $expected = $opt->is_correct ? 'benar' : 'salah';
-                    $given = isset($userAns[$opt->id]) ? strtolower((string) $userAns[$opt->id]) : null;
-                    if ($given === $expected) {
-                        $correct++;
-                    }
-                }
-
-                return $correct / $total;
-
-            case 'matching':
-                $pairs = $q->matches->count();
-                if ($pairs === 0) {
-                    return 0.0;
-                }
-
-                $matches = is_array($ans) ? $ans : [];
-                $correct = 0;
-
-                foreach ($q->matches as $match) {
-                    $premiseId = (string) $match->id;
-                    $correctTargetId = (string) $match->id; // target_id yang benar = match->id itu sendiri
-                    $studentTargetId = isset($matches[$premiseId])
-                                            ? (string) $matches[$premiseId]
-                                            : null;
-
-                    if ($studentTargetId !== null && $studentTargetId === $correctTargetId) {
-                        $correct++;
-                    }
-                }
-
-                return $correct / $pairs;
-
-            case 'essay':
-                return 0.0;
-
-            default:
-                return 0.0;
-        }
     }
 
     // =========================================================================
@@ -196,7 +110,7 @@ class ItemAnalysisService
         // --- Validitas Butir (Point-Biserial / Korelasi Pearson) ---
         $validity = $this->pointBiserial($itemScores, $studentScores, $studentIds);
 
-        // --- Efektivitas Distraktor (hanya untuk pilihan ganda) ---
+        // --- Efektivitas Distraktor (hanya untuk pilihan ganda & kompleks) ---
         $distractors = [];
         if (in_array($q->type, ['single_choice', 'complex_choice'])) {
             $distractors = $this->distractorEffectiveness($q, $sessionId, $studentIds, $N);
@@ -204,7 +118,7 @@ class ItemAnalysisService
 
         return [
             'id' => $q->id,
-            'number' => $q->id, // bisa diganti dengan urutan
+            'number' => $q->id,
             'content' => strip_tags($q->content),
             'type' => $q->type,
             'tk' => round($tk, 4),
@@ -212,7 +126,7 @@ class ItemAnalysisService
             'db' => round($db, 4),
             'db_label' => $this->dbLabel($db),
             'validity' => round($validity, 4),
-            'valid' => $validity >= 0.3,
+            'valid' => $validity >= 0.3, // Ambang batas r hitung umum (0.3)
             'distractors' => $distractors,
         ];
     }
@@ -221,10 +135,6 @@ class ItemAnalysisService
     // RUMUS STATISTIK
     // =========================================================================
 
-    /**
-     * Tingkat Kesukaran (P) = rata-rata skor item
-     * Skala 0–1; semakin kecil = semakin sulit
-     */
     private function difficultyIndex(array $itemScores, int $N): float
     {
         if ($N === 0) {
@@ -234,15 +144,12 @@ class ItemAnalysisService
         return array_sum($itemScores) / $N;
     }
 
-    /**
-     * Daya Beda (D) = P_atas – P_bawah
-     * Ambil 27% kelompok atas & bawah berdasarkan skor total
-     */
     private function discriminationIndex(array $itemScores, array $studentScores, array $studentIds, int $N): float
     {
-        // Urutkan siswa berdasarkan skor total
+        // Urutkan siswa berdasarkan skor total (Tertinggi ke Terendah)
         usort($studentIds, fn ($a, $b) => $studentScores[$b]['total'] <=> $studentScores[$a]['total']);
 
+        // Ambil 27% kelompok atas & bawah
         $k = max(1, (int) round($N * 0.27));
         $upper = array_slice($studentIds, 0, $k);
         $lower = array_slice($studentIds, -$k);
@@ -253,10 +160,6 @@ class ItemAnalysisService
         return $pUpper - $pLower;
     }
 
-    /**
-     * Validitas Butir — Korelasi Pearson antara skor item dan skor total
-     * r = (N·ΣXY – ΣX·ΣY) / sqrt((N·ΣX²–(ΣX)²)(N·ΣY²–(ΣY)²))
-     */
     private function pointBiserial(array $itemScores, array $studentScores, array $studentIds): float
     {
         $N = count($studentIds);
@@ -292,17 +195,12 @@ class ItemAnalysisService
         return ($den == 0) ? 0 : $num / $den;
     }
 
-    /**
-     * Reliabilitas — Cronbach Alpha
-     * α = (k/(k-1)) · (1 – ΣVi/Vt)
-     */
     private function cronbachAlpha(array $studentScores): float
     {
         if (count($studentScores) < 2) {
             return 0;
         }
 
-        // Kumpulkan semua question_id
         $questionIds = [];
         foreach ($studentScores as $data) {
             foreach (array_keys($data['items']) as $qid) {
@@ -311,18 +209,17 @@ class ItemAnalysisService
         }
         $questionIds = array_keys($questionIds);
         $k = count($questionIds);
+
         if ($k < 2) {
             return 0;
         }
 
-        // Varians per item
         $itemVariances = [];
         foreach ($questionIds as $qid) {
             $scores = array_map(fn ($d) => $d['items'][$qid] ?? 0, $studentScores);
             $itemVariances[] = $this->variance($scores);
         }
 
-        // Varians total
         $totalScores = array_map(fn ($d) => $d['total'], $studentScores);
         $totalVariance = $this->variance($totalScores);
 
@@ -335,28 +232,21 @@ class ItemAnalysisService
         return round(max(0, min(1, $alpha)), 4);
     }
 
-    /**
-     * Varians populasi
-     */
     private function variance(array $values): float
     {
         $n = count($values);
         if ($n < 2) {
             return 0;
         }
+
         $mean = array_sum($values) / $n;
         $sq = array_map(fn ($v) => ($v - $mean) ** 2, $values);
 
         return array_sum($sq) / $n;
     }
 
-    /**
-     * Efektivitas Distraktor
-     * Hitung berapa % siswa memilih setiap opsi
-     */
     private function distractorEffectiveness($q, int $sessionId, array $studentIds, int $N): array
     {
-        // Ambil jawaban mentah dari DB untuk soal ini
         $rawAnswers = StudentAnswer::where('exam_session_id', $sessionId)
             ->where('question_id', $q->id)
             ->whereIn('user_id', $studentIds)
@@ -366,12 +256,26 @@ class ItemAnalysisService
         $result = [];
         foreach ($q->options as $opt) {
             $count = 0;
+
+            // PERBAIKAN: Mendukung jawaban Array (Pilihan Ganda Kompleks)
             foreach ($rawAnswers as $ans) {
-                // Untuk single_choice: ans adalah ID opsi
-                if ((string) $ans === (string) $opt->id) {
+                $ansData = $ans;
+                if (is_string($ansData)) {
+                    $decoded = json_decode($ansData, true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $ansData = $decoded;
+                    }
+                }
+
+                // Jadikan array agar aman dilooping
+                $ansArray = is_array($ansData) ? $ansData : [$ansData];
+                $ansArrayString = array_map('strval', $ansArray); // Pastikan komparasi sebagai string
+
+                if (in_array((string) $opt->id, $ansArrayString, true)) {
                     $count++;
                 }
             }
+
             $pct = $N > 0 ? round($count / $N * 100, 1) : 0;
 
             $result[] = [
@@ -380,7 +284,7 @@ class ItemAnalysisService
                 'is_correct' => (bool) $opt->is_correct,
                 'count' => $count,
                 'percent' => $pct,
-                // Distraktor efektif jika dipilih ≥ 5% siswa dan bukan kunci
+                // Distraktor efektif jika dipilih >= 5% siswa dan BUKAN kunci jawaban
                 'effective' => ! $opt->is_correct && $pct >= 5,
             ];
         }
@@ -415,8 +319,11 @@ class ItemAnalysisService
         if ($db >= 0.20) {
             return 'Cukup';
         }
+        if ($db > 0.00) {
+            return 'Jelek';
+        }
 
-        return 'Jelek';
+        return 'Sangat Jelek (Revisi/Buang)'; // Daya beda negatif sangat fatal
     }
 
     private function alphaLabel(float $alpha): string
@@ -433,10 +340,6 @@ class ItemAnalysisService
 
         return 'Rendah';
     }
-
-    // =========================================================================
-    // RINGKASAN
-    // =========================================================================
 
     private function buildSummary(array $items, float $alpha, int $N): array
     {
@@ -456,7 +359,7 @@ class ItemAnalysisService
             'db_sangat_baik' => count(array_filter($items, fn ($i) => $i['db_label'] === 'Sangat Baik')),
             'db_baik' => count(array_filter($items, fn ($i) => $i['db_label'] === 'Baik')),
             'db_cukup' => count(array_filter($items, fn ($i) => $i['db_label'] === 'Cukup')),
-            'db_jelek' => count(array_filter($items, fn ($i) => $i['db_label'] === 'Jelek')),
+            'db_jelek' => count(array_filter($items, fn ($i) => in_array($i['db_label'], ['Jelek', 'Sangat Jelek (Revisi/Buang)']))),
             'alpha' => $alpha,
             'alpha_label' => $this->alphaLabel($alpha),
         ];
