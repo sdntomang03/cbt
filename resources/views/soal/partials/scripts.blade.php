@@ -173,7 +173,7 @@ document.addEventListener('alpine:init', () => {
             const formData = new FormData();
             formData.append('image', file);
 
-            axios.post('{{ route("admin.soal.upload-image") }}', formData, {
+            axios.post('{{ route("admin.image.upload") }}', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             })
             .then(response => {
