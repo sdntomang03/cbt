@@ -93,26 +93,36 @@ class ItemAnalysisService
      */
     private function scoreAnswer($q, $rawAnswer): float
     {
+        // Karena Model sudah cast 'json', $rawAnswer bisa sudah array.
+        // Normalisasi dulu ke bentuk yang konsisten.
         $ans = $rawAnswer;
 
-        // Decode JSON jika perlu
-        if (is_string($ans) && in_array($q->type, ['complex_choice', 'matching', 'true_false', 'true_false_multi'])) {
+        if (is_string($ans)) {
             $decoded = json_decode($ans, true);
             if (json_last_error() === JSON_ERROR_NONE) {
                 $ans = $decoded;
             }
         }
 
+        // Jika masih null/false setelah decode, anggap tidak dijawab
+        if ($ans === null || $ans === false || $ans === '') {
+            return 0.0;
+        }
+
         switch ($q->type) {
             case 'single_choice':
                 $correct = $q->options->firstWhere('is_correct', true);
 
-                return ($correct && $ans == $correct->id) ? 1.0 : 0.0;
+                // Paksa string agar perbandingan tidak gagal jika $ans adalah int
+                return ($correct && (string) $ans === (string) $correct->id) ? 1.0 : 0.0;
 
             case 'complex_choice':
-                $correctIds = $q->options->where('is_correct', true)->pluck('id')->sort()->values()->toArray();
-                $studentIds = is_array($ans) ? $ans : [];
-                sort($studentIds);
+                $correctIds = $q->options->where('is_correct', true)
+                    ->pluck('id')->map(fn ($v) => (string) $v)
+                    ->sort()->values()->toArray();
+                $studentIds = is_array($ans)
+                                ? collect($ans)->map(fn ($v) => (string) $v)->sort()->values()->toArray()
+                                : [];
 
                 return ($correctIds == $studentIds) ? 1.0 : 0.0;
 
@@ -126,7 +136,7 @@ class ItemAnalysisService
                 $userAns = is_array($ans) ? $ans : [];
                 foreach ($q->options as $opt) {
                     $expected = $opt->is_correct ? 'benar' : 'salah';
-                    $given = isset($userAns[$opt->id]) ? strtolower($userAns[$opt->id]) : null;
+                    $given = isset($userAns[$opt->id]) ? strtolower((string) $userAns[$opt->id]) : null;
                     if ($given === $expected) {
                         $correct++;
                     }
@@ -142,7 +152,7 @@ class ItemAnalysisService
                 $matches = is_array($ans) ? $ans : [];
                 $correct = 0;
                 foreach ($matches as $premiseId => $targetId) {
-                    if ($premiseId == $targetId) {
+                    if ((string) $premiseId === (string) $targetId) {
                         $correct++;
                     }
                 }
@@ -150,7 +160,6 @@ class ItemAnalysisService
                 return $correct / $pairs;
 
             case 'essay':
-                // Essay dinilai manual; ambil skor tersimpan (sudah ada di kolom score)
                 return 0.0;
 
             default:

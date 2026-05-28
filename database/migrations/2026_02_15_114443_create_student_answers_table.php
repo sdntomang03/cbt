@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('school_id')->nullable()->constrained()->cascadeOnDelete();
 
             // Data Jawaban
-            $table->string('answer')->nullable(); // String cukup untuk PG, Text/LongText jika Essai
+            $table->text('answer')->nullable(); // String cukup untuk PG, Text/LongText jika Essai
             // Jika soal kompleks (multiple choice), boleh pakai JSON:
             // $table->json('answer_complex')->nullable();
 
