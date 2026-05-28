@@ -46,32 +46,10 @@
         border: none !important;
     }
 
-    /* ===== Simbol Button ===== */
-    .ql-customSymbol {
-        width: 28px !important;
-    }
-
-    .ql-customSymbol::after {
-        content: "Ω";
-        font-family: 'Nunito', sans-serif;
-        font-weight: 900;
-        font-size: 16px;
-        color: #475569;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        transition: color 0.2s;
-    }
-
-    .ql-customSymbol:hover::after {
-        color: #4f46e5;
-    }
-
-    /* ===== Efek Resize Gambar ===== */
+    /* ===== Efek Resize Gambar & Iframe ===== */
     .ql-editor .active {
         outline: 2px solid rgba(79, 70, 229, 0.5);
-        /* Warna kotak seleksi (indigo) */
+        /* Indigo 600 */
     }
 
     .ql-editor .selected {
@@ -80,13 +58,69 @@
 
     .ql-resize-toolbar .btn-alt {
         color: #f59e0b;
-        /* Warna tombol alt */
+        /* Amber 500 */
         font-weight: bold;
+    }
+
+    /* ===== Tombol & UI Custom (Simbol Ω & Edit HTML) ===== */
+    .ql-customSymbol,
+    .ql-editHtml {
+        width: 28px !important;
+    }
+
+    .ql-customSymbol::after,
+    .ql-editHtml::after {
+        font-family: 'Nunito', sans-serif;
+        font-weight: 900;
+        font-size: 15px;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        transition: color 0.2s;
+    }
+
+    .ql-customSymbol::after {
+        content: "Ω";
+    }
+
+    .ql-editHtml::after {
+        content: "</>";
+        font-size: 13px;
+    }
+
+    .ql-customSymbol:hover::after,
+    .ql-editHtml:hover::after,
+    .ql-editHtml.ql-active::after {
+        color: #4f46e5;
+    }
+
+    /* ===== Kotak Source Code HTML (Disembunyikan Bawaan) ===== */
+    .html-source-editor {
+        width: 100%;
+        min-height: 300px;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 14px;
+        padding: 16px;
+        border: none !important;
+        background-color: #0f172a;
+        color: #38bdf8;
+        line-height: 1.6;
+        resize: vertical;
+        outline: none;
+        display: none;
+        border-radius: 0 0 2rem 2rem;
+    }
+
+    .option-editor-wrap .html-source-editor {
+        min-height: 120px;
+        border-radius: 0;
     }
 </style>
 
 <script>
-    // Daftarkan modul Resize ke Quill JS global
+    // ── 1. Daftarkan Modul Resize secara Global ──
     if (window.Quill && window.QuillResize) {
         Quill.register('modules/resize', QuillResize.default);
     }
@@ -95,9 +129,9 @@
     Alpine.data('questionEditor', (config) => {
 
         let myEditor = null;
-        let optionEditors = {}; // key => Quill instance
+        let optionEditors = {}; // object untuk menyimpan Quill instance Opsi
 
-        // ── Fungsi Konfigurasi Global untuk Modul Resize ──
+        // ── 2. Konfigurasi Resize Modul ──
         function getResizeConfig() {
             return {
                 embedTags: ['VIDEO', 'IFRAME'],
@@ -106,9 +140,7 @@
                     {
                         text: 'Alt',
                         attrs: { title: 'Set image alt', class: 'btn-alt' },
-                        verify(activeEle) {
-                            return activeEle && activeEle.tagName === 'IMG';
-                        },
+                        verify(activeEle) { return activeEle && activeEle.tagName === 'IMG'; },
                         handler(evt, button, activeEle) {
                             let alt = activeEle.alt || '';
                             alt = window.prompt('Masukkan teks Alt untuk gambar:', alt);
@@ -119,7 +151,7 @@
             };
         }
 
-        // ── Buka popup simbol dan sisipkan ke quill yg diberikan ──
+        // ── 3. Fitur Custom Simbol (Ω) ──
         function openSymbolPicker(quill) {
             const range = quill.getSelection(true);
             const symbols = ['±','×','÷','≈','≠','≤','≥','∞','∴','°','π','α','β','θ','µ','Ω','∑','∫','√','½','¼','¾'];
@@ -128,6 +160,7 @@
                 html += `<button class="symbol-btn" data-val="${s}" style="padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:18px;font-weight:900;cursor:pointer">${s}</button>`;
             });
             html += '</div>';
+
             Swal.fire({
                 title: '<span style="font-size:16px;font-weight:900;color:#1e293b">Pilih Simbol</span>',
                 html,
@@ -146,23 +179,60 @@
             });
         }
 
-        // ── Config toolbar mini untuk opsi ──
+        // ── 4. Fitur Mode HTML Code (</>) ──
+        function toggleHtmlEdit(quill) {
+            const container = quill.container;
+            const wrapper = container.parentNode;
+
+            let txtArea = wrapper.querySelector('.html-source-editor');
+            if (!txtArea) {
+                txtArea = document.createElement('textarea');
+                txtArea.className = 'html-source-editor custom-scrollbar';
+                wrapper.insertBefore(txtArea, container.nextSibling);
+
+                // Update state saat diketik di mode HTML
+                txtArea.addEventListener('input', function() {
+                    quill.root.innerHTML = this.value;
+                    quill.emitter.emit('text-change');
+                });
+            }
+
+            const qlEditor = container.querySelector('.ql-editor');
+            const toolbarButton = quill.getModule('toolbar').container.querySelector('.ql-editHtml');
+
+            if (txtArea.style.display === 'block') {
+                // Kembali ke Mode Rich Text
+                quill.clipboard.dangerouslyPasteHTML(txtArea.value);
+                txtArea.style.display = 'none';
+                qlEditor.style.display = 'block';
+                toolbarButton.classList.remove('ql-active');
+            } else {
+                // Pindah ke Mode Edit HTML
+                txtArea.value = quill.root.innerHTML;
+                txtArea.style.display = 'block';
+                qlEditor.style.display = 'none';
+                toolbarButton.classList.add('ql-active');
+            }
+        }
+
+        // ── 5. Setup Toolbar Mini (Untuk Opsi Jawaban) ──
         function miniToolbar() {
             return {
                 container: [
                     ['bold', 'italic', 'underline'],
                     [{ script: 'sub' }, { script: 'super' }],
-                    ['image', 'formula', 'customSymbol'], // Tambahkan image agar opsi bisa disisipkan gambar
+                    ['image', 'formula', 'customSymbol', 'editHtml'],
                 ],
                 handlers: {
-                    customSymbol() { openSymbolPicker(this.quill); }
+                    customSymbol() { openSymbolPicker(this.quill); },
+                    editHtml() { toggleHtmlEdit(this.quill); }
                 }
             };
         }
 
-        // ── Mount satu Quill mini pada wrapper dengan data-opt-id = key ──
+        // ── 6. Fungsi Inject Quill ke Div Target ──
         function mountQuill(key, initialHtml, onChangeCb) {
-            if (optionEditors[key]) return; // sudah ada
+            if (optionEditors[key]) return;
 
             const wrapper = document.querySelector(`[data-opt-id="${key}"]`);
             if (!wrapper) return;
@@ -182,7 +252,7 @@
                 modules: {
                     formula: true,
                     toolbar: miniToolbar(),
-                    resize: getResizeConfig() // <-- AKTIFKAN RESIZE DI OPSI
+                    resize: getResizeConfig()
                 }
             });
 
@@ -197,6 +267,7 @@
             optionEditors[key] = q;
         }
 
+        // ── STATE & LOGIKA UTAMA ALPINE ──
         return {
             form: {
                 type: 'single_choice',
@@ -216,7 +287,6 @@
                 { id: 'essay',          label: 'Isian Singkat', icon: 'fa-keyboard'      },
             ],
 
-            // ────────────────────────────────────────────
             init() {
                 if (config.isEdit && config.initialData) {
                     this.setupEditData(config.initialData);
@@ -240,7 +310,7 @@
                         opts = [{ option_text: '', is_correct: 1 }];
                     }
                 }
-              this.form = {
+                this.form = {
                     type: q.type,
                     content: q.content,
                     subject_id: q.subject_id || '',
@@ -249,7 +319,6 @@
                 };
             },
 
-            // ── Init editor narasi utama ──
             initNarasiEditor() {
                 setTimeout(() => {
                     const el = document.getElementById('editorNarasi');
@@ -260,27 +329,27 @@
                         theme: 'snow',
                         modules: {
                             formula: true,
-                            resize: getResizeConfig(), // <-- AKTIFKAN RESIZE DI NARASI UTAMA
+                            resize: getResizeConfig(),
                             toolbar: {
                                 container: [
-                                    [{ 'size': [] }], // Tambahan Size font
+                                    [{ 'size': [] }],
                                     ['bold','italic','underline','strike'],
                                     [{ script: 'sub' }, { script: 'super' }],
                                     [{ list: 'ordered' }, { list: 'bullet' }],
                                     [{ align: [] }],
                                     ['blockquote'],
-                                    ['link','image','video','formula','customSymbol'],
+                                    ['link','image','video','formula','customSymbol', 'editHtml'],
                                     ['clean'],
                                 ],
                                 handlers: {
-                                    customSymbol() { openSymbolPicker(this.quill); }
+                                    customSymbol() { openSymbolPicker(this.quill); },
+                                    editHtml() { toggleHtmlEdit(this.quill); }
                                 }
                             }
                         },
                         placeholder: 'Ketik narasi pertanyaan di sini...'
                     });
 
-                    // Gunakan dangerouslyPasteHTML agar gambar dan iframe di-render sempurna
                     if (this.form.content) myEditor.clipboard.dangerouslyPasteHTML(this.form.content);
 
                     myEditor.on('text-change', () => {
@@ -326,7 +395,6 @@
                 optionEditors = {};
             },
 
-            // ────────────────────────────────────────────
             resetOptions() {
                 this.destroyOptionEditors();
                 this.form.options = [];
@@ -379,42 +447,36 @@
                 }
             },
 
-          saveQuestion() {
-            if (!this.form.content.trim() || this.form.content === '<p><br></p>') {
-                return Swal.fire({ icon: 'warning', title: 'Oops!', text: 'Isi narasi pertanyaan terlebih dahulu!' });
-            }
-            this.isSaving = true;
-
-            // --- CLONE DATA UNTUK DI-ENCODE ---
-            let payload = JSON.parse(JSON.stringify(this.form));
-
-            payload.content = btoa(unescape(encodeURIComponent(payload.content)));
-
-            payload.options = payload.options.map(opt => {
-                let newOpt = { ...opt };
-                if (newOpt.option_text) {
-                    newOpt.option_text = btoa(unescape(encodeURIComponent(newOpt.option_text)));
+            saveQuestion() {
+                if (!this.form.content.trim() || this.form.content === '<p><br></p>') {
+                    return Swal.fire({ icon: 'warning', title: 'Oops!', text: 'Isi narasi pertanyaan terlebih dahulu!' });
                 }
-                if (newOpt.premise_text) {
-                    newOpt.premise_text = btoa(unescape(encodeURIComponent(newOpt.premise_text)));
-                }
-                if (newOpt.target_text) {
-                    newOpt.target_text = btoa(unescape(encodeURIComponent(newOpt.target_text)));
-                }
-                return newOpt;
-            });
+                this.isSaving = true;
 
-            const method = config.isEdit ? 'put' : 'post';
-            axios[method](config.submitUrl, payload)
-                .then(() => {
-                    Swal.fire({ icon: 'success', title: 'Tersimpan!', timer: 1500, showConfirmButton: false })
-                    .then(() => window.location.href = config.redirectUrl);
-                })
-                .catch(err => {
-                    let errorMsg = err.response?.data?.debug_error || err.response?.data?.message || 'Terjadi kesalahan sistem';
-                    Swal.fire({ icon: 'error', title: 'Gagal', text: errorMsg });
-                    this.isSaving = false;
+                let payload = JSON.parse(JSON.stringify(this.form));
+
+                // Encode Base64
+                payload.content = btoa(unescape(encodeURIComponent(payload.content)));
+
+                payload.options = payload.options.map(opt => {
+                    let newOpt = { ...opt };
+                    if (newOpt.option_text) newOpt.option_text = btoa(unescape(encodeURIComponent(newOpt.option_text)));
+                    if (newOpt.premise_text) newOpt.premise_text = btoa(unescape(encodeURIComponent(newOpt.premise_text)));
+                    if (newOpt.target_text) newOpt.target_text = btoa(unescape(encodeURIComponent(newOpt.target_text)));
+                    return newOpt;
                 });
+
+                const method = config.isEdit ? 'put' : 'post';
+                axios[method](config.submitUrl, payload)
+                    .then(() => {
+                        Swal.fire({ icon: 'success', title: 'Tersimpan!', timer: 1500, showConfirmButton: false })
+                        .then(() => window.location.href = config.redirectUrl);
+                    })
+                    .catch(err => {
+                        let errorMsg = err.response?.data?.debug_error || err.response?.data?.message || 'Terjadi kesalahan sistem';
+                        Swal.fire({ icon: 'error', title: 'Gagal', text: errorMsg });
+                        this.isSaving = false;
+                    });
             }
         };
     });
