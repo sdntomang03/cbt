@@ -149,10 +149,18 @@ class ItemAnalysisService
                 if ($pairs === 0) {
                     return 0.0;
                 }
+
                 $matches = is_array($ans) ? $ans : [];
                 $correct = 0;
-                foreach ($matches as $premiseId => $targetId) {
-                    if ((string) $premiseId === (string) $targetId) {
+
+                foreach ($q->matches as $match) {
+                    $premiseId = (string) $match->id;
+                    $correctTargetId = (string) $match->id; // target_id yang benar = match->id itu sendiri
+                    $studentTargetId = isset($matches[$premiseId])
+                                            ? (string) $matches[$premiseId]
+                                            : null;
+
+                    if ($studentTargetId !== null && $studentTargetId === $correctTargetId) {
                         $correct++;
                     }
                 }
