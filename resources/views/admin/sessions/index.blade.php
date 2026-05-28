@@ -47,8 +47,8 @@
         </div>
     </x-slot>
 
-    <div class="min-h-screen py-10" x-data="sessionManager()" @buka-modal-sesi.window="openModal()">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="min-h-screen py-4 md:py-6" x-data="sessionManager()" @buka-modal-sesi.window="openModal()">
+        <div class="w-full 2xl:max-w-screen-2xl mx-auto px-3 sm:px-4 lg:px-6">
 
             {{-- TAMPILAN 1: DAFTAR UJIAN (DIUBAH MENJADI DATATABLE) --}}
             @if(!request('exam_id') && !request('search'))
