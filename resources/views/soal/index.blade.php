@@ -162,7 +162,7 @@
                                     {{-- Tombol Aksi --}}
                                     <div
                                         class="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300">
-                                        <a :href="`/admin/exams/{{ $exam->id }}/soal/${q.id}/edit`"
+                                        <a :href="`/admin/exams/{{ $exam->getRouteKey() }}/soal/${q.id}/edit`"
                                             class="w-10 h-10 rounded-full bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition flex items-center justify-center bounce-active shadow-sm"><i
                                                 class="fas fa-pencil-alt"></i></a>
                                         <button @click="deleteQuestion(q.id)"
