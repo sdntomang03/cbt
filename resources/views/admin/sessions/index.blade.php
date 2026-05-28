@@ -187,17 +187,19 @@
                         <thead>
                             <tr
                                 class="bg-slate-50/80 border-b border-slate-100 text-[10px] uppercase tracking-widest text-slate-400 font-black">
-                                <th class="px-6 py-5 rounded-tl-[2rem]">Informasi Sesi</th>
+                                {{-- PERBAIKAN: Tambahkan w-full agar kolom ini mendorong kolom lain ke kanan --}}
+                                <th class="px-6 py-5 rounded-tl-[2rem] w-full">Informasi Sesi</th>
                                 <th class="px-6 py-5">Jadwal Pelaksanaan</th>
-                                <th class="px-6 py-5 text-center">Status</th>
-                                <th class="px-6 py-5">Token Akses</th>
-                                <th class="px-6 py-5 text-right rounded-tr-[2rem]">Aksi</th>
+                                {{-- PERBAIKAN: Tambahkan w-1 agar kolom-kolom ini mengecil dan merapat --}}
+                                <th class="px-6 py-5 text-center w-1">Status</th>
+                                <th class="px-6 py-5 w-1">Token Akses</th>
+                                <th class="px-6 py-5 text-right rounded-tr-[2rem] w-1">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-50 text-sm">
                             @forelse($sessions as $session)
                             <tr class="hover:bg-slate-50/50 transition-colors group">
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 whitespace-normal min-w-[250px]">
                                     <div class="font-black text-slate-800 text-base mb-1">{{ $session->session_name }}
                                     </div>
                                     <div class="text-xs font-bold text-indigo-500 line-clamp-1">{{ $session->exam->title
