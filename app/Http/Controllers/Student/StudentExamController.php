@@ -479,4 +479,28 @@ class StudentExamController extends Controller
 
         return view('student.dashboard', compact('user', 'stats'));
     }
+
+    public function dashboard()
+    {
+        $user = auth()->user();
+
+        $stats = [
+            // Gunakan try-catch agar jika relasinya berbeda, halaman tidak crash (error 500)
+            'total_ujian' => 0,
+            'ujian_selesai' => 0,
+        ];
+
+        try {
+            // Asumsi: ExamSession memiliki relasi belongsToMany ke User/Siswa dengan nama method 'students' atau 'users'
+            $stats['total_ujian'] = ExamSession::whereHas('students', function ($q) use ($user) {
+                // Gunakan id siswa yang sedang login
+                $q->where('users.id', $user->id);
+            })->count();
+        } catch (\Throwable $th) {
+            // Jika relasi students belum ada, biarkan 0 sementara waktu
+            $stats['total_ujian'] = 0;
+        }
+
+        return view('student.dashboard', compact('user', 'stats'));
+    }
 }
