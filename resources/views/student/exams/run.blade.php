@@ -308,7 +308,7 @@
                                                 <div class="match-item target" :id="'target-' + target.id"
                                                     @click="clickMatch(q.id, target.id, 'target')"
                                                     :class="matchState.activeTarget === target.id ? 'selected' : ''">
-                                                    <span x-text="target.text"></span>
+                                                    <span x-html="target.text"></span>
                                                     <div class="match-dot dot-left"></div>
                                                 </div>
                                             </template></div>
