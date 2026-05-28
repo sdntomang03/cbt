@@ -414,7 +414,7 @@ class StudentExamController extends Controller
     // =========================================================================
     // FITUR BARU: Memproses Token
     // =========================================================================
-    public function processToken(Request $request, $exam_id)
+    public function processToken(Request $request, Exam $exam)
     {
         $request->validate([
             'token' => 'required|string',
@@ -422,7 +422,7 @@ class StudentExamController extends Controller
 
         $user = Auth::user();
 
-        $session = ExamSession::where('exam_id', $exam_id)
+        $session = ExamSession::where('exam_id', $exam->id)
             ->whereHas('students', fn ($q) => $q->where('users.id', $user->id))
             ->firstOrFail();
 
@@ -432,9 +432,9 @@ class StudentExamController extends Controller
         }
 
         // Simpan tanda (flag) di session browser agar bisa masuk ke method run()
-        session()->put('verified_exam_'.$exam_id, true);
+        session()->put('verified_exam_'.$exam->id, true);
 
-        return redirect()->route('student.exam.run', $exam_id);
+        return redirect()->route('student.exam.run', $exam->id);
     }
 
     public function dashboard()
