@@ -118,8 +118,8 @@
                                 {{ $session->session_name }}
                             </span>
 
-                            {{-- PERBAIKAN: Gunakan ->pivot->status --}}
-                            @if($session->pivot->status == 'completed' || $session->pivot->status == 'selesai')
+                            {{-- PERBAIKAN: Gunakan $session->user_status dan in_array --}}
+                            @if(in_array(strtolower($session->user_status), ['completed', 'selesai', 'finished']))
                             <span
                                 class="bg-emerald-50 text-emerald-600 text-[10px] font-black px-3 py-1.5 rounded-full border border-emerald-100 flex items-center gap-1.5">
                                 <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> SELESAI
@@ -198,16 +198,18 @@
                         </div>
 
                         <div class="mt-auto">
-                            {{-- PERBAIKAN: Gunakan ->pivot->status --}}
-                            @if($session->pivot->status == 'completed' || $session->pivot->status == 'selesai')
+                            {{-- PERBAIKAN: Gunakan $session->user_status --}}
+                            @if(in_array(strtolower($session->user_status), ['completed', 'selesai', 'finished']))
                             <div
                                 class="w-full bg-emerald-50/50 text-emerald-600 py-4 rounded-2xl font-black flex flex-col items-center justify-center border border-emerald-100">
                                 <span class="text-[10px] uppercase tracking-widest opacity-60">Nilai Kamu</span>
-                                {{-- PERBAIKAN: Gunakan ->pivot->score --}}
-                                <span class="text-2xl">{{ $session->pivot->score ?? 0 }}</span>
+                                {{-- PERBAIKAN: Gunakan $session->user_score --}}
+                                <span class="text-2xl">{{ $session->user_score ?? 0 }}</span>
                             </div>
+
                             @elseif($session->is_open)
-                            <a href="{{ route('student.exam.verify.show', $session->exam) }}"
+                            {{-- Pastikan ini mengirim Hashid Sesi, bukan Exam-nya --}}
+                            <a href="{{ route('student.exam.verify.show', $session) }}"
                                 class="group/btn relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-black rounded-2xl text-white bg-slate-900 hover:bg-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-200 shadow-xl shadow-slate-200 hover:shadow-indigo-200 transition-all active:scale-95">
                                 <span class="flex items-center gap-2">
                                     Mulai Mengerjakan <i
