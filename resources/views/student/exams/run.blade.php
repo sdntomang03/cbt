@@ -170,9 +170,10 @@
     {{-- TAMPILAN NORMAL (HANYA DIRENDER JIKA TIDAK DIKUNCI) --}}
     <script>
         window.initialExamState = {
-                count: {{ (int) $pivot->violation_count }},
-                isLocked: false // Karena masuk blok else, pasti false
-            };
+            count: {{ (int) $pivot->violation_count }},
+            isLocked: false, // Karena masuk blok else, pasti false
+            config: @json($config) // <-- TAMBAHAN: Kirim pengaturan dari DB ke JS
+        };
     </script>
 
     <div x-data x-show="$store.examState.showWarning" x-cloak x-transition.opacity class="overlay-base bg-black/90">
@@ -214,11 +215,20 @@
 
     <div x-data x-show="!$store.examState.started && !$store.examState.isLocked" x-cloak
         class="overlay-base bg-slate-900 z-[200] p-10 text-white">
-        <i class="fas fa-shield-alt text-6xl text-emerald-400 mb-6"></i>
-        <h1 class="text-3xl font-black mb-2">Mode Ujian Aman</h1>
-        <p class="text-slate-400 mb-8 max-w-lg">Ujian ini mewajibkan mode Layar Penuh. Dilarang berpindah tab.</p>
+
+        <i class="fas text-6xl mb-6"
+            :class="$store.examState.enableViolation ? 'fa-shield-alt text-emerald-400' : 'fa-laptop-house text-indigo-400'"></i>
+
+        <h1 class="text-3xl font-black mb-2"
+            x-text="$store.examState.enableViolation ? 'Mode Ujian Aman' : 'Mode Ujian Santai'"></h1>
+
+        <p class="text-slate-400 mb-8 max-w-lg"
+            x-text="$store.examState.enableViolation ? 'Ujian ini mewajibkan mode Layar Penuh. Dilarang berpindah tab.' : 'Ujian ini tidak mendeteksi perpindahan tab. Selamat mengerjakan.'">
+        </p>
+
         <button @click="$store.examState.startSecureExam()"
-            class="bg-emerald-500 hover:bg-emerald-600 text-white px-10 py-4 rounded-2xl font-black text-lg shadow-xl shadow-emerald-500/20 transition transform hover:scale-105">
+            class="text-white px-10 py-4 rounded-2xl font-black text-lg shadow-xl transition transform hover:scale-105"
+            :class="$store.examState.enableViolation ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20' : 'bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/20'">
             MULAI UJIAN SEKARANG
         </button>
     </div>
@@ -229,7 +239,7 @@
                 {{ json_encode($existingAnswers) }},
                 {{ json_encode($flags ?? []) }},
                 {{ auth()->id() }},
-                {{ json_encode([ 'random_question' => $exam->random_question ?? false, 'random_answer' => $exam->random_answer ?? false ]) }}
+                @json($config)  {{-- <-- PERBAIKAN: Langsung masukkan config dari controller --}}
             )" x-show="$store.examState.started && !$store.examState.isLocked" x-cloak>
 
         <div
@@ -378,23 +388,36 @@
         document.addEventListener('alpine:init', () => {
 
                 // 1. Store Pengaman
+                // 1. Store Pengaman
                 Alpine.store('examState', {
                     started: false,
                     showWarning: false,
                     isLocked: false,
                     violationCount: 0,
                     maxViolations: 3,
+                    enableViolation: true, // <-- Penanda sensor ON/OFF
                     isRequesting: false,
 
                     init() {
                         if (window.initialExamState) {
                             this.violationCount = window.initialExamState.count;
                             this.isLocked = window.initialExamState.isLocked;
+                            // Ambil pengaturan dari Database via Controller
+                            this.enableViolation = window.initialExamState.config.enable_violation ?? true;
+                            this.maxViolations = window.initialExamState.config.max_tolerances ?? 3;
                         }
                     },
 
                     startSecureExam() {
                         if (this.isLocked) return;
+
+                        // JIKA SENSOR OFF: Langsung mulai tanpa fullscreen dan tanpa pemantauan tab
+                        if (!this.enableViolation) {
+                            this.started = true;
+                            return;
+                        }
+
+                        // JIKA SENSOR ON: Wajib Fullscreen & Pantau Tab
                         const elem = document.documentElement;
                         if (elem.requestFullscreen) {
                             elem.requestFullscreen().then(() => {
@@ -404,7 +427,7 @@
                                 alert("Mohon izinkan akses Fullscreen untuk memulai ujian.");
                             });
                         } else {
-                            // Fallback jika browser tidak dukung fullscreen API
+                            // Fallback jika browser tidak dukung fullscreen API (misal iPhone versi lama)
                             this.started = true;
                             this.monitorFocus();
                         }
@@ -425,6 +448,7 @@
                             }
                         });
 
+                        // Cegah klik kanan & Copy Paste
                         document.addEventListener('contextmenu', e => e.preventDefault());
                         document.addEventListener('keydown', e => {
                             if((e.ctrlKey||e.metaKey) && ['c','v','u','i'].includes(e.key)) e.preventDefault();
@@ -446,7 +470,7 @@
                         if (this.showWarning || this.isLocked || this.isRequesting) return;
 
                         this.isRequesting = true;
-                        this.violationCount++; // Optimistic UI
+                        this.violationCount++; // Optimistic UI update
 
                         if (this.violationCount >= this.maxViolations) {
                             this.isLocked = true;
@@ -461,6 +485,9 @@
                         })
                         .then(res => {
                             this.violationCount = res.data.violation_count;
+                            // Pastikan disinkronkan dengan toleransi maksimal dari server
+                            this.maxViolations = res.data.max_tolerances;
+
                             if (res.data.is_locked) {
                                 this.isLocked = true;
                                 this.started = false;
@@ -473,10 +500,9 @@
 
                     resumeExam() {
                         if (this.isLocked) return;
-                        const elem = document.documentElement;
 
-                        // Set sistem popup agar request fullscreen tidak mentrigger violation
                         window.isSystemPopup = true;
+                        const elem = document.documentElement;
 
                         if (elem.requestFullscreen) {
                             elem.requestFullscreen().then(() => {
