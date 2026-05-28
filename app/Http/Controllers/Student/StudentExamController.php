@@ -434,7 +434,7 @@ class StudentExamController extends Controller
         // Simpan tanda (flag) di session browser agar bisa masuk ke method run()
         session()->put('verified_exam_'.$exam->id, true);
 
-        return redirect()->route('student.exam.run', $exam->id);
+        return redirect()->route('student.exam.run', $exam);
     }
 
     public function dashboard()
