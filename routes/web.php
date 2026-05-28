@@ -73,7 +73,7 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         });
         Route::resource('roles', RoleController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::resource('permissions', PermissionController::class)->only(['index', 'store', 'update', 'destroy']);
-
+        Route::get('permissions/{permission}/users', [PermissionController::class, 'users'])->name('permissions.users');
         // --- 2. Manajemen Kelas ---
         Route::resource('classrooms', ClassroomController::class)->except(['show', 'create', 'edit']); // create/edit dihapus karena pakai modal
         Route::get('classrooms/{classroom}/students', [ClassroomController::class, 'manageStudents'])->name('classrooms.students');

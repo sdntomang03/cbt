@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Permission;
 
@@ -83,5 +84,34 @@ class PermissionController extends Controller
         $permission->delete();
 
         return redirect()->back()->with('success', 'Permission berhasil dihapus secara permanen!');
+    }
+
+    /**
+     * Dapatkan daftar user yang memiliki permission ini (Via AJAX)
+     */
+    public function users(Permission $permission)
+    {
+        // Spatie otomatis mencari user yang punya permission ini secara langsung
+        // MAUPUN dari Role (Jabatannya).
+        $users = User::permission($permission->name)
+            ->with('school') // Eager load relasi sekolah agar tidak lambat
+            ->select('id', 'name', 'school_id', 'username')
+            ->orderBy('name')
+            ->get();
+
+        // Rapikan data untuk dikirim ke Alpine.js
+        $formattedUsers = $users->map(function ($user) {
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'school' => $user->school->name ?? 'Pusat / Admin',
+            ];
+        });
+
+        return response()->json([
+            'permission_name' => $permission->name,
+            'users' => $formattedUsers,
+        ]);
     }
 }

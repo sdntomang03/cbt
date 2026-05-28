@@ -89,6 +89,11 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-right space-x-2">
+                                <button @click="fetchUsers('{{ $permission->id }}', '{{ $permission->name }}')"
+                                    class="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white transition"
+                                    title="Lihat Daftar User">
+                                    <i class="fas fa-users"></i>
+                                </button>
                                 <button @click="$dispatch('open-modal', {
                                         mode: 'edit',
                                         id: '{{ $permission->id }}',
@@ -202,10 +207,106 @@
         </div>
 
     </div>
+    {{-- MODAL DAFTAR USER BERDASARKAN PERMISSION --}}
+    <div x-show="isUserModalOpen" style="display: none;"
+        class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div x-show="isUserModalOpen" x-transition.opacity class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+            @click="isUserModalOpen = false"></div>
 
+        <div x-show="isUserModalOpen" x-transition.scale.origin.bottom
+            class="bg-white rounded-[2rem] shadow-2xl max-w-lg w-full relative z-[70] overflow-hidden flex flex-col max-h-[85vh]">
+
+            {{-- Header --}}
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
+                <div>
+                    <h3 class="font-black text-lg text-slate-800">Daftar Pengguna</h3>
+                    <p class="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mt-0.5">
+                        Akses: <span x-text="currentPermName"></span>
+                    </p>
+                </div>
+                <button @click="isUserModalOpen = false"
+                    class="text-slate-400 hover:text-rose-500 w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center transition-colors shrink-0">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            {{-- Body (Daftar User) --}}
+            <div class="p-0 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/30">
+
+                {{-- Animasi Loading --}}
+                <div x-show="isLoading" class="flex flex-col items-center justify-center py-12 text-slate-400">
+                    <i class="fas fa-circle-notch fa-spin text-3xl mb-3 text-indigo-500"></i>
+                    <span class="font-bold text-sm">Mengambil data pengguna...</span>
+                </div>
+
+                {{-- Daftar User --}}
+                <ul x-show="!isLoading" class="divide-y divide-slate-100">
+                    <template x-for="user in usersList" :key="user.id">
+                        <li class="p-4 hover:bg-white transition-colors flex items-center gap-4">
+                            <div
+                                class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-black shrink-0">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <div class="font-black text-slate-800 text-sm" x-text="user.name"></div>
+                                <div class="text-[11px] font-bold text-slate-500"
+                                    x-text="user.school + ' • ' + user.username"></div>
+                            </div>
+                        </li>
+                    </template>
+
+                    {{-- Jika Kosong --}}
+                    <li x-show="!isLoading && usersList.length === 0" class="p-12 text-center">
+                        <div
+                            class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center text-2xl mx-auto mb-3">
+                            <i class="fas fa-user-slash"></i>
+                        </div>
+                        <span class="font-bold text-slate-500 text-sm">Belum ada user yang memiliki hak akses
+                            ini.</span>
+                    </li>
+                </ul>
+            </div>
+
+            {{-- Footer --}}
+            <div class="px-6 py-4 bg-white border-t border-slate-100 flex justify-between items-center shrink-0">
+                <span class="text-xs font-bold text-slate-500">
+                    Total: <span x-text="usersList.length" class="text-indigo-600"></span> Pengguna
+                </span>
+                <button @click="isUserModalOpen = false"
+                    class="px-5 py-2 rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors text-sm">Tutup</button>
+            </div>
+        </div>
+    </div>
     @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
-        function permissionManager() { return {} }
+        function permissionManager() {
+            return {
+                isUserModalOpen: false,
+                isLoading: false,
+                currentPermName: '',
+                usersList: [],
+
+                fetchUsers(id, name) {
+                    this.currentPermName = name;
+                    this.isUserModalOpen = true;
+                    this.isLoading = true;
+                    this.usersList = [];
+
+                    axios.get(`/admin/permissions/${id}/users`)
+                        .then(response => {
+                            this.usersList = response.data.users;
+                        })
+                        .catch(error => {
+                            Swal.fire('Error', 'Gagal mengambil data pengguna dari server.', 'error');
+                            this.isUserModalOpen = false;
+                        })
+                        .finally(() => {
+                            this.isLoading = false;
+                        });
+                }
+            }
+        }
     </script>
     @endpush
 </x-app-layout>
