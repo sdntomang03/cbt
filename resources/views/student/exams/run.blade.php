@@ -233,14 +233,14 @@
         </button>
     </div>
 
-    <div class="fixed inset-0 flex flex-col h-screen bg-[#f1f5f9]" x-data="examRunner(
+    <div class="fixed inset-0 flex flex-col h-screen bg-[#f1f5f9]" x-data='examRunner(
                 {{ json_encode($questions) }},
                 {{ $timeLeftSeconds }},
                 {{ json_encode($existingAnswers) }},
                 {{ json_encode($flags ?? []) }},
                 {{ auth()->id() }},
-                @json($config)  {{-- <-- PERBAIKAN: Langsung masukkan config dari controller --}}
-            )" x-show="$store.examState.started && !$store.examState.isLocked" x-cloak>
+                @json($config)
+            )' x-show="$store.examState.started && !$store.examState.isLocked" x-cloak>
 
         <div
             class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 z-[100] shadow-sm select-none relative">
