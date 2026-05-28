@@ -39,7 +39,6 @@
         </div>
     </x-slot>
 
-    {{-- Hapus w-full dan max-w-full, biarkan mx-auto dan padding mengatur ruang natural --}}
     <div class="py-8 mx-auto px-4 sm:px-6 lg:px-8 space-y-6" x-data="userManager()">
 
         {{-- Alert Success --}}
@@ -133,7 +132,6 @@
         </div>
 
         {{-- Tabel Data --}}
-        {{-- Pembungkus overflow-hidden yang mencegah tabel melebar keluar batas putih --}}
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden min-w-0">
             <div class="overflow-x-auto custom-scrollbar">
                 <table class="w-full text-left text-sm whitespace-nowrap">
@@ -147,7 +145,7 @@
                             <th class="px-6 py-4">Nama & Email</th>
                             <th class="px-6 py-4">Username</th>
                             <th class="px-6 py-4">Nama Sekolah</th>
-                            <th class="px-6 py-4 text-center">Peran</th>
+                            <th class="px-6 py-4 text-center">Peran (Role)</th>
                             <th class="px-6 py-4 text-right">Aksi</th>
                         </tr>
                     </thead>
@@ -168,21 +166,37 @@
                             <td class="px-6 py-4">
                                 <div class="text-xs text-slate-500">{{ $user->school->name ?? '-' }}</div>
                             </td>
-                            <td class="px-6 py-4 text-center">
-                                @if($user->hasRole('admin'))
-                                <span
-                                    class="bg-rose-100 text-rose-600 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-block">Admin</span>
-                                @elseif($user->hasRole('operator'))
-                                <span
-                                    class="bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-block">Operator</span>
-                                @elseif($user->hasRole('guru'))
-                                <span
-                                    class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-block">Guru</span>
-                                @else
-                                <span
-                                    class="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-block">Siswa</span>
-                                @endif
+
+                            {{-- KOLOM ROLE (DROPDOWN AJAX) --}}
+                            <td class="px-6 py-4 text-center"
+                                x-data="roleManager('{{ $user->id }}', '{{ $user->roles->first()->name ?? 'siswa' }}')">
+                                <div class="relative inline-flex items-center justify-center">
+                                    <select x-model="currentRole" @change="updateRole()" :disabled="isLoading"
+                                        class="appearance-none px-4 py-1.5 rounded-full text-[10px] font-black cursor-pointer border-2 focus:ring-0 outline-none transition-all text-center w-28 uppercase tracking-widest disabled:opacity-50"
+                                        :class="{
+                                            'bg-rose-50 text-rose-600 border-rose-200': currentRole === 'admin',
+                                            'bg-purple-50 text-purple-600 border-purple-200': currentRole === 'operator',
+                                            'bg-blue-50 text-blue-600 border-blue-200': currentRole === 'guru',
+                                            'bg-emerald-50 text-emerald-600 border-emerald-200': currentRole === 'siswa'
+                                        }">
+                                        @foreach($roles as $role)
+                                        <option value="{{ $role }}" class="bg-white text-slate-800 uppercase">{{ $role
+                                            }}</option>
+                                        @endforeach
+                                    </select>
+                                    <i class="fas fa-chevron-down absolute right-3 text-[10px] pointer-events-none"
+                                        :class="{
+                                            'text-rose-400': currentRole === 'admin',
+                                            'text-purple-400': currentRole === 'operator',
+                                            'text-blue-400': currentRole === 'guru',
+                                            'text-emerald-400': currentRole === 'siswa'
+                                        }"></i>
+                                    <div x-show="isLoading" class="absolute -right-6" x-cloak>
+                                        <i class="fas fa-circle-notch fa-spin text-indigo-500"></i>
+                                    </div>
+                                </div>
                             </td>
+
                             <td class="px-6 py-4 text-right space-x-2">
                                 <a href="{{ route('admin.users.edit', $user->id) }}"
                                     class="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition">
@@ -217,7 +231,7 @@
         </div>
     </div>
 
-    {{-- MODAL IMPORT --}}
+    {{-- MODAL IMPORT (TIDAK BERUBAH) --}}
     <div x-data="{ isModalOpen: false }" @buka-modal-import.window="isModalOpen = true" x-show="isModalOpen"
         style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
 
@@ -267,6 +281,31 @@
             if (token && window.axios) {
                 axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
             }
+
+            // GABUNGAN FUNGSI ALPINE UNTUK ROLE DAN USER
+            Alpine.data('roleManager', (userId, initialRole) => ({
+                currentRole: initialRole,
+                isLoading: false,
+
+                updateRole() {
+                    this.isLoading = true;
+                    axios.post(`/admin/users/${userId}/update-role`, { role: this.currentRole })
+                    .then(response => {
+                        setTimeout(() => { this.isLoading = false; }, 500);
+                        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
+                        Toast.fire({ icon: 'success', title: 'Akses diubah ke: ' + this.currentRole.toUpperCase() });
+                    })
+                    .catch(error => {
+                        let errMsg = 'Gagal mengubah role.';
+                        if (error.response && error.response.data && error.response.data.message) {
+                            errMsg = error.response.data.message;
+                        }
+                        Swal.fire('Gagal!', errMsg, 'error');
+                        this.currentRole = initialRole;
+                        this.isLoading = false;
+                    });
+                }
+            }));
         });
 
         function userManager() {
