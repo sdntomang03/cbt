@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Models\Exam;
 use App\Models\ExamSession;
 use App\Models\ExamSessionUser;
 use App\Models\MathExamQuestion;
