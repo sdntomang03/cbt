@@ -1,878 +1,391 @@
-{{-- resources/views/teacher/analysis/show.blade.php --}}
 <x-app-layout>
-    <link
-        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Sora:wght@400;600;700;800&display=swap"
-        rel="stylesheet">
-
-    <style>
-        :root {
-            --ink: #0f172a;
-            --ink2: #475569;
-            --surface: #ffffff;
-            --border: #e2e8f0;
-            --muted: #f8fafc;
-            --indigo: #4f46e5;
-            --emerald: #10b981;
-            --amber: #f59e0b;
-            --rose: #f43f5e;
-            --sky: #0ea5e9;
-            --mono: 'IBM Plex Mono', monospace;
-            --sans: 'Sora', sans-serif;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: var(--sans);
-            background: #f1f5f9;
-            color: var(--ink);
-        }
-
-        /* ── Page Shell ── */
-        .analysis-wrap {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 2rem 1.5rem 4rem;
-        }
-
-        /* ── Page Header ── */
-        .page-header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .page-header h1 {
-            font-size: 1.5rem;
-            font-weight: 800;
-            margin: 0;
-            line-height: 1.2;
-        }
-
-        .page-header p {
-            font-size: .85rem;
-            color: var(--ink2);
-            margin: .25rem 0 0;
-        }
-
-        .btn-back {
-            display: inline-flex;
-            align-items: center;
-            gap: .4rem;
-            padding: .55rem 1.1rem;
-            border-radius: .65rem;
-            background: white;
-            border: 1.5px solid var(--border);
-            font-family: var(--sans);
-            font-size: .82rem;
-            font-weight: 600;
-            color: var(--ink2);
-            text-decoration: none;
-            transition: all .15s;
-        }
-
-        .btn-back:hover {
-            border-color: var(--indigo);
-            color: var(--indigo);
-        }
-
-        /* ── Summary Cards ── */
-        .stat-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: white;
-            border: 1.5px solid var(--border);
-            border-radius: 1rem;
-            padding: 1.2rem 1.4rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card .accent {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            border-radius: 1rem 1rem 0 0;
-        }
-
-        .stat-card .label {
-            font-size: .72rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            color: var(--ink2);
-            margin-bottom: .4rem;
-        }
-
-        .stat-card .value {
-            font-size: 2rem;
-            font-weight: 800;
-            line-height: 1;
-        }
-
-        .stat-card .sub {
-            font-size: .75rem;
-            color: var(--ink2);
-            margin-top: .3rem;
-        }
-
-        /* ── Cronbach Alpha Block ── */
-        .alpha-block {
-            background: var(--ink);
-            color: white;
-            border-radius: 1rem;
-            padding: 1.4rem 1.8rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .alpha-block .left h3 {
-            margin: 0;
-            font-size: 1rem;
-            font-weight: 700;
-            opacity: .7;
-        }
-
-        .alpha-block .left .aval {
-            font-family: var(--mono);
-            font-size: 2.8rem;
-            font-weight: 600;
-            line-height: 1;
-            margin-top: .2rem;
-            background: linear-gradient(135deg, #a5b4fc, #34d399);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .alpha-block .right {
-            text-align: right;
-        }
-
-        .alpha-block .badge {
-            display: inline-block;
-            padding: .4rem .9rem;
-            border-radius: 2rem;
-            font-size: .8rem;
-            font-weight: 700;
-            background: rgba(255, 255, 255, .15);
-            color: white;
-        }
-
-        .alpha-block .desc {
-            font-size: .78rem;
-            opacity: .55;
-            margin-top: .3rem;
-        }
-
-        /* ── Filter Bar ── */
-        .filter-bar {
-            display: flex;
-            align-items: center;
-            gap: .6rem;
-            flex-wrap: wrap;
-            margin-bottom: 1.2rem;
-        }
-
-        .filter-bar select,
-        .filter-bar input {
-            padding: .5rem .9rem;
-            border-radius: .6rem;
-            border: 1.5px solid var(--border);
-            font-family: var(--sans);
-            font-size: .82rem;
-            background: white;
-            color: var(--ink);
-            outline: none;
-            transition: border .15s;
-        }
-
-        .filter-bar select:focus,
-        .filter-bar input:focus {
-            border-color: var(--indigo);
-        }
-
-        .filter-bar label {
-            font-size: .8rem;
-            font-weight: 600;
-            color: var(--ink2);
-        }
-
-        /* ── Table ── */
-        .table-wrap {
-            background: white;
-            border: 1.5px solid var(--border);
-            border-radius: 1rem;
-            overflow: hidden;
-            margin-bottom: 2rem;
-        }
-
-        .analysis-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .analysis-table thead th {
-            background: var(--muted);
-            font-size: .72rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .07em;
-            color: var(--ink2);
-            padding: .85rem 1rem;
-            text-align: left;
-            border-bottom: 1.5px solid var(--border);
-            white-space: nowrap;
-        }
-
-        .analysis-table tbody tr {
-            border-bottom: 1px solid var(--border);
-            transition: background .1s;
-        }
-
-        .analysis-table tbody tr:last-child {
-            border-bottom: none;
-        }
-
-        .analysis-table tbody tr:hover {
-            background: #f8fafc;
-        }
-
-        .analysis-table td {
-            padding: .85rem 1rem;
-            font-size: .84rem;
-            vertical-align: middle;
-        }
-
-        .analysis-table td.q-content {
-            max-width: 260px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            font-size: .82rem;
-        }
-
-        .analysis-table td.mono {
-            font-family: var(--mono);
-            font-size: .82rem;
-        }
-
-        /* ── Badges ── */
-        .badge {
-            display: inline-block;
-            padding: .25rem .65rem;
-            border-radius: .4rem;
-            font-size: .72rem;
-            font-weight: 700;
-            white-space: nowrap;
-        }
-
-        .badge-green {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .badge-yellow {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .badge-red {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .badge-blue {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        .badge-purple {
-            background: #ede9fe;
-            color: #4c1d95;
-        }
-
-        .badge-gray {
-            background: #f1f5f9;
-            color: #475569;
-        }
-
-        /* Validity dot */
-        .dot {
-            width: 9px;
-            height: 9px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: .3rem;
-        }
-
-        .dot-ok {
-            background: var(--emerald);
-        }
-
-        .dot-bad {
-            background: var(--rose);
-        }
-
-        /* ── Progress bar ── */
-        .mini-bar {
-            display: flex;
-            height: 6px;
-            border-radius: 3px;
-            overflow: hidden;
-            background: var(--border);
-            width: 80px;
-        }
-
-        .mini-bar-fill {
-            border-radius: 3px;
-            transition: width .3s;
-        }
-
-        /* ── Distractor Panel ── */
-        .distractor-toggle {
-            cursor: pointer;
-            color: var(--indigo);
-            font-size: .78rem;
-            font-weight: 700;
-            white-space: nowrap;
-        }
-
-        .distractor-panel {
-            display: none;
-            background: var(--muted);
-            padding: .8rem 1rem;
-            border-top: 1px solid var(--border);
-        }
-
-        .distractor-panel.open {
-            display: block;
-        }
-
-        .dist-row {
-            display: flex;
-            align-items: center;
-            gap: .8rem;
-            margin-bottom: .45rem;
-            font-size: .8rem;
-        }
-
-        .dist-text {
-            flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .dist-bar-wrap {
-            width: 120px;
-            height: 8px;
-            background: #e2e8f0;
-            border-radius: 4px;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-
-        .dist-bar-fill {
-            height: 100%;
-            border-radius: 4px;
-        }
-
-        .dist-pct {
-            width: 42px;
-            text-align: right;
-            font-family: var(--mono);
-            font-size: .75rem;
-            color: var(--ink2);
-        }
-
-        /* ── Tabs ── */
-        .tabs {
-            display: flex;
-            gap: 0;
-            border-bottom: 2px solid var(--border);
-            margin-bottom: 1.5rem;
-        }
-
-        .tab-btn {
-            padding: .65rem 1.2rem;
-            font-family: var(--sans);
-            font-size: .85rem;
-            font-weight: 600;
-            background: none;
-            border: none;
-            border-bottom: 2px solid transparent;
-            cursor: pointer;
-            color: var(--ink2);
-            margin-bottom: -2px;
-            transition: all .15s;
-        }
-
-        .tab-btn.active {
-            border-bottom-color: var(--indigo);
-            color: var(--indigo);
-        }
-
-        .tab-pane {
-            display: none;
-        }
-
-        .tab-pane.active {
-            display: block;
-        }
-
-        /* ── Responsive ── */
-        @media (max-width: 768px) {
-            .analysis-table {
-                font-size: .78rem;
-            }
-
-            .analysis-table td,
-            .analysis-table th {
-                padding: .6rem .7rem;
-            }
-
-            .q-content {
-                max-width: 140px;
-            }
-        }
-    </style>
-
-    <div class="analysis-wrap">
-
-        {{-- Header --}}
-        <div class="page-header">
-            <div>
-                <a href="{{ url()->previous() }}" class="btn-back">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2.5">
-                        <path d="M19 12H5M12 5l-7 7 7 7" />
-                    </svg>
-                    Kembali
+    <x-slot name="header">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center w-full gap-4">
+            <div class="flex items-center gap-4">
+                <a href="{{ url()->previous() }}"
+                    class="w-10 h-10 rounded-xl bg-white text-slate-500 hover:text-indigo-600 shadow-sm border border-slate-200 flex items-center justify-center transition shrink-0">
+                    <i class="fas fa-arrow-left"></i>
                 </a>
-                <h1 style="margin-top:.75rem">Analisis Butir Soal</h1>
-                <p>{{ $exam->title }} &mdash; Sesi: {{ $session->name ??
-                    \Carbon\Carbon::parse($session->start_time)->format('d M Y') }} &bull; {{ $total_students }} Peserta
-                </p>
+                <div>
+                    <h2 class="font-black text-2xl text-slate-800 tracking-tight leading-tight">Analisis Butir Soal</h2>
+                    <p class="text-indigo-600 font-bold text-sm mt-0.5">
+                        {{ $exam->title }} <span class="text-slate-400 mx-1">•</span>
+                        Sesi: {{ $session->session_name ?? \Carbon\Carbon::parse($session->start_time)->format('d M Y')
+                        }}
+                        <span class="text-slate-400 mx-1">•</span> {{ $total_students }} Peserta
+                    </p>
+                </div>
             </div>
+
             <a href="{{ route('teacher.analysis.export', [$exam, $session]) }}"
-                style="display:inline-flex;align-items:center;gap:.4rem;padding:.6rem 1.2rem;border-radius:.65rem;background:var(--indigo);color:white;font-weight:700;font-size:.82rem;text-decoration:none;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                </svg>
-                Export JSON
+                class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-200 transition active:scale-95 flex items-center justify-center gap-2">
+                <i class="fas fa-file-export"></i> Export JSON
             </a>
         </div>
+    </x-slot>
 
-        {{-- Cronbach Alpha --}}
-        <div class="alpha-block">
-            <div class="left">
-                <h3>Reliabilitas Cronbach Alpha</h3>
-                <div class="aval">{{ number_format($alpha, 3) }}</div>
+    {{-- State Alpine untuk Tab & Filter --}}
+    <div x-data="{
+            activeTab: 'tbl',
+            filterTk: '',
+            filterDb: '',
+            filterValid: '',
+            search: ''
+        }" class="w-full">
+
+        {{-- KOTAK RELIABILITAS CRONBACH ALPHA --}}
+        <div
+            class="bg-slate-900 text-white rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8 shadow-xl">
+            <div>
+                <h3 class="font-bold text-slate-400 text-sm tracking-widest uppercase mb-1">Reliabilitas Tes (Cronbach
+                    Alpha)</h3>
+                <div
+                    class="font-mono font-black text-5xl bg-gradient-to-br from-indigo-400 to-emerald-400 text-transparent bg-clip-text">
+                    {{ number_format($alpha, 3) }}
+                </div>
             </div>
-            <div class="right">
-                <div class="badge">{{ $summary['alpha_label'] }}</div>
-                <div class="desc">
-                    α ≥ 0.90 Sangat Tinggi &bull; ≥ 0.70 Tinggi &bull; ≥ 0.50 Cukup &bull; &lt; 0.50 Rendah
+            <div class="md:text-right">
+                <div
+                    class="inline-block px-4 py-1.5 rounded-full text-sm font-black tracking-wider bg-white/10 border border-white/20 mb-2">
+                    {{ $summary['alpha_label'] }}
+                </div>
+                <div class="text-xs text-slate-400 font-semibold max-w-sm">
+                    α ≥ 0.90 (Sangat Tinggi) • ≥ 0.70 (Tinggi) • ≥ 0.50 (Cukup) • &lt; 0.50 (Rendah)
                 </div>
             </div>
         </div>
 
-        {{-- Summary Cards --}}
-        <div class="stat-grid">
-            <div class="stat-card">
-                <div class="accent" style="background:var(--indigo)"></div>
-                <div class="label">Total Soal</div>
-                <div class="value">{{ $summary['total_items'] }}</div>
-                <div class="sub">{{ $total_students }} peserta</div>
+        {{-- GRID KARTU STATISTIK --}}
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1.5 bg-indigo-500"></div>
+                <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Soal</div>
+                <div class="text-3xl font-black text-slate-800">{{ $summary['total_items'] }}</div>
+                <div class="text-xs font-bold text-slate-400 mt-1">{{ $total_students }} Peserta Dinilai</div>
             </div>
-            <div class="stat-card">
-                <div class="accent" style="background:var(--emerald)"></div>
-                <div class="label">Valid</div>
-                <div class="value" style="color:var(--emerald)">{{ $summary['valid_count'] }}</div>
-                <div class="sub">r ≥ 0.30</div>
-            </div>
-            <div class="stat-card">
-                <div class="accent" style="background:var(--rose)"></div>
-                <div class="label">Tidak Valid</div>
-                <div class="value" style="color:var(--rose)">{{ $summary['invalid_count'] }}</div>
-                <div class="sub">r &lt; 0.30</div>
-            </div>
-            <div class="stat-card">
-                <div class="accent" style="background:var(--sky)"></div>
-                <div class="label">Mudah</div>
-                <div class="value" style="color:var(--sky)">{{ $summary['mudah'] }}</div>
-                <div class="sub">TK &gt; 0.70</div>
-            </div>
-            <div class="stat-card">
-                <div class="accent" style="background:var(--emerald)"></div>
-                <div class="label">Sedang</div>
-                <div class="value" style="color:var(--emerald)">{{ $summary['sedang'] }}</div>
-                <div class="sub">TK 0.30 – 0.70</div>
-            </div>
-            <div class="stat-card">
-                <div class="accent" style="background:var(--rose)"></div>
-                <div class="label">Sulit</div>
-                <div class="value" style="color:var(--rose)">{{ $summary['sulit'] }}</div>
-                <div class="sub">TK &lt; 0.30</div>
-            </div>
-            <div class="stat-card">
-                <div class="accent" style="background:var(--amber)"></div>
-                <div class="label">DB Baik+</div>
-                <div class="value" style="color:var(--amber)">{{ $summary['db_sangat_baik'] + $summary['db_baik'] }}
+
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1.5 bg-emerald-500"></div>
+                <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status Validitas</div>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-3xl font-black text-emerald-600">{{ $summary['valid_count'] }}</span>
+                    <span class="text-sm font-bold text-emerald-600">Valid</span>
                 </div>
-                <div class="sub">D ≥ 0.30</div>
-            </div>
-            <div class="stat-card">
-                <div class="accent" style="background:var(--rose)"></div>
-                <div class="label">DB Jelek</div>
-                <div class="value" style="color:var(--rose)">{{ $summary['db_jelek'] }}</div>
-                <div class="sub">D &lt; 0.20</div>
-            </div>
-        </div>
+                <div class="text-xs font-bold text-rose-500 mt-1">{{ $summary['invalid_count'] }} Tidak Valid (r <
+                        0.3)</div>
+                </div>
 
-        {{-- Tabs --}}
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('tbl', this)">Tabel Analisis</button>
-            <button class="tab-btn" onclick="switchTab('dist', this)">Efektivitas Distraktor</button>
-            <button class="tab-btn" onclick="switchTab('ref', this)">Keterangan Kriteria</button>
-        </div>
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1.5 bg-sky-500"></div>
+                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Proporsi Kesukaran
+                    </div>
+                    <div class="flex justify-between items-end mt-1">
+                        <div class="text-center">
+                            <div class="text-xl font-black text-emerald-500">{{ $summary['mudah'] }}</div>
+                            <div class="text-[10px] font-bold text-slate-400">MUDAH</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-black text-amber-500">{{ $summary['sedang'] }}</div>
+                            <div class="text-[10px] font-bold text-slate-400">SEDANG</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-black text-rose-500">{{ $summary['sulit'] }}</div>
+                            <div class="text-[10px] font-bold text-slate-400">SULIT</div>
+                        </div>
+                    </div>
+                </div>
 
-        {{-- TAB 1: Tabel Utama --}}
-        <div id="tab-tbl" class="tab-pane active">
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1.5 bg-amber-500"></div>
+                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Daya Beda (DB)
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-3xl font-black text-amber-500">{{ $summary['db_sangat_baik'] +
+                            $summary['db_baik'] }}</span>
+                        <span class="text-sm font-bold text-amber-500">Kategori Baik</span>
+                    </div>
+                    <div class="text-xs font-bold text-rose-500 mt-1">{{ $summary['db_jelek'] }} Jelek (D < 0.20)</div>
+                    </div>
+                </div>
 
-            {{-- Filter --}}
-            <div class="filter-bar">
-                <label>Filter:</label>
-                <select id="filter-tk" onchange="applyFilter()">
-                    <option value="">Semua TK</option>
-                    <option value="Mudah">Mudah</option>
-                    <option value="Sedang">Sedang</option>
-                    <option value="Sulit">Sulit</option>
-                </select>
-                <select id="filter-db" onchange="applyFilter()">
-                    <option value="">Semua Daya Beda</option>
-                    <option value="Sangat Baik">Sangat Baik</option>
-                    <option value="Baik">Baik</option>
-                    <option value="Cukup">Cukup</option>
-                    <option value="Jelek">Jelek</option>
-                </select>
-                <select id="filter-valid" onchange="applyFilter()">
-                    <option value="">Semua Validitas</option>
-                    <option value="1">Valid</option>
-                    <option value="0">Tidak Valid</option>
-                </select>
-                <input type="text" id="filter-search" placeholder="Cari isi soal…" oninput="applyFilter()">
-            </div>
+                {{-- NAVIGASI TABS --}}
+                <div class="flex gap-6 border-b-2 border-slate-200 mb-6 overflow-x-auto custom-scrollbar">
+                    <button @click="activeTab = 'tbl'"
+                        class="pb-3 text-sm font-black whitespace-nowrap transition-colors border-b-2"
+                        :class="activeTab === 'tbl' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-700'">
+                        <i class="fas fa-table mr-2"></i> Tabel Analisis
+                    </button>
+                    <button @click="activeTab = 'dist'"
+                        class="pb-3 text-sm font-black whitespace-nowrap transition-colors border-b-2"
+                        :class="activeTab === 'dist' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-700'">
+                        <i class="fas fa-chart-pie mr-2"></i> Efektivitas Distraktor
+                    </button>
+                    <button @click="activeTab = 'ref'"
+                        class="pb-3 text-sm font-black whitespace-nowrap transition-colors border-b-2"
+                        :class="activeTab === 'ref' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-700'">
+                        <i class="fas fa-info-circle mr-2"></i> Keterangan Kriteria
+                    </button>
+                </div>
 
-            <div class="table-wrap">
-                <table class="analysis-table" id="main-table">
-                    <thead>
-                        <tr>
-                            <th style="width:50px">No</th>
-                            <th>Soal</th>
-                            <th>Tipe</th>
-                            <th>TK</th>
-                            <th>Kat.</th>
-                            <th>DB</th>
-                            <th>Kat.</th>
-                            <th>r hitung</th>
-                            <th>Valid?</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($items as $i => $item)
-                        <tr class="item-row" data-tk="{{ $item['tk_label'] }}" data-db="{{ $item['db_label'] }}"
-                            data-valid="{{ $item['valid'] ? '1' : '0' }}"
-                            data-content="{{ strtolower($item['content']) }}">
-                            <td class="mono">{{ $i + 1 }}</td>
-                            <td class="q-content" title="{{ $item['content'] }}">{{ $item['content'] }}</td>
-                            <td>
-                                <span class="badge badge-gray">{{ str_replace('_', ' ', ucfirst($item['type']))
-                                    }}</span>
-                            </td>
-                            <td class="mono">{{ number_format($item['tk'], 3) }}</td>
-                            <td>
-                                @if($item['tk_label'] === 'Mudah')
-                                <span class="badge badge-blue">Mudah</span>
-                                @elseif($item['tk_label'] === 'Sedang')
-                                <span class="badge badge-green">Sedang</span>
-                                @else
-                                <span class="badge badge-red">Sulit</span>
-                                @endif
-                            </td>
-                            <td class="mono">{{ number_format($item['db'], 3) }}</td>
-                            <td>
-                                @if($item['db_label'] === 'Sangat Baik')
-                                <span class="badge badge-green">Sangat Baik</span>
-                                @elseif($item['db_label'] === 'Baik')
-                                <span class="badge badge-blue">Baik</span>
-                                @elseif($item['db_label'] === 'Cukup')
-                                <span class="badge badge-yellow">Cukup</span>
-                                @else
-                                <span class="badge badge-red">Jelek</span>
-                                @endif
-                            </td>
-                            <td class="mono">{{ number_format($item['validity'], 3) }}</td>
-                            <td>
-                                @if($item['valid'])
-                                <span class="dot dot-ok"></span><span
-                                    style="color:var(--emerald);font-weight:700;font-size:.8rem">Valid</span>
-                                @else
-                                <span class="dot dot-bad"></span><span
-                                    style="color:var(--rose);font-weight:700;font-size:.8rem">Tidak Valid</span>
-                                @endif
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                {{-- TAB 1: TABEL UTAMA --}}
+                <div x-show="activeTab === 'tbl'" x-cloak>
 
-        {{-- TAB 2: Distraktor --}}
-        <div id="tab-dist" class="tab-pane">
-            <div class="table-wrap">
-                <table class="analysis-table">
-                    <thead>
-                        <tr>
-                            <th style="width:50px">No</th>
-                            <th>Soal</th>
-                            <th colspan="4">Distribusi Pilihan Jawaban</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($items as $i => $item)
-                        @if(count($item['distractors']) > 0)
-                        <tr>
-                            <td class="mono" style="vertical-align:top;padding-top:1rem">{{ $i + 1 }}</td>
-                            <td style="vertical-align:top;padding-top:1rem" class="q-content"
-                                title="{{ $item['content'] }}">{{ $item['content'] }}</td>
-                            <td colspan="4">
-                                @foreach($item['distractors'] as $d)
-                                <div class="dist-row">
-                                    @if($d['is_correct'])
-                                    <svg width="13" height="13" style="color:var(--emerald);flex-shrink:0"
-                                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                        <polyline points="20 6 9 17 4 12" />
-                                    </svg>
-                                    @else
-                                    <svg width="13" height="13" style="color:var(--rose);flex-shrink:0"
-                                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                        <line x1="18" y1="6" x2="6" y2="18" />
-                                        <line x1="6" y1="6" x2="18" y2="18" />
-                                    </svg>
+                    {{-- Filter Bar --}}
+                    <div class="flex flex-wrap items-center gap-3 mb-4">
+                        <span class="text-xs font-black text-slate-400 uppercase">Filter:</span>
+                        <select x-model="filterTk"
+                            class="text-sm font-bold text-slate-600 bg-white border-slate-200 rounded-xl py-2 pl-3 pr-8 focus:ring-indigo-500">
+                            <option value="">Semua Kesukaran</option>
+                            <option value="Mudah">Mudah</option>
+                            <option value="Sedang">Sedang</option>
+                            <option value="Sulit">Sulit</option>
+                        </select>
+                        <select x-model="filterDb"
+                            class="text-sm font-bold text-slate-600 bg-white border-slate-200 rounded-xl py-2 pl-3 pr-8 focus:ring-indigo-500">
+                            <option value="">Semua Daya Beda</option>
+                            <option value="Sangat Baik">Sangat Baik</option>
+                            <option value="Baik">Baik</option>
+                            <option value="Cukup">Cukup</option>
+                            <option value="Jelek">Jelek</option>
+                        </select>
+                        <select x-model="filterValid"
+                            class="text-sm font-bold text-slate-600 bg-white border-slate-200 rounded-xl py-2 pl-3 pr-8 focus:ring-indigo-500">
+                            <option value="">Semua Validitas</option>
+                            <option value="1">Valid</option>
+                            <option value="0">Tidak Valid</option>
+                        </select>
+                        <input type="text" x-model="search" placeholder="Cari isi soal..."
+                            class="text-sm font-bold text-slate-600 bg-white border-slate-200 rounded-xl py-2 px-4 focus:ring-indigo-500 w-full md:w-auto flex-1 md:flex-none">
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                                <thead>
+                                    <tr
+                                        class="bg-slate-50 border-b border-slate-200 text-[10px] uppercase tracking-widest text-slate-500 font-black">
+                                        <th class="px-5 py-4 w-12 text-center">No</th>
+                                        <th class="px-5 py-4">Soal & Tipe</th>
+                                        <th class="px-5 py-4 text-center">TK</th>
+                                        <th class="px-5 py-4 text-center">Daya Beda</th>
+                                        <th class="px-5 py-4 text-center">r-Hitung</th>
+                                        <th class="px-5 py-4 text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-sm">
+                                    @foreach ($items as $i => $item)
+                                    <tr x-show="(filterTk === '' || filterTk === '{{ $item['tk_label'] }}') &&
+                                        (filterDb === '' || filterDb === '{{ $item['db_label'] }}') &&
+                                        (filterValid === '' || filterValid === '{{ $item['valid'] ? '1' : '0' }}') &&
+                                        ('{{ strtolower($item['content']) }}'.includes(search.toLowerCase()))"
+                                        class="hover:bg-slate-50/70 transition-colors {{ !$item['valid'] ? 'bg-rose-50/30' : '' }}">
+
+                                        <td class="px-5 py-4 text-center font-mono font-bold text-slate-400">{{ $i + 1
+                                            }}</td>
+
+                                        <td class="px-5 py-4 whitespace-normal min-w-[250px] max-w-xs">
+                                            <div class="font-bold text-slate-700 line-clamp-2 leading-snug mb-1"
+                                                title="{{ $item['content'] }}">{{ $item['content'] }}</div>
+                                            <span
+                                                class="inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-500">
+                                                {{ str_replace('_', ' ', $item['type']) }}
+                                            </span>
+                                        </td>
+
+                                        <td class="px-5 py-4 text-center">
+                                            <div class="font-mono font-black text-slate-800">{{
+                                                number_format($item['tk'], 3) }}</div>
+                                            <div
+                                                class="text-[10px] font-black uppercase tracking-wider mt-0.5
+                                        {{ $item['tk_label'] == 'Mudah' ? 'text-sky-500' : ($item['tk_label'] == 'Sedang' ? 'text-emerald-500' : 'text-rose-500') }}">
+                                                {{ $item['tk_label'] }}
+                                            </div>
+                                        </td>
+
+                                        <td class="px-5 py-4 text-center">
+                                            <div
+                                                class="font-mono font-black {{ $item['db'] <= 0 ? 'text-rose-600' : 'text-slate-800' }}">
+                                                {{ number_format($item['db'], 3) }}</div>
+                                            <div
+                                                class="text-[10px] font-black uppercase tracking-wider mt-0.5
+                                        {{ in_array($item['db_label'], ['Sangat Baik', 'Baik']) ? 'text-emerald-500' : (in_array($item['db_label'], ['Jelek', 'Sangat Jelek (Revisi/Buang)']) ? 'text-rose-500' : 'text-amber-500') }}">
+                                                {{ $item['db_label'] }}
+                                            </div>
+                                        </td>
+
+                                        <td class="px-5 py-4 text-center">
+                                            <div
+                                                class="font-mono font-black {{ $item['valid'] ? 'text-emerald-600' : 'text-rose-600' }}">
+                                                {{ number_format($item['validity'], 3) }}</div>
+                                        </td>
+
+                                        <td class="px-5 py-4 text-center">
+                                            @if($item['valid'])
+                                            <span
+                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-black uppercase tracking-wide bg-emerald-100 text-emerald-700">
+                                                <i class="fas fa-check-circle"></i> Valid
+                                            </span>
+                                            @else
+                                            <span
+                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-black uppercase tracking-wide bg-rose-100 text-rose-700">
+                                                <i class="fas fa-times-circle"></i> Revisi
+                                            </span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- TAB 2: DISTRAKTOR --}}
+                <div x-show="activeTab === 'dist'" x-cloak>
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                                <thead>
+                                    <tr
+                                        class="bg-slate-50 border-b border-slate-200 text-[10px] uppercase tracking-widest text-slate-500 font-black">
+                                        <th class="px-5 py-4 w-12 text-center">No</th>
+                                        <th class="px-5 py-4 min-w-[200px]">Soal</th>
+                                        <th class="px-5 py-4">Distribusi Pilihan Jawaban</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-sm">
+                                    @foreach ($items as $i => $item)
+                                    @if(count($item['distractors']) > 0)
+                                    <tr class="hover:bg-slate-50/50 transition-colors">
+                                        <td class="px-5 py-4 text-center font-mono font-bold text-slate-400 align-top">
+                                            {{ $i + 1 }}</td>
+                                        <td
+                                            class="px-5 py-4 whitespace-normal font-bold text-slate-700 align-top max-w-sm">
+                                            {{ $item['content'] }}</td>
+                                        <td class="px-5 py-4">
+                                            <div class="flex flex-col gap-2">
+                                                @foreach($item['distractors'] as $d)
+                                                <div class="flex items-center gap-3">
+                                                    <div class="w-5 flex justify-center shrink-0">
+                                                        @if($d['is_correct'])
+                                                        <i class="fas fa-check text-emerald-500 text-lg"></i>
+                                                        @else
+                                                        <i class="fas fa-times text-rose-400 text-lg"></i>
+                                                        @endif
+                                                    </div>
+                                                    <div class="flex-1 min-w-[150px] max-w-[250px] truncate text-slate-600 font-semibold text-xs"
+                                                        title="{{ $d['text'] }}">
+                                                        {{ $d['text'] }}
+                                                    </div>
+                                                    <div
+                                                        class="w-32 h-2 bg-slate-100 rounded-full overflow-hidden shrink-0">
+                                                        <div class="h-full rounded-full transition-all"
+                                                            style="width: {{ $d['percent'] }}%; background-color: {{ $d['is_correct'] ? '#10b981' : ($d['effective'] ? '#f59e0b' : '#cbd5e1') }};">
+                                                        </div>
+                                                    </div>
+                                                    <div
+                                                        class="w-12 text-right font-mono font-bold text-xs text-slate-500">
+                                                        {{ $d['percent'] }}%</div>
+                                                    <div class="w-24 shrink-0">
+                                                        @if(!$d['is_correct'])
+                                                        @if($d['effective'])
+                                                        <span
+                                                            class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-[9px] font-black uppercase">Efektif</span>
+                                                        @else
+                                                        <span
+                                                            class="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[9px] font-black uppercase">Tdk
+                                                            Efektif</span>
+                                                        @endif
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                                @endforeach
+                                            </div>
+                                        </td>
+                                    </tr>
                                     @endif
-                                    <div class="dist-text" title="{{ $d['text'] }}">{{ $d['text'] }}</div>
-                                    <div class="dist-bar-wrap">
-                                        <div class="dist-bar-fill"
-                                            style="width:{{ $d['percent'] }}%;background:{{ $d['is_correct'] ? 'var(--emerald)' : ($d['effective'] ? 'var(--amber)' : 'var(--border)') }}">
-                                        </div>
-                                    </div>
-                                    <div class="dist-pct">{{ $d['percent'] }}%</div>
-                                    @if(!$d['is_correct'])
-                                    @if($d['effective'])
-                                    <span class="badge badge-yellow" style="font-size:.68rem">Efektif</span>
-                                    @else
-                                    <span class="badge badge-gray" style="font-size:.68rem">Tidak Efektif</span>
-                                    @endif
-                                    @endif
-                                </div>
-                                @endforeach
-                            </td>
-                        </tr>
-                        @endif
-                        @endforeach
-                    </tbody>
-                </table>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- TAB 3: REFERENSI --}}
+                <div x-show="activeTab === 'ref'" x-cloak class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+                    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                        <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 font-black text-sm text-slate-700">
+                            Tingkat Kesukaran (TK)</div>
+                        <div class="p-4 space-y-3 text-sm">
+                            <div class="flex justify-between items-center"><span
+                                    class="font-mono font-bold text-slate-600">&gt; 0.70</span> <span
+                                    class="px-2 py-1 bg-sky-100 text-sky-700 font-bold rounded text-xs">Mudah</span>
+                            </div>
+                            <div class="flex justify-between items-center"><span
+                                    class="font-mono font-bold text-slate-600">0.30 – 0.70</span> <span
+                                    class="px-2 py-1 bg-emerald-100 text-emerald-700 font-bold rounded text-xs">Sedang</span>
+                            </div>
+                            <div class="flex justify-between items-center"><span
+                                    class="font-mono font-bold text-slate-600">&lt; 0.30</span> <span
+                                    class="px-2 py-1 bg-rose-100 text-rose-700 font-bold rounded text-xs">Sulit</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                        <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 font-black text-sm text-slate-700">
+                            Daya Beda (DB)</div>
+                        <div class="p-4 space-y-3 text-sm">
+                            <div class="flex justify-between items-center"><span
+                                    class="font-mono font-bold text-slate-600">≥ 0.40</span> <span
+                                    class="px-2 py-1 bg-emerald-100 text-emerald-700 font-bold rounded text-xs">Sangat
+                                    Baik</span></div>
+                            <div class="flex justify-between items-center"><span
+                                    class="font-mono font-bold text-slate-600">0.30 – 0.39</span> <span
+                                    class="px-2 py-1 bg-sky-100 text-sky-700 font-bold rounded text-xs">Baik</span>
+                            </div>
+                            <div class="flex justify-between items-center"><span
+                                    class="font-mono font-bold text-slate-600">0.20 – 0.29</span> <span
+                                    class="px-2 py-1 bg-amber-100 text-amber-700 font-bold rounded text-xs">Cukup</span>
+                            </div>
+                            <div class="flex justify-between items-center"><span
+                                    class="font-mono font-bold text-slate-600">&lt; 0.20</span> <span
+                                    class="px-2 py-1 bg-rose-100 text-rose-700 font-bold rounded text-xs">Jelek</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                        <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 font-black text-sm text-slate-700">
+                            Validitas (r)</div>
+                        <div class="p-4 space-y-3 text-sm">
+                            <div class="flex justify-between items-center"><span
+                                    class="font-mono font-bold text-slate-600">≥ 0.30</span> <span
+                                    class="px-2 py-1 bg-emerald-100 text-emerald-700 font-bold rounded text-xs">Valid</span>
+                            </div>
+                            <div class="flex justify-between items-center"><span
+                                    class="font-mono font-bold text-slate-600">&lt; 0.30</span> <span
+                                    class="px-2 py-1 bg-rose-100 text-rose-700 font-bold rounded text-xs">Tidak
+                                    Valid</span></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                        <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 font-black text-sm text-slate-700">
+                            Efektivitas Distraktor</div>
+                        <div class="p-4 space-y-3 text-sm">
+                            <div class="flex justify-between items-center"><span
+                                    class="font-mono font-bold text-slate-600">Dipilih ≥ 5%</span> <span
+                                    class="px-2 py-1 bg-amber-100 text-amber-700 font-bold rounded text-xs">Efektif</span>
+                            </div>
+                            <div class="flex justify-between items-center"><span
+                                    class="font-mono font-bold text-slate-600">Dipilih &lt; 5%</span> <span
+                                    class="px-2 py-1 bg-slate-100 text-slate-600 font-bold rounded text-xs">Tdk
+                                    Efektif</span></div>
+                        </div>
+                    </div>
+
+                </div>
             </div>
-        </div>
-
-        {{-- TAB 3: Referensi Kriteria --}}
-        <div id="tab-ref" class="tab-pane">
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;">
-
-                <div class="table-wrap">
-                    <div style="padding:1rem 1.2rem;font-weight:700;border-bottom:1.5px solid var(--border)">Tingkat
-                        Kesukaran (TK)</div>
-                    <table class="analysis-table">
-                        <thead>
-                            <tr>
-                                <th>Nilai TK</th>
-                                <th>Kategori</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="mono">&gt; 0.70</td>
-                                <td><span class="badge badge-blue">Mudah</span></td>
-                            </tr>
-                            <tr>
-                                <td class="mono">0.30 – 0.70</td>
-                                <td><span class="badge badge-green">Sedang</span></td>
-                            </tr>
-                            <tr>
-                                <td class="mono">&lt; 0.30</td>
-                                <td><span class="badge badge-red">Sulit</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="table-wrap">
-                    <div style="padding:1rem 1.2rem;font-weight:700;border-bottom:1.5px solid var(--border)">Daya Beda
-                        (DB)</div>
-                    <table class="analysis-table">
-                        <thead>
-                            <tr>
-                                <th>Nilai D</th>
-                                <th>Kategori</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="mono">≥ 0.40</td>
-                                <td><span class="badge badge-green">Sangat Baik</span></td>
-                            </tr>
-                            <tr>
-                                <td class="mono">0.30 – 0.39</td>
-                                <td><span class="badge badge-blue">Baik</span></td>
-                            </tr>
-                            <tr>
-                                <td class="mono">0.20 – 0.29</td>
-                                <td><span class="badge badge-yellow">Cukup</span></td>
-                            </tr>
-                            <tr>
-                                <td class="mono">&lt; 0.20</td>
-                                <td><span class="badge badge-red">Jelek</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="table-wrap">
-                    <div style="padding:1rem 1.2rem;font-weight:700;border-bottom:1.5px solid var(--border)">Validitas
-                        Butir (r)</div>
-                    <table class="analysis-table">
-                        <thead>
-                            <tr>
-                                <th>Nilai r</th>
-                                <th>Keterangan</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="mono">≥ 0.30</td>
-                                <td><span class="badge badge-green">Valid</span></td>
-                            </tr>
-                            <tr>
-                                <td class="mono">&lt; 0.30</td>
-                                <td><span class="badge badge-red">Tidak Valid</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div style="padding:.75rem 1.2rem;font-size:.75rem;color:var(--ink2)">Menggunakan korelasi Pearson
-                        antara skor item dan skor total.</div>
-                </div>
-
-                <div class="table-wrap">
-                    <div style="padding:1rem 1.2rem;font-weight:700;border-bottom:1.5px solid var(--border)">Cronbach
-                        Alpha (α)</div>
-                    <table class="analysis-table">
-                        <thead>
-                            <tr>
-                                <th>Nilai α</th>
-                                <th>Reliabilitas</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="mono">≥ 0.90</td>
-                                <td><span class="badge badge-green">Sangat Tinggi</span></td>
-                            </tr>
-                            <tr>
-                                <td class="mono">0.70 – 0.89</td>
-                                <td><span class="badge badge-blue">Tinggi</span></td>
-                            </tr>
-                            <tr>
-                                <td class="mono">0.50 – 0.69</td>
-                                <td><span class="badge badge-yellow">Cukup</span></td>
-                            </tr>
-                            <tr>
-                                <td class="mono">&lt; 0.50</td>
-                                <td><span class="badge badge-red">Rendah</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="table-wrap">
-                    <div style="padding:1rem 1.2rem;font-weight:700;border-bottom:1.5px solid var(--border)">Efektivitas
-                        Distraktor</div>
-                    <table class="analysis-table">
-                        <thead>
-                            <tr>
-                                <th>Dipilih</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="mono">≥ 5%</td>
-                                <td><span class="badge badge-yellow">Efektif</span></td>
-                            </tr>
-                            <tr>
-                                <td class="mono">&lt; 5%</td>
-                                <td><span class="badge badge-gray">Tidak Efektif</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div style="padding:.75rem 1.2rem;font-size:.75rem;color:var(--ink2)">Distraktor yang tidak dipilih
-                        perlu diganti atau diperbaiki.</div>
-                </div>
-
-            </div>
-        </div>
-
-    </div>{{-- /analysis-wrap --}}
-
-    <script>
-        function switchTab(id, btn) {
-    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('tab-' + id).classList.add('active');
-    btn.classList.add('active');
-}
-
-function applyFilter() {
-    const tk     = document.getElementById('filter-tk').value;
-    const db     = document.getElementById('filter-db').value;
-    const valid  = document.getElementById('filter-valid').value;
-    const search = document.getElementById('filter-search').value.toLowerCase();
-
-    document.querySelectorAll('#main-table .item-row').forEach(row => {
-        let show = true;
-        if (tk     && row.dataset.tk      !== tk)     show = false;
-        if (db     && row.dataset.db      !== db)     show = false;
-        if (valid  && row.dataset.valid   !== valid)  show = false;
-        if (search && !row.dataset.content.includes(search)) show = false;
-        row.style.display = show ? '' : 'none';
-    });
-}
-    </script>
 </x-app-layout>
