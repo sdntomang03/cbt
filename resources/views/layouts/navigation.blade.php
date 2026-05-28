@@ -30,30 +30,37 @@
         <span>Dashboard</span>
     </a>
 
-    @hasanyrole('admin|operator')
+    {{-- KELOMPOK ADMINISTRASI (Muncul jika punya salah satu permission di bawah) --}}
+    @canany(['manage schools', 'view users'])
     <div class="text-xs font-black text-slate-400 uppercase tracking-widest mt-8 mb-3 px-4">Administrasi Sekolah</div>
 
+    @can('manage schools')
     <a href="{{ route('admin.schools.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('admin.schools.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-school w-6 text-center text-lg"></i>
         <span>Data Sekolah</span>
     </a>
+    @endcan
 
+    @can('view users')
     <a href="{{ route('admin.users.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('admin.users.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-users w-6 text-center text-lg"></i>
         <span>Data Users</span>
     </a>
+    @endcan
 
-    {{-- Pengaturan Registrasi --}}
+    @can('manage schools')
     <a href="{{ route('admin.settings.registration') }}"
         class="{{ $navClass }} {{ request()->routeIs('admin.settings.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-cogs w-6 text-center text-lg"></i>
         <span>Pengaturan Sistem</span>
     </a>
-    @endhasanyrole
+    @endcan
+    @endcanany
 
-    @role('admin')
+    {{-- KELOMPOK KEAMANAN (Khusus Super Admin) --}}
+    @can('manage access')
     <div class="text-xs font-black text-slate-400 uppercase tracking-widest mt-8 mb-3 px-4">Keamanan Sistem</div>
 
     <a href="{{ route('admin.roles.index') }}"
@@ -67,43 +74,55 @@
         <i class="fas fa-fingerprint w-6 text-center text-lg"></i>
         <span>Permissions</span>
     </a>
-    @endrole
+    @endcan
 
-    @hasanyrole('admin|operator|guru')
+    {{-- KELOMPOK MANAJEMEN UJIAN & AKADEMIK --}}
+    @canany(['view classrooms', 'view exams', 'manage exam sessions', 'proctor exams', 'manage math exams'])
     <div class="text-xs font-black text-slate-400 uppercase tracking-widest mt-8 mb-3 px-4">Manajemen Ujian</div>
 
+    @can('view classrooms')
     <a href="{{ route('admin.classrooms.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('admin.classrooms.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-chalkboard w-6 text-center text-lg"></i>
         <span>Manajemen Kelas</span>
     </a>
+    @endcan
 
+    @can('view exams')
     <a href="{{ route('admin.exams.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('admin.exams.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-folder-open w-6 text-center text-lg"></i>
-        <span>Ujian</span>
+        <span>Ujian & Bank Soal</span>
     </a>
+    @endcan
 
+    @can('manage exam sessions')
     <a href="{{ route('admin.exam-sessions.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('admin.exam-sessions.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-calendar-alt w-6 text-center text-lg"></i>
         <span>Jadwal Ujian</span>
     </a>
+    @endcan
 
+    @can('proctor exams')
     <a href="{{ route('proctor.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('proctor.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-desktop w-6 text-center text-lg"></i>
         <span>Monitoring Ujian</span>
     </a>
+    @endcan
 
+    @can('manage math exams')
     <a href="{{ route('admin.math.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('admin.math.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-calculator w-6 text-center text-lg"></i>
         <span>Math Exams</span>
     </a>
-    @endhasanyrole
+    @endcan
+    @endcanany
 
-    @role('siswa')
+    {{-- KELOMPOK SISWA --}}
+    @can('take exams')
     <div class="text-xs font-black text-slate-400 uppercase tracking-widest mt-8 mb-3 px-4">Menu Siswa</div>
 
     <a href="{{ route('student.index') }}"
@@ -112,11 +131,13 @@
         <span>Ruang Ujian</span>
     </a>
 
+    @can('take math exams')
     <a href="{{ route('student.math.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('student.math.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-superscript w-6 text-center text-lg"></i>
         <span>Latihan Hitung</span>
     </a>
+    @endcan
 
     <div class="text-xs font-black text-slate-400 uppercase tracking-widest mt-8 mb-3 px-4">Modul Interaktif</div>
 
@@ -131,6 +152,6 @@
         <span class="w-6 text-center text-xl">📖</span>
         <span>Kawan Baca</span>
     </a>
-    @endrole
+    @endcan
 
 </nav>
