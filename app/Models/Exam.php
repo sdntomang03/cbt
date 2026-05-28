@@ -14,6 +14,8 @@ class Exam extends Model
 
     protected $guarded = ['id'];
 
+    protected $appends = ['hashid'];
+
     public function teacher(): BelongsTo
     {
         return $this->belongsTo(User::class, 'teacher_id');
@@ -88,5 +90,10 @@ class Exam extends Model
 
         // Cari data di database menggunakan ID asli yang sudah dikembalikan
         return $this->where('id', $decoded[0])->firstOrFail();
+    }
+
+    public function getHashidAttribute()
+    {
+        return Hashids::encode($this->id);
     }
 }

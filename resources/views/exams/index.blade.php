@@ -349,7 +349,7 @@
                 },
                 editExam(exam) {
                     this.isEdit = true;
-                    this.actionUrl = `/admin/exams/${exam.id}`;
+                    this.actionUrl = `/admin/exams/${exam.hashid}`;
                     this.formData = {
                         title: exam.title,
                         exam_type_id: exam.exam_type_id,
