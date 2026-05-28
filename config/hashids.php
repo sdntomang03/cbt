@@ -30,7 +30,8 @@ return [
 
         'main' => [
             'salt' => env('HASHIDS_SALT', 'kunci-rahasia-cadangan'),
-            'length' => env('HASHIDS_LENGTH', 6),
+            // PERBAIKAN: Tambahkan (int) di sini agar selalu dibaca sebagai angka
+            'length' => (int) env('HASHIDS_LENGTH', 6),
             // 'alphabet' => 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
         ],
 
