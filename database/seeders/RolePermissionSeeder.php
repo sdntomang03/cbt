@@ -9,139 +9,73 @@ use Spatie\Permission\PermissionRegistrar;
 
 class RolePermissionSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Menghapus cache permission sebelum menjalankan seeder (Penting!)
+        // Bersihkan cache permission
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         // ---------------------------------------------------------
-        // 1. DAFTAR PERMISSIONS BERDASARKAN FITUR/ROUTE
+        // 1. DAFTAR PERMISSIONS (Versi Ringkas / Bundling)
         // ---------------------------------------------------------
         $permissions = [
-
-            // --- MANAJEMEN SISTEM INTI (Khusus Super Admin) ---
-            'manage roles',
-            'manage permissions',
-
-            // --- MANAJEMEN SEKOLAH ---
-            'view schools',
-            'create schools',
-            'edit schools',
-            'delete schools',
-            'export schools',
-            'manage registration settings',
-
-            // --- MANAJEMEN USERS (Guru, Operator, Siswa) ---
-            'view users',
-            'create users',
-            'edit users',
-            'delete users',
-            'import users',
-            'export users',
-
-            // --- MANAJEMEN KELAS ---
-            'view classrooms',
-            'create classrooms',
-            'edit classrooms',
-            'delete classrooms',
-            'manage classroom students',
-
-            // --- MANAJEMEN UJIAN (CBT) ---
-            'view exams',
-            'create exams',
-            'edit exams',
-            'delete exams',
-            'export exam grades',
-
-            // --- MANAJEMEN SOAL (BANK SOAL) ---
-            'view questions',
-            'create questions',
-            'edit questions',
-            'delete questions',
-            'import questions',
-
-            // --- MANAJEMEN SESI UJIAN (JADWAL) ---
-            'view exam sessions',
-            'create exam sessions',
-            'edit exam sessions',
-            'delete exam sessions',
-            'manage session students',
-            'regenerate session token',
-
-            // --- MANAJEMEN UJIAN MATEMATIKA KHUSUS ---
-            'manage math exams', // Mencakup create, edit, delete, show
-            'view math results',
-            'export math results',
-            'reset math exams',
-            'print math worksheets',
-
-            // --- PROCTORING (PENGAWASAN UJIAN) ---
-            'monitor exams',
-            'unlock student exam',
-            'force finish student exam',
-            'reset student session',
-
-            // --- ANALISIS BUTIR SOAL ---
-            'view item analysis',
-            'export item analysis',
-
-            // --- HAK AKSES SISWA ---
-            'take exams',        // Mengerjakan ujian CBT Reguler
-            'take math exams',   // Mengerjakan ujian Matematika
-            'view own results',  // Melihat nilai sendiri
+            'manage access',       // Mengelola role & permission
+            'manage schools',      // CRUD & Export sekolah, setting registrasi
+            'manage users',        // CRUD, Import, Export semua user
+            'view users',          // Hanya melihat daftar user
+            'manage classrooms',   // CRUD kelas & ploting siswa ke kelas
+            'view classrooms',     // Hanya melihat daftar kelas
+            'manage exams',        // CRUD ujian & export nilai
+            'view exams',          // Hanya melihat daftar ujian
+            'manage questions',    // CRUD & Import bank soal
+            'manage exam sessions', // CRUD jadwal sesi, ploting peserta, generate token
+            'manage math exams',   // CRUD ujian MTK, hasil, cetak LKS, reset
+            'proctor exams',       // Monitor pengawasan, unlock, force finish
+            'analyze exams',       // Lihat & export analisis butir soal
+            'take exams',          // Akses mengerjakan ujian (Reguler & MTK)
+            'view own results',    // Siswa melihat hasil/nilainya sendiri
         ];
 
-        // ---------------------------------------------------------
-        // 2. SIMPAN PERMISSION KE DATABASE
-        // ---------------------------------------------------------
         foreach ($permissions as $permission) {
             Permission::firstOrCreate(['name' => $permission]);
         }
 
         // ---------------------------------------------------------
-        // 3. PEMBUATAN ROLE & PEMBAGIAN HAK AKSES
+        // 2. PEMBAGIAN HAK AKSES KE MASING-MASING ROLE
         // ---------------------------------------------------------
 
-        // A. ROLE: ADMIN (Super Administrator)
-        // Memiliki semua akses tanpa terkecuali
+        // A. ADMIN (Akses Penuh)
         $adminRole = Role::firstOrCreate(['name' => 'admin']);
         $adminRole->syncPermissions(Permission::all());
 
-        // B. ROLE: OPERATOR SEKOLAH
-        // Mengelola data sekolah, siswa, dan jadwal, tapi tidak bisa hapus peran/permission
+        // B. OPERATOR (Fokus Administrasi Sekolah & Pengawasan)
         $operatorRole = Role::firstOrCreate(['name' => 'operator']);
         $operatorRole->syncPermissions([
-            'view schools', 'edit schools', 'manage registration settings',
-            'view users', 'create users', 'edit users', 'delete users', 'import users', 'export users',
-            'view classrooms', 'create classrooms', 'edit classrooms', 'delete classrooms', 'manage classroom students',
-            'view exams', 'view exam sessions', 'create exam sessions', 'edit exam sessions', 'delete exam sessions', 'manage session students', 'regenerate session token',
-            'monitor exams', 'unlock student exam', 'force finish student exam', 'reset student session',
-            'view item analysis', 'export item analysis',
+            'manage schools',
+            'manage users',
+            'manage classrooms',
+            'view exams',
+            'manage exam sessions',
+            'proctor exams',
+            'analyze exams',
         ]);
 
-        // C. ROLE: GURU (Teacher)
-        // Fokus pada pembuatan soal, ujian, dan analisis
+        // C. GURU (Fokus Akademik, Soal & Ujian)
         $guruRole = Role::firstOrCreate(['name' => 'guru']);
         $guruRole->syncPermissions([
-            'view users', // Untuk melihat daftar siswanya
+            'view users',
             'view classrooms',
-            'view exams', 'create exams', 'edit exams', 'delete exams', 'export exam grades',
-            'view questions', 'create questions', 'edit questions', 'delete questions', 'import questions',
-            'view exam sessions', 'create exam sessions', 'edit exam sessions', 'delete exam sessions', 'manage session students',
-            'manage math exams', 'view math results', 'export math results', 'reset math exams', 'print math worksheets',
-            'monitor exams', 'unlock student exam', 'force finish student exam',
-            'view item analysis', 'export item analysis',
+            'manage exams',
+            'manage questions',
+            'manage exam sessions',
+            'manage math exams',
+            'proctor exams',
+            'analyze exams',
         ]);
 
-        // D. ROLE: SISWA (Student)
-        // Hanya untuk mengerjakan ujian dan melihat nilai
+        // D. SISWA (Fokus Mengerjakan)
         $siswaRole = Role::firstOrCreate(['name' => 'siswa']);
         $siswaRole->syncPermissions([
             'take exams',
-            'take math exams',
             'view own results',
         ]);
     }
