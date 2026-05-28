@@ -6,6 +6,7 @@ use App\Enums\ExamStatus;
 use App\Traits\BelongsToSchool;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Vinkla\Hashids\Facades\Hashids;
 
 class Exam extends Model
 {
@@ -45,7 +46,7 @@ class Exam extends Model
 
     public function totalParticipantsCount()
     {
-        return \App\Models\ExamSession::where('exam_id', $this->id)
+        return ExamSession::where('exam_id', $this->id)
             ->join('exam_session_user', 'exam_sessions.id', '=', 'exam_session_user.exam_session_id')
             ->count();
     }
@@ -53,7 +54,7 @@ class Exam extends Model
     /**
      * Relasi ke Tingkat/Level Kelas
      */
-    public function level(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function level(): BelongsTo
     {
         return $this->belongsTo(Level::class);
     }
@@ -61,8 +62,31 @@ class Exam extends Model
     /**
      * Relasi ke Mata Pelajaran
      */
-    public function subject(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function subject(): BelongsTo
     {
         return $this->belongsTo(Subject::class);
+    }
+
+    public function getRouteKey()
+    {
+        return Hashids::encode($this->getKey());
+    }
+
+    /**
+     * 2. Fungsi ini otomatis mengubah Huruf Acak kembali menjadi ID
+     * saat siswa mengakses URL, sebelum masuk ke Controller.
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        // Decode huruf acak (misal 'jR8z9X') kembali ke array angka (misal [1])
+        $decoded = Hashids::decode($value);
+
+        // Jika siswa asal ketik URL acak dan gagal di-decode, lempar ke halaman 404
+        if (empty($decoded)) {
+            abort(404, 'Ujian tidak ditemukan atau link tidak valid.');
+        }
+
+        // Cari data di database menggunakan ID asli yang sudah dikembalikan
+        return $this->where('id', $decoded[0])->firstOrFail();
     }
 }
