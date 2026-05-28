@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center gap-5 py-2 w-full">
-            <a href="{{ route('admin.exams.soal.index', $exam->id) }}"
+            <a href="{{ route('admin.exams.soal.index', $exam) }}"
                 class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-slate-500 hover:text-indigo-600 shadow-sm border border-slate-100 transition-all hover:-translate-x-1 shrink-0">
                 <i class="fas fa-arrow-left"></i>
             </a>
@@ -14,8 +14,8 @@
     </x-slot>
 
     <div class="py-10 max-w-7xl mx-auto sm:px-6 lg:px-8 w-full px-4 sm:px-0" x-data="questionEditor({
-            submitUrl: '{{ route('admin.exams.soal.update', [$exam->id, $soal->id]) }}',
-            redirectUrl: '{{ route('admin.exams.soal.index', $exam->id) }}',
+            submitUrl: '{{ route('admin.exams.soal.update', [$exam, $soal->id]) }}',
+            redirectUrl: '{{ route('admin.exams.soal.index', $exam) }}',
             subjects: {{ $subjects->toJson() }},
             levels: {{ $levels->toJson() }},
             initialData: {{ $soal->toJson() }},
