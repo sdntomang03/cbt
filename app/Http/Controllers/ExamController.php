@@ -62,6 +62,7 @@ class ExamController extends Controller
             'level_id' => 'required|exists:levels,id',
             'subject_id' => 'required|exists:subjects,id',
             'show_explanation' => 'boolean',
+            'max_tolerances' => 'nullable|integer|min:1',
         ]);
 
         // 2. Mulai tangkap potensi error saat memproses dan menyimpan data
@@ -72,7 +73,11 @@ class ExamController extends Controller
             $validated['random_question'] = $request->has('random_question');
             $validated['random_answer'] = $request->has('random_answer');
             $validated['show_explanation'] = $request->has('show_explanation');
+            $validated['require_token'] = $request->has('require_token');
+            $validated['enable_violation'] = $request->has('enable_violation');
 
+            // Jika toleransi kosong, atur default 3
+            $validated['max_tolerances'] = $request->max_tolerances ?? 3;
             Exam::create($validated);
 
             return redirect()->back()->with('success', 'Ujian berhasil dibuat!');
@@ -96,6 +101,7 @@ class ExamController extends Controller
             'level_id' => 'required|exists:levels,id',
             'subject_id' => 'required|exists:subjects,id',
             'show_explanation' => 'boolean',
+            'max_tolerances' => 'nullable|integer|min:1',
         ]);
 
         if ($request->title !== $exam->title) {
@@ -105,6 +111,9 @@ class ExamController extends Controller
         $validated['random_question'] = $request->has('random_question');
         $validated['random_answer'] = $request->has('random_answer');
         $validated['show_explanation'] = $request->has('show_explanation');
+        $validated['require_token'] = $request->has('require_token');
+        $validated['enable_violation'] = $request->has('enable_violation');
+        $validated['max_tolerances'] = $request->max_tolerances ?? 3;
         $exam->update($validated);
 
         return redirect()->back()->with('success', 'Ujian diperbarui!');
