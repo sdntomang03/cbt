@@ -390,7 +390,10 @@
                     status: 'draft',
                     random_question: false,
                     show_explanation: false,
-                    random_answer: false
+                    random_answer: false,
+                    require_token: true,
+    enable_violation: true,
+    max_tolerances: 3
                 },
                 newExam() {
                     this.isEdit = false;
@@ -404,7 +407,12 @@
                         status: 'draft',
                         random_question: false,
                         show_explanation: false,
-                        random_answer: false
+                        random_answer: false,
+                        require_token: true,
+                        enable_violation: true,
+                        max_tolerances: 3
+
+
                     };
                     this.openModal = true;
                 },
@@ -420,7 +428,11 @@
                         status: exam.status,
                         random_question: !!exam.random_question,
                         show_explanation: !!exam.show_explanation,
-                        random_answer: !!exam.random_answer
+                        random_answer: !!exam.random_answer.Alpine,
+                        require_token: !!exam.require_token,
+                        enable_violation: !!exam.enable_violation,
+                        max_tolerances: exam.max_tolerances || 3,
+
                     };
                     this.openModal = true;
                 },
