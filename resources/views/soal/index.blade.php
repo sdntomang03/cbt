@@ -102,7 +102,7 @@
 
                 {{-- 5. TOMBOL IMPORT JSON (BARU) --}}
 
-                <a href="{{ route('admin.soal.import_json_view', $exam->id) }}"
+                <a href="{{ route('admin.soal.import_json_view', $exam) }}"
                     class="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-100 px-4 md:px-5 py-3.5 rounded-full font-bold transition-all flex items-center gap-2 text-sm shadow-sm bounce-active">
                     <i class="fas fa-file-code text-amber-500"></i>
                     <span class="hidden sm:inline">Import Json</span>
@@ -162,7 +162,7 @@
                                     {{-- Tombol Aksi --}}
                                     <div
                                         class="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300">
-                                        <a :href="`/admin/exams/{{ $exam->id }}/soal/${q.id}/edit`"
+                                        <a :href="`/admin/exams/{{ $exam }}/soal/${q.id}/edit`"
                                             class="w-10 h-10 rounded-full bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition flex items-center justify-center bounce-active shadow-sm"><i
                                                 class="fas fa-pencil-alt"></i></a>
                                         <button @click="deleteQuestion(q.id)"
