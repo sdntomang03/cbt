@@ -46,10 +46,12 @@
                         <input type="text" x-model="search" placeholder="Cari sekolah..."
                             class="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 shadow-sm transition">
                     </div>
+                    @can('manage schools')
                     <button @click="openModal()"
                         class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-lg shadow-indigo-200 flex items-center gap-2 whitespace-nowrap active:scale-95">
                         <i class="fas fa-plus"></i> Tambah
                     </button>
+                    @endcan
                 </div>
             </div>
 
@@ -98,28 +100,28 @@
                                         <span x-show="!school.domain" class="text-slate-300">-</span>
                                     </td>
                                     <td class="p-4 pr-6">
-    <div class="flex items-center justify-end gap-2">
-        
-        <a :href="`/admin/schools/${school.id}/details`"
-            class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition flex items-center justify-center"
-            title="Detail Sekolah">
-            <i class="fas fa-eye"></i>
-        </a>
+                                        <div class="flex items-center justify-end gap-2">
 
-        <button @click="openModal(school)"
-            class="w-8 h-8 rounded-lg bg-amber-50 text-amber-500 hover:bg-amber-500 hover:text-white transition flex items-center justify-center"
-            title="Edit">
-            <i class="fas fa-edit"></i>
-        </button>
-        
-        <button @click="deleteSchool(school.id, school.name)"
-            class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white transition flex items-center justify-center"
-            title="Hapus">
-            <i class="fas fa-trash-alt"></i>
-        </button>
-        
-    </div>
-</td>
+                                            <a :href="`/admin/schools/${school.id}/details`"
+                                                class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition flex items-center justify-center"
+                                                title="Detail Sekolah">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            @can('manage schools')
+                                            <button @click="openModal(school)"
+                                                class="w-8 h-8 rounded-lg bg-amber-50 text-amber-500 hover:bg-amber-500 hover:text-white transition flex items-center justify-center"
+                                                title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+
+                                            <button @click="deleteSchool(school.id, school.name)"
+                                                class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white transition flex items-center justify-center"
+                                                title="Hapus">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                            @endcan
+                                        </div>
+                                    </td>
                                 </tr>
                             </template>
                         </tbody>
