@@ -183,7 +183,7 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
     Route::get('/math-exam/', [StudentMathExamController::class, 'index'])->name('student.math.index');
     Route::get('/math-exam/{id}/run', [StudentMathExamController::class, 'run'])->name('student.math.run');
     Route::post('/math-exam/{id}/submit', [StudentMathExamController::class, 'submit'])->name('student.math.submit');
-    Route::get('/math-exam/{id}/result', [StudentExamController::class, 'result'])->name('student.math.result');
+    Route::get('/math-exam/{id}/result', [StudentMathExamController::class, 'result'])->name('student.math.result');
     Route::post('/math-exam/{id}/autosave', [StudentMathExamController::class, 'autosave'])->name('student.math.autosave');
 });
 

@@ -241,4 +241,28 @@ class MathExamController extends Controller
             ], 400);
         }
     }
+
+    public function result($id)
+    {
+        $userId = Auth::id();
+
+        // 1. Ambil data sesi ujian siswa
+        $examUser = MathExamUser::with('exam')
+            ->where('math_exam_id', $id)
+            ->where('student_id', $userId)
+            ->firstOrFail();
+
+        // 2. Pastikan ujian sudah berstatus 'completed'
+        if ($examUser->status !== 'completed') {
+            return redirect()->route('student.math.index')
+                ->with('info', 'Anda belum menyelesaikan ujian ini.');
+        }
+
+        // 3. Ambil data soal dan jawaban siswa tersebut
+        $questions = MathExamQuestion::where('math_exam_id', $id)
+            ->where('student_id', $userId)
+            ->get();
+
+        return view('student.math.result', compact('examUser', 'questions'));
+    }
 }
