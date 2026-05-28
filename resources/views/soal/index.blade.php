@@ -110,7 +110,7 @@
 
 
                 {{-- 6. TOMBOL MANUAL (Bawaan Anda) --}}
-                <a href="{{ route('admin.exams.soal.create', $exam->id) }}"
+                <a href="{{ route('admin.exams.soal.create', $exam) }}"
                     class="bg-slate-900 hover:bg-black text-white px-6 md:px-8 py-3.5 rounded-full shadow-xl shadow-slate-300 transition-all bounce-active font-bold flex items-center gap-2 md:gap-3 ml-1 text-sm md:text-base">
                     <i class="fas fa-plus-circle text-indigo-400"></i>
                     <span class="hidden sm:inline">Buat Manual</span>
