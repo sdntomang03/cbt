@@ -124,13 +124,31 @@
     if (window.Quill && window.QuillResize) {
         Quill.register('modules/resize', QuillResize.default);
     }
-
+axios.defaults.headers.common['X-CSRF-TOKEN'] =
+    document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     document.addEventListener('alpine:init', () => {
     Alpine.data('questionEditor', (config) => {
 
         let myEditor = null;
         let optionEditors = {}; // object untuk menyimpan Quill instance Opsi
+        // ── Fungsi Upload ke Server ──
+function uploadImageToServer(file, quill) {
+    const formData = new FormData();
+    formData.append('image', file);
 
+    // Anda perlu memastikan route 'admin.image.upload' sudah ada di web.php
+    axios.post('{{ route("admin.image.upload") }}', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    .then(response => {
+        const url = response.data.url;
+        const range = quill.getSelection();
+        quill.insertEmbed(range.index, 'image', url);
+    })
+    .catch(error => {
+        Swal.fire('Error', 'Gagal mengupload gambar', 'error');
+    });
+}
         // ── 2. Konfigurasi Resize Modul ──
         function getResizeConfig() {
             return {
@@ -342,6 +360,17 @@
                                     ['clean'],
                                 ],
                                 handlers: {
+                                    image: function() {
+            const input = document.createElement('input');
+            input.setAttribute('type', 'file');
+            input.setAttribute('accept', 'image/*');
+            input.click();
+
+            input.onchange = () => {
+                const file = input.files[0];
+                if (file) uploadImageToServer(file, this.quill);
+            };
+        },
                                     customSymbol() { openSymbolPicker(this.quill); },
                                     editHtml() { toggleHtmlEdit(this.quill); }
                                 }

@@ -35,7 +35,7 @@ class Question extends Model
         return $this->belongsTo(Level::class);
     }
 
-    public function matches(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function matches(): HasMany
     {
         return $this->hasMany(QuestionMatch::class);
     }

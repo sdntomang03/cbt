@@ -303,50 +303,16 @@ class SoalController extends Controller
         }
     }
 
-    /**
-     * Mengekstrak Base64 dari HTML, merubahnya menjadi WebP, dan mengembalikan URL-nya.
-     */
-    private function processBase64ImagesToWebp($htmlContent)
+    public function uploadImage(Request $request)
     {
-        if (empty($htmlContent)) {
-            return $htmlContent;
-        }
+        $request->validate([
+            'image' => 'required|image|mimes:jpg,jpeg,png,gif,webp|max:2048',
+        ]);
 
-        // Cari semua tag <img> yang atribut src-nya mengandung data:image/....;base64
-        return preg_replace_callback('/src=["\']data:image\/([^;]+);base64,([^"\']+)["\']/', function ($matches) {
-            $base64Data = $matches[2];
-            $imageData = base64_decode($base64Data);
+        $path = $request->file('image')->store('questions', 'public');
 
-            if ($imageData === false) {
-                return $matches[0]; // Lewati jika kode base64 rusak
-            }
-
-            // Buat nama file unik
-            $filename = 'questions/'.uniqid('img_', true).'.webp';
-            $storagePath = storage_path('app/public/'.$filename);
-
-            // Pastikan direktori storage/app/public/questions ada
-            if (! file_exists(dirname($storagePath))) {
-                mkdir(dirname($storagePath), 0755, true);
-            }
-
-            // Gunakan GD Library bawaan PHP untuk membaca string gambar
-            $image = @imagecreatefromstring($imageData);
-            if ($image !== false) {
-                // Konfigurasi agar *background* transparan pada PNG tidak menjadi hitam
-                imagepalettetotruecolor($image);
-                imagealphablending($image, true);
-                imagesavealpha($image, true);
-
-                // Konversi dan simpan sebagai WebP (Kualitas 80%)
-                imagewebp($image, $storagePath, 80);
-                imagedestroy($image);
-
-                // Kembalikan URL Storage pengganti Base64
-                return 'src="'.asset('storage/'.$filename).'"';
-            }
-
-            return $matches[0]; // Jika gagal konversi, kembalikan ke teks asal
-        }, $htmlContent);
+        return response()->json([
+            'url' => asset('storage/'.$path),
+        ]);
     }
 }

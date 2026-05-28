@@ -100,7 +100,7 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
 
         // Nested resource Soal Utama
         Route::resource('exams.soal', SoalController::class)->except(['show']);
-
+        Route::post('/upload-image', [SoalController::class, 'uploadImage'])->name('soal.upload-image');
         // Import/Export Soal
         Route::get('/soal/download-template', [SoalController::class, 'downloadTemplate'])->name('soal.template');
         Route::post('/exams/{exam}/soal/import', [SoalController::class, 'import'])->name('exams.soal.import');
