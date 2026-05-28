@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Intervention\Image\ImageManager;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -319,14 +320,29 @@ class SoalController extends Controller
                 return response()->json(['error' => 'File tidak valid'], 422);
             }
 
-            $path = $request->file('image')->store('questions', 'public');
+            $file = $request->file('image');
+
+            // Buat instance ImageManager
+            $manager = new ImageManager(new Driver);
+
+            // Baca gambar dan konversi ke WebP
+            $image = $manager->read($file);
+
+            // Encode ke WebP dengan kualitas 80% (default)
+            $encoded = $image->toWebp(80);
+
+            // Generate nama file unik dengan ekstensi .webp
+            $filename = 'questions/'.uniqid().'_'.time().'.webp';
+
+            // Simpan ke storage
+            $path = Storage::disk('public')->put($filename, $encoded);
 
             if (! $path) {
                 return response()->json(['error' => 'Gagal menyimpan file ke storage'], 500);
             }
 
             return response()->json([
-                'url' => asset('storage/'.$path),
+                'url' => asset('storage/'.$filename),
             ]);
 
         } catch (ValidationException $e) {
