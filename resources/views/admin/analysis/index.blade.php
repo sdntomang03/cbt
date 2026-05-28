@@ -301,7 +301,7 @@
             $completed = $session->completed_count ?? 0;
             $canAnalyze = $completed >= 2;
             @endphp
-            <a href="{{ $canAnalyze ? route('teacher.analysis.show', [$exam, $session]) : '#' }}"
+            <a href="{{ $canAnalyze ? route('admin.analysis.show', [$exam, $session]) : '#' }}"
                 class="session-card {{ $canAnalyze ? '' : 'disabled' }}"
                 title="{{ $canAnalyze ? '' : 'Minimal 2 peserta selesai untuk analisis' }}">
 

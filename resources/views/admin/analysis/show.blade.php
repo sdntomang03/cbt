@@ -17,7 +17,7 @@
                 </div>
             </div>
 
-            <a href="{{ route('teacher.analysis.export', [$exam, $session]) }}"
+            <a href="{{ route('admin.analysis.export', [$exam, $session]) }}"
                 class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-200 transition active:scale-95 flex items-center justify-center gap-2">
                 <i class="fas fa-file-export"></i> Export JSON
             </a>
