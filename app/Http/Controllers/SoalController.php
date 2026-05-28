@@ -36,29 +36,51 @@ class SoalController extends Controller
 
     public function store(Request $request, Exam $exam)
     {
-        // Tambahkan subject_id dan level_id ke dalam validasi agar tidak dibuang
         $data = $request->validate([
             'type' => 'required|in:single_choice,complex_choice,essay,true_false,matching',
             'content' => 'required',
             'options' => 'array',
-            'subject_id' => 'nullable', // Wajib ada agar masuk ke array $data
-            'level_id' => 'nullable',   // Wajib ada agar masuk ke array $data
+            'subject_id' => 'nullable',
+            'level_id' => 'nullable',
         ]);
 
         try {
             return DB::transaction(function () use ($data, $request, $exam) {
-                // Gunakan operator ?? null untuk keamanan tambahan
+
+                // 1. Ekstrak Base64 menjadi WebP untuk Konten (Narasi Utama)
+                $decodedContent = base64_decode($data['content']);
+                $cleanContent = $this->processBase64ImagesToWebp($decodedContent);
+
                 $question = $exam->questions()->create([
                     'user_id' => Auth::id(),
                     'type' => $data['type'],
-                    'content' => base64_decode($data['content']),
+                    'content' => $cleanContent, // Masukkan versi yang sudah berupa URL
                     'subject_id' => $data['subject_id'] ?? null,
                     'level_id' => $data['level_id'] ?? null,
                     'school_id' => Auth::user()->school_id ?? Auth::user()->sekolah_id,
                 ]);
 
-                // Panggil detail saver
-                $this->saveQuestionDetails($question, $request->options, $data['type']);
+                // 2. Ekstrak Base64 menjadi WebP untuk Opsi Jawaban
+                $cleanOptions = [];
+                if (! empty($request->options)) {
+                    foreach ($request->options as $opt) {
+                        $newOpt = $opt;
+                        // Proses dan amankan gambar di masing-masing kolom
+                        if (isset($opt['option_text'])) {
+                            $newOpt['option_text'] = $this->processBase64ImagesToWebp(base64_decode($opt['option_text']));
+                        }
+                        if (isset($opt['premise_text'])) {
+                            $newOpt['premise_text'] = $this->processBase64ImagesToWebp(base64_decode($opt['premise_text']));
+                        }
+                        if (isset($opt['target_text'])) {
+                            $newOpt['target_text'] = $this->processBase64ImagesToWebp(base64_decode($opt['target_text']));
+                        }
+                        $cleanOptions[] = $newOpt;
+                    }
+                }
+
+                // Panggil detail saver dengan $cleanOptions (bukan $request->options yang masih mentah)
+                $this->saveQuestionDetails($question, $cleanOptions, $data['type']);
 
                 return response()->json([
                     'status' => 'success',
@@ -301,5 +323,52 @@ class SoalController extends Controller
             // Ubah route redirect gagal ini sesuai dengan nama route Bapak
             return back()->withErrors(['error' => 'Terjadi kesalahan sistem saat menyimpan: '.$e->getMessage()]);
         }
+    }
+
+    /**
+     * Mengekstrak Base64 dari HTML, merubahnya menjadi WebP, dan mengembalikan URL-nya.
+     */
+    private function processBase64ImagesToWebp($htmlContent)
+    {
+        if (empty($htmlContent)) {
+            return $htmlContent;
+        }
+
+        // Cari semua tag <img> yang atribut src-nya mengandung data:image/....;base64
+        return preg_replace_callback('/src=["\']data:image\/([^;]+);base64,([^"\']+)["\']/', function ($matches) {
+            $base64Data = $matches[2];
+            $imageData = base64_decode($base64Data);
+
+            if ($imageData === false) {
+                return $matches[0]; // Lewati jika kode base64 rusak
+            }
+
+            // Buat nama file unik
+            $filename = 'questions/'.uniqid('img_', true).'.webp';
+            $storagePath = storage_path('app/public/'.$filename);
+
+            // Pastikan direktori storage/app/public/questions ada
+            if (! file_exists(dirname($storagePath))) {
+                mkdir(dirname($storagePath), 0755, true);
+            }
+
+            // Gunakan GD Library bawaan PHP untuk membaca string gambar
+            $image = @imagecreatefromstring($imageData);
+            if ($image !== false) {
+                // Konfigurasi agar *background* transparan pada PNG tidak menjadi hitam
+                imagepalettetotruecolor($image);
+                imagealphablending($image, true);
+                imagesavealpha($image, true);
+
+                // Konversi dan simpan sebagai WebP (Kualitas 80%)
+                imagewebp($image, $storagePath, 80);
+                imagedestroy($image);
+
+                // Kembalikan URL Storage pengganti Base64
+                return 'src="'.asset('storage/'.$filename).'"';
+            }
+
+            return $matches[0]; // Jika gagal konversi, kembalikan ke teks asal
+        }, $htmlContent);
     }
 }
