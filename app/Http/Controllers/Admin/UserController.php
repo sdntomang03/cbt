@@ -8,10 +8,12 @@ use App\Http\Controllers\Controller;
 use App\Imports\UsersImport;
 use App\Models\School;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Facades\Excel;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
@@ -23,23 +25,17 @@ class UserController extends Controller
         $user = auth()->user();
         $query = User::with(['school', 'roles']);
 
-        // 1. Cek role di sini menggunakan 'admin'
         if ($user->hasRole('admin')) {
-            // Jika Super Admin: Bebas melihat semua, atau filter berdasarkan dropdown
             if ($request->filled('school_id')) {
                 $query->where('school_id', $request->school_id);
             }
         } else {
-            // Jika BUKAN Super Admin (misal: Operator):
-            // Paksa HANYA tampilkan user dari sekolahnya sendiri
             $query->where('school_id', $user->school_id)
-                  // PENGAMAN EKSTRA: Sembunyikan akun yang memiliki role 'admin' dari daftar
                 ->whereDoesntHave('roles', function ($q) {
                     $q->where('name', 'admin');
                 });
         }
 
-        // Fitur Pencarian Teks
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -49,11 +45,12 @@ class UserController extends Controller
         }
 
         $users = $query->latest()->paginate(20)->withQueryString();
+        $schools = $user->hasRole('admin') ? School::orderBy('name')->get() : [];
 
-        // 2. Gunakan 'admin' juga agar sama dengan pengecekan di atas
-        $schools = $user->hasRole('admin') ? \App\Models\School::orderBy('name')->get() : [];
+        // AMBIL DAFTAR ROLE UNTUK DROPDOWN AJAX
+        $roles = Role::pluck('name');
 
-        return view('admin.users.index', compact('users', 'schools'));
+        return view('admin.users.index', compact('users', 'schools', 'roles'));
     }
 
     /**
@@ -85,7 +82,7 @@ class UserController extends Controller
             'name' => $request->name,
             'username' => $request->username,
             'email' => $request->email,
-            'password' => \Illuminate\Support\Facades\Hash::make($request->password),
+            'password' => Hash::make($request->password),
         ];
 
         // Jika super admin, masukkan school_id dari dropdown
@@ -209,13 +206,13 @@ class UserController extends Controller
             }
 
             // Eksekusi hapus
-            $deletedCount = \App\Models\User::whereIn('id', $idsToDelete)->delete();
+            $deletedCount = User::whereIn('id', $idsToDelete)->delete();
 
             return response()->json([
                 'message' => $deletedCount.' data user berhasil dihapus.',
             ]);
 
-        } catch (\Illuminate\Database\QueryException $e) {
+        } catch (QueryException $e) {
             // Tangani error jika user masih berelasi dengan data lain (misal: nilai ujian)
             if ($e->getCode() == '23000') {
                 return response()->json([
