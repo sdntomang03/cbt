@@ -206,7 +206,7 @@ Route::prefix('kawan-baca')->group(function () {
     Route::get('/latihan', [KawanBacaController::class, 'latihan'])->name('baca.latihan');
 });
 
-Route::prefix('teacher')->name('teacher.')->middleware(['auth', 'role:teacher|admin'])->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:teacher|admin'])->group(function () {
 
     // Analisis Butir Soal
     Route::get('/exams/{exam}/analysis', [ItemAnalysisController::class, 'index'])
