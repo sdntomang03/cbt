@@ -74,14 +74,14 @@ class StudentExamController extends Controller
         if ($examUser->is_locked) {
             session()->forget('verified_exam_'.$exam->id);
 
-            return redirect()->route('student.dashboard')->with('error', 'AKSES DITOLAK: Ujian Anda telah dikunci karena pelanggaran.');
+            return redirect()->route('student.index')->with('error', 'AKSES DITOLAK: Ujian Anda telah dikunci karena pelanggaran.');
         }
 
         // BLOKIR 2: KUNCI UTAMA JIKA SUDAH SELESAI
         if ($pivot->status === 'completed' || $pivot->finished_at !== null) {
             session()->forget('verified_exam_'.$exam->id);
 
-            return redirect()->route('student.dashboard')->with('info', 'Ujian ini telah ditutup atau sudah Anda selesaikan.');
+            return redirect()->route('student.index')->with('info', 'Ujian ini telah ditutup atau sudah Anda selesaikan.');
         }
 
         // 2. LOGIKA WAKTU MULAI (DIPERBAIKI)
@@ -331,7 +331,7 @@ class StudentExamController extends Controller
         }
         session()->forget('verified_exam_'.$session->exam_id);
 
-        return redirect()->route('student.dashboard')->with('success', 'Ujian berhasil dikumpulkan! Nilai Anda: '.$finalScore);
+        return redirect()->route('student.index')->with('success', 'Ujian berhasil dikumpulkan! Nilai Anda: '.$finalScore);
     }
 
     public function recordViolation(Request $request)
@@ -383,18 +383,18 @@ class StudentExamController extends Controller
 
         // Cek jika akun terkunci
         if ($pivot->is_locked) {
-            return redirect()->route('student.dashboard')->with('error', 'AKSES DITOLAK: Ujian Anda telah dikunci karena pelanggaran.');
+            return redirect()->route('student.index')->with('error', 'AKSES DITOLAK: Ujian Anda telah dikunci karena pelanggaran.');
         }
 
         // Cek jika ujian sudah selesai
         if ($pivot->status === 'completed' || $pivot->finished_at !== null) {
-            return redirect()->route('student.dashboard')->with('info', 'Anda sudah menyelesaikan ujian ini.');
+            return redirect()->route('student.index')->with('info', 'Anda sudah menyelesaikan ujian ini.');
         }
 
         // Cek apakah jadwalnya sudah dibuka
         $now = now();
         if (! $now->between($session->start_time, $session->end_time)) {
-            return redirect()->route('student.dashboard')->with('error', 'Sesi ujian belum dibuka atau sudah ditutup.');
+            return redirect()->route('student.index')->with('error', 'Sesi ujian belum dibuka atau sudah ditutup.');
         }
 
         // Jika sudah pernah diverifikasi sebelumnya dan ujian masih 'ongoing', langsung lompat (opsional)

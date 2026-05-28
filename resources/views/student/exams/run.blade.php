@@ -370,7 +370,6 @@
     </div>
 
     {{-- SCRIPT HANYA DIJALANKAN JIKA TIDAK TERKUNCI --}}
-    {{-- SCRIPT HANYA DIJALANKAN JIKA TIDAK TERKUNCI --}}
     <script>
         // Variabel global pengaman antar-komponen
         window.isExitingExam = false;
