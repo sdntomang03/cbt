@@ -21,7 +21,7 @@
                 class="bg-white py-8 px-4 shadow-xl shadow-slate-200/50 sm:rounded-[2rem] sm:px-10 border border-slate-100 relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 to-violet-500"></div>
 
-                <form class="space-y-6" action="{{ route('student.exam.verify.process', $session->exam_id) }}"
+                <form class="space-y-6" action="{{ route('student.exam.verify.process', $session->exam) }}"
                     method="POST">
                     @csrf
 
