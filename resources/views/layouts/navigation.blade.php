@@ -131,7 +131,7 @@
         <span>Ruang Ujian</span>
     </a>
 
-    @can('take math exams')
+    @can('take exams')
     <a href="{{ route('student.math.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('student.math.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-superscript w-6 text-center text-lg"></i>
