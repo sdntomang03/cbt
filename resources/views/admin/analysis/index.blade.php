@@ -1,375 +1,150 @@
-{{-- resources/views/teacher/analysis/index.blade.php --}}
 <x-app-layout>
-    <link
-        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Sora:wght@400;600;700;800&display=swap"
-        rel="stylesheet">
-
-    <style>
-        :root {
-            --ink: #0f172a;
-            --ink2: #475569;
-            --surface: #ffffff;
-            --border: #e2e8f0;
-            --muted: #f8fafc;
-            --indigo: #4f46e5;
-            --emerald: #10b981;
-            --amber: #f59e0b;
-            --rose: #f43f5e;
-            --sky: #0ea5e9;
-            --sans: 'Sora', sans-serif;
-            --mono: 'IBM Plex Mono', monospace;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: var(--sans);
-            background: #f1f5f9;
-            color: var(--ink);
-        }
-
-        .wrap {
-            max-width: 860px;
-            margin: 0 auto;
-            padding: 2rem 1.5rem 4rem;
-        }
-
-        /* Header */
-        .page-header {
-            margin-bottom: 2rem;
-        }
-
-        .btn-back {
-            display: inline-flex;
-            align-items: center;
-            gap: .4rem;
-            padding: .5rem 1rem;
-            border-radius: .6rem;
-            background: white;
-            border: 1.5px solid var(--border);
-            font-size: .82rem;
-            font-weight: 600;
-            color: var(--ink2);
-            text-decoration: none;
-            transition: all .15s;
-            margin-bottom: .9rem;
-        }
-
-        .btn-back:hover {
-            border-color: var(--indigo);
-            color: var(--indigo);
-        }
-
-        .page-header h1 {
-            font-size: 1.5rem;
-            font-weight: 800;
-            margin: 0 0 .25rem;
-        }
-
-        .page-header p {
-            font-size: .85rem;
-            color: var(--ink2);
-            margin: 0;
-        }
-
-        /* Exam info strip */
-        .exam-strip {
-            background: white;
-            border: 1.5px solid var(--border);
-            border-radius: 1rem;
-            padding: 1.2rem 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1.8rem;
-        }
-
-        .exam-strip .icon {
-            width: 46px;
-            height: 46px;
-            border-radius: .75rem;
-            background: var(--indigo);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            font-size: 1.2rem;
-        }
-
-        .exam-strip .name {
-            font-weight: 700;
-            font-size: 1rem;
-        }
-
-        .exam-strip .meta {
-            font-size: .8rem;
-            color: var(--ink2);
-            margin-top: .15rem;
-        }
-
-        /* Session cards */
-        .section-label {
-            font-size: .72rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            color: var(--ink2);
-            margin-bottom: .75rem;
-        }
-
-        .session-list {
-            display: flex;
-            flex-direction: column;
-            gap: .75rem;
-        }
-
-        .session-card {
-            background: white;
-            border: 1.5px solid var(--border);
-            border-radius: 1rem;
-            padding: 1.2rem 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-            flex-wrap: wrap;
-            transition: border-color .15s, box-shadow .15s;
-            text-decoration: none;
-            color: inherit;
-        }
-
-        .session-card:hover {
-            border-color: var(--indigo);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, .08);
-        }
-
-        .session-card.disabled {
-            opacity: .55;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-
-        .session-card .left {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .session-card .sname {
-            font-weight: 700;
-            font-size: .95rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .session-card .smeta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: .5rem .9rem;
-            margin-top: .35rem;
-        }
-
-        .session-card .smeta span {
-            font-size: .78rem;
-            color: var(--ink2);
-            display: flex;
-            align-items: center;
-            gap: .25rem;
-        }
-
-        .session-card .right {
-            display: flex;
-            align-items: center;
-            gap: .75rem;
-            flex-shrink: 0;
-        }
-
-        /* Peserta badge */
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: .3rem;
-            padding: .3rem .75rem;
-            border-radius: .5rem;
-            font-size: .76rem;
-            font-weight: 700;
-            white-space: nowrap;
-        }
-
-        .badge-green {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .badge-gray {
-            background: #f1f5f9;
-            color: #475569;
-        }
-
-        .badge-amber {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .badge-red {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        /* Chevron icon */
-        .chevron {
-            color: #cbd5e1;
-            transition: color .15s;
-        }
-
-        .session-card:hover .chevron {
-            color: var(--indigo);
-        }
-
-        /* Empty state */
-        .empty {
-            text-align: center;
-            padding: 3.5rem 2rem;
-            background: white;
-            border: 1.5px dashed var(--border);
-            border-radius: 1rem;
-            color: var(--ink2);
-        }
-
-        .empty svg {
-            margin-bottom: .75rem;
-            opacity: .3;
-        }
-
-        .empty p {
-            margin: 0;
-            font-size: .88rem;
-        }
-    </style>
-
-    <div class="wrap">
-
-        {{-- Header --}}
-        <div class="page-header">
-            <a href="{{ url()->previous() }}" class="btn-back">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M19 12H5M12 5l-7 7 7 7" />
-                </svg>
-                Kembali
-            </a>
-            <h1>Analisis Butir Soal</h1>
-            <p>Pilih sesi ujian yang ingin dianalisis</p>
-        </div>
-
-        {{-- Exam Info --}}
-        <div class="exam-strip">
-            <div class="icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M9 11l3 3L22 4" />
-                    <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
-                </svg>
-            </div>
-            <div>
-                <div class="name">{{ $exam->title }}</div>
-                <div class="meta">
-                    {{ $sessions->count() }} sesi tersedia
-                    @if($exam->duration_minutes)
-                    &bull; {{ $exam->duration_minutes }} menit
-                    @endif
+    <x-slot name="header">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center w-full gap-4">
+            <div class="flex items-center gap-4">
+                <a href="{{ url()->previous() }}"
+                    class="w-10 h-10 rounded-xl bg-white text-slate-500 hover:text-indigo-600 shadow-sm border border-slate-200 flex items-center justify-center transition shrink-0">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <div>
+                    <h2 class="font-black text-2xl text-slate-800 tracking-tight leading-tight">Pilih Sesi Analisis</h2>
+                    <p class="text-slate-500 font-bold text-sm mt-0.5">Pilih sesi ujian yang ingin dianalisis butir
+                        soalnya</p>
                 </div>
             </div>
         </div>
+    </x-slot>
 
-        {{-- Session List --}}
-        @if($sessions->isEmpty())
-        <div class="empty">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            <p>Belum ada sesi untuk ujian ini.</p>
-        </div>
-        @else
-        <div class="section-label">Daftar Sesi</div>
-        <div class="session-list">
-            @foreach($sessions as $session)
-            @php
-            $completed = $session->completed_count ?? 0;
-            $canAnalyze = $completed >= 2;
-            @endphp
-            <a href="{{ $canAnalyze ? route('admin.analysis.show', [$exam, $session]) : '#' }}"
-                class="session-card {{ $canAnalyze ? '' : 'disabled' }}"
-                title="{{ $canAnalyze ? '' : 'Minimal 2 peserta selesai untuk analisis' }}">
+    <div class="py-6 sm:py-8 min-h-screen">
+        <div class="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 
-                <div class="left">
-                    <div class="sname">
-                        {{ $session->name ?? 'Sesi ' . $loop->iteration }}
-                    </div>
-                    <div class="smeta">
-                        <span>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                                <line x1="16" y1="2" x2="16" y2="6" />
-                                <line x1="8" y1="2" x2="8" y2="6" />
-                                <line x1="3" y1="10" x2="21" y2="10" />
-                            </svg>
-                            {{ \Carbon\Carbon::parse($session->start_time)->format('d M Y, H:i') }}
-                            &ndash;
-                            {{ \Carbon\Carbon::parse($session->end_time)->format('H:i') }}
-                        </span>
-                        <span>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                                <circle cx="9" cy="7" r="4" />
-                                <path d="M23 21v-2a4 4 0 00-3-3.87" />
-                                <path d="M16 3.13a4 4 0 010 7.75" />
-                            </svg>
-                            Token: <strong>{{ $session->token ?? '-' }}</strong>
-                        </span>
-                    </div>
+            {{-- KARTU INFORMASI UJIAN --}}
+            <div
+                class="bg-indigo-600 rounded-[2rem] p-6 sm:p-8 text-white shadow-xl shadow-indigo-200 mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-6 relative overflow-hidden">
+                {{-- Ornamen Latar --}}
+                <div
+                    class="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl pointer-events-none">
                 </div>
 
-                <div class="right">
-                    @if($completed === 0)
-                    <span class="badge badge-gray">0 selesai</span>
-                    @elseif($completed < 2) <span class="badge badge-amber">{{ $completed }} selesai</span>
-                        @else
-                        <span class="badge badge-green">{{ $completed }} selesai</span>
-                        @endif
-
-                        @if($canAnalyze)
-                        <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2.5">
-                            <polyline points="9 18 15 12 9 6" />
-                        </svg>
-                        @else
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                            <path d="M7 11V7a5 5 0 0110 0v4" />
-                        </svg>
-                        @endif
+                <div
+                    class="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center text-3xl shrink-0 shadow-inner">
+                    <i class="fas fa-file-alt"></i>
                 </div>
-            </a>
-            @endforeach
+                <div class="relative z-10">
+                    <h3 class="text-2xl sm:text-3xl font-black tracking-tight mb-2">{{ $exam->title }}</h3>
+                    <div class="flex flex-wrap items-center gap-3 text-indigo-100 font-semibold text-sm">
+                        <span class="flex items-center gap-1.5 bg-indigo-700/50 px-3 py-1 rounded-lg">
+                            <i class="fas fa-layer-group"></i> {{ $sessions->count() }} Sesi Tersedia
+                        </span>
+                        @if($exam->duration_minutes)
+                        <span class="flex items-center gap-1.5 bg-indigo-700/50 px-3 py-1 rounded-lg">
+                            <i class="far fa-clock"></i> {{ $exam->duration_minutes }} Menit
+                        </span>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            {{-- DAFTAR SESI --}}
+            @if($sessions->isEmpty())
+            <div
+                class="bg-white rounded-[2rem] p-12 shadow-sm border border-slate-200 text-center flex flex-col items-center justify-center">
+                <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+                    <i class="fas fa-folder-open text-4xl text-slate-300"></i>
+                </div>
+                <h3 class="text-xl font-black text-slate-700 mb-2">Belum Ada Sesi</h3>
+                <p class="text-slate-400 font-bold max-w-sm">Ujian ini belum memiliki sesi yang dijadwalkan. Buat sesi
+                    terlebih dahulu di menu Manajemen Ujian.</p>
+            </div>
+            @else
+            <div class="flex items-center justify-between mb-4 px-2">
+                <h4 class="font-black text-slate-700 text-sm uppercase tracking-widest">Daftar Sesi Ujian</h4>
+                <span class="text-xs font-bold text-slate-400"><i class="fas fa-info-circle text-indigo-400 mr-1"></i>
+                    Syarat Analisis: Min. 2 Peserta Selesai</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                @foreach($sessions as $session)
+                @php
+                $completed = $session->completed_count ?? 0;
+                $canAnalyze = $completed >= 2;
+                @endphp
+
+                @if($canAnalyze)
+                {{-- KARTU SESI AKTIF (Bisa di-klik) --}}
+                <a href="{{ route('admin.analysis.show', [$exam, $session]) }}"
+                    class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 hover:border-indigo-400 hover:shadow-md transition-all transform hover:-translate-y-1 group flex flex-col h-full relative overflow-hidden">
+
+                    {{-- Aksen Garis Kiri --}}
+                    <div
+                        class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400 group-hover:bg-indigo-500 transition-colors">
+                    </div>
+
+                    <div class="flex justify-between items-start mb-4 pl-2">
+                        <div class="min-w-0 pr-4">
+                            <h4 class="font-black text-lg text-slate-800 truncate mb-1">{{ $session->session_name ??
+                                'Sesi ' . $loop->iteration }}</h4>
+                            <div class="text-xs font-bold text-slate-500 flex items-center gap-2">
+                                <i class="far fa-calendar-alt text-slate-400"></i>
+                                {{ \Carbon\Carbon::parse($session->start_time)->format('d M Y, H:i') }} WIB
+                            </div>
+                        </div>
+                        <div
+                            class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center shrink-0 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                            <i class="fas fa-arrow-right"></i>
+                        </div>
+                    </div>
+
+                    <div class="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between pl-2">
+                        <div class="text-xs font-black text-slate-400 flex items-center gap-1.5">
+                            <i class="fas fa-key"></i> Token: <span class="text-slate-700 font-mono tracking-widest">{{
+                                $session->token ?? '-' }}</span>
+                        </div>
+                        <div
+                            class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-xs font-black flex items-center gap-1.5">
+                            <i class="fas fa-check-circle"></i> {{ $completed }} Selesai
+                        </div>
+                    </div>
+                </a>
+                @else
+                {{-- KARTU SESI DISABLE (Tidak memenuhi syarat) --}}
+                <div class="bg-slate-50 rounded-2xl p-5 border border-slate-200 opacity-75 relative flex flex-col h-full cursor-not-allowed"
+                    title="Membutuhkan minimal 2 peserta yang selesai untuk bisa dianalisis">
+
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-slate-300"></div>
+
+                    <div class="flex justify-between items-start mb-4 pl-2">
+                        <div class="min-w-0 pr-4">
+                            <h4 class="font-black text-lg text-slate-600 truncate mb-1">{{ $session->session_name ??
+                                'Sesi ' . $loop->iteration }}</h4>
+                            <div class="text-xs font-bold text-slate-400 flex items-center gap-2">
+                                <i class="far fa-calendar-alt opacity-70"></i>
+                                {{ \Carbon\Carbon::parse($session->start_time)->format('d M Y, H:i') }} WIB
+                            </div>
+                        </div>
+                        <div
+                            class="w-8 h-8 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center shrink-0">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                    </div>
+
+                    <div class="mt-auto pt-4 border-t border-slate-200 flex items-center justify-between pl-2">
+                        <div class="text-xs font-black text-slate-400 flex items-center gap-1.5">
+                            <i class="fas fa-key"></i> Token: <span class="font-mono tracking-widest">{{ $session->token
+                                ?? '-' }}</span>
+                        </div>
+                        <div
+                            class="bg-slate-200 text-slate-500 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fas fa-users"></i> {{ $completed }}/2 Selesai
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                @endforeach
+            </div>
+            @endif
+
         </div>
-
-        {{-- Keterangan --}}
-        <p style="margin-top:1.2rem;font-size:.78rem;color:var(--ink2);">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                style="vertical-align:middle">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            Analisis memerlukan minimal <strong>2 peserta</strong> yang telah menyelesaikan ujian.
-        </p>
-        @endif
-
     </div>
 </x-app-layout>
