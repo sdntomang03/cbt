@@ -7,13 +7,13 @@
                 <h2 class="text-2xl font-bold text-slate-800 uppercase tracking-tight">Preview Import JSON</h2>
                 <p class="text-sm text-slate-500 mt-1">Pilih soal yang ingin disimpan ke dalam ujian.</p>
             </div>
-            <a href="{{ route('admin.exams.soal.index', $exam->id) }}"
+            <a href="{{ route('admin.exams.soal.index', $exam) }}"
                 class="px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-bold shadow-sm">
                 Batal
             </a>
         </div>
 
-        <form action="{{ route('admin.soal.import_json_store', $exam->id) }}" method="POST">
+        <form action="{{ route('admin.soal.import_json_store', $exam) }}" method="POST">
             @csrf
             <input type="hidden" name="json_data" value="{{ $jsonDataEncoded }}">
 
