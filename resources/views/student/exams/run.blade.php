@@ -411,25 +411,28 @@
                     startSecureExam() {
                         if (this.isLocked) return;
 
-                        // JIKA SENSOR OFF: Langsung mulai tanpa fullscreen dan tanpa pemantauan tab
-                        if (!this.enableViolation) {
-                            this.started = true;
-                            return;
-                        }
-
-                        // JIKA SENSOR ON: Wajib Fullscreen & Pantau Tab
                         const elem = document.documentElement;
+
+                        // Fungsi bantuan untuk memulai ujian dan mengecek sensor
+                        const beginExam = () => {
+                            this.started = true;
+                            // HANYA jalankan pemantau tab jika sensor dinyalakan
+                            if (this.enableViolation) {
+                                this.monitorFocus();
+                            } else {
+                                console.log("Mode Santai: Layar Penuh aktif, tapi pindah tab diizinkan.");
+                            }
+                        };
+
                         if (elem.requestFullscreen) {
                             elem.requestFullscreen().then(() => {
-                                this.started = true;
-                                this.monitorFocus();
+                                beginExam();
                             }).catch(err => {
-                                alert("Mohon izinkan akses Fullscreen untuk memulai ujian.");
+                                alert("Mohon izinkan akses Fullscreen (Layar Penuh) untuk memulai ujian.");
                             });
                         } else {
-                            // Fallback jika browser tidak dukung fullscreen API (misal iPhone versi lama)
-                            this.started = true;
-                            this.monitorFocus();
+                            // Fallback jika browser (seperti Safari iOS lama) tidak mendukung API Fullscreen
+                            beginExam();
                         }
                     },
 
