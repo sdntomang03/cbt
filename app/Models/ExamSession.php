@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Traits\BelongsToSchool;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Vinkla\Hashids\Facades\Hashids;
 
 class ExamSession extends Model
 {
@@ -48,24 +47,5 @@ class ExamSession extends Model
     public function school()
     {
         return $this->belongsTo(School::class);
-    }
-
-    public function getRouteKey()
-    {
-        return Hashids::encode($this->getKey());
-    }
-
-    /**
-     * Otomatis mengembalikan Huruf Acak menjadi ID saat diakses
-     */
-    public function resolveRouteBinding($value, $field = null)
-    {
-        $decoded = Hashids::decode($value);
-
-        if (empty($decoded)) {
-            abort(404, 'Jadwal ujian tidak valid atau tidak ditemukan.');
-        }
-
-        return $this->where('id', $decoded[0])->firstOrFail();
     }
 }
