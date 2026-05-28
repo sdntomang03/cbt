@@ -11,7 +11,6 @@ use App\Models\School;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 
 class MathExamController extends Controller
@@ -376,58 +375,5 @@ class MathExamController extends Controller
             ->setPaper('a4', 'landscape');
 
         return $pdf->stream('Lembar_Kerja_'.str_replace(' ', '_', $exam->title).'.pdf');
-    }
-
-    public function autosave(Request $request, $id)
-    {
-        try {
-            $userId = Auth::id();
-            $questionId = $request->question_id;
-            $answer = $request->answer;
-
-            // Memastikan data ujian dicari dengan mengabaikan global scope
-            $examUser = MathExamUser::withoutGlobalScopes()
-                ->where('math_exam_id', $id)
-                ->where('student_id', $userId)
-                ->where('status', 'ongoing')
-                ->first();
-
-            if (! $examUser) {
-                return response()->json(['status' => 'error', 'message' => 'Ujian sudah ditutup atau tidak valid.'], 403);
-            }
-
-            // Cari soal
-            $question = MathExamQuestion::withoutGlobalScopes()
-                ->where('id', $questionId)
-                ->where('math_exam_id', $id)
-                ->where('student_id', $userId)
-                ->first();
-
-            if ($question) {
-                $studentAns = ($answer !== null && $answer !== '') ? (int) $answer : null;
-
-                // PERBAIKAN: Hapus kata 'clone' di sini
-                $isCorrect = ($studentAns === $question->correct_answer && $studentAns !== null);
-
-                // Update data
-                $question->update([
-                    'student_answer' => $studentAns,
-                    'is_correct' => $isCorrect,
-                ]);
-
-                return response()->json(['status' => 'success']);
-            }
-
-            return response()->json(['status' => 'error', 'message' => 'Soal tidak ditemukan.'], 404);
-
-        } catch (\Throwable $e) {
-            // Menggunakan \Throwable akan menangkap Fatal Error PHP sekalipun
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-            ], 400);
-        }
     }
 }
