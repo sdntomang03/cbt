@@ -36,6 +36,10 @@ class SoalController extends Controller
 
     public function store(Request $request, Exam $exam)
     {
+        $content = $request->input('content');
+
+        // Pastikan konten adalah string UTF-8 yang valid
+        $cleanContent = mb_convert_encoding($content, 'UTF-8', 'UTF-8');
         $data = $request->validate([
             'type' => 'required|in:single_choice,complex_choice,essay,true_false,matching',
             'content' => 'required',
@@ -370,5 +374,19 @@ class SoalController extends Controller
 
             return $matches[0]; // Jika gagal konversi, kembalikan ke teks asal
         }, $htmlContent);
+    }
+
+    private function cleanUtf8($data)
+    {
+        if (is_array($data)) {
+            return array_map([$this, 'cleanUtf8'], $data);
+        }
+
+        if (is_string($data)) {
+            // Hapus karakter yang bukan UTF-8
+            return mb_convert_encoding($data, 'UTF-8', 'UTF-8');
+        }
+
+        return $data;
     }
 }
