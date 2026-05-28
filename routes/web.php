@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ClassroomController;
 use App\Http\Controllers\Admin\DashboardController; // <-- Pastikan ini di-import
 use App\Http\Controllers\Admin\ExamSessionController;
+use App\Http\Controllers\Admin\ItemAnalysisController;
 use App\Http\Controllers\Admin\MathExamController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RegistrationSettingController;
@@ -203,6 +204,19 @@ Route::prefix('kawan-baca')->group(function () {
     Route::get('/', [KawanBacaController::class, 'index'])->name('baca.index');
     Route::post('/generate', [KawanBacaController::class, 'generate'])->name('baca.generate');
     Route::get('/latihan', [KawanBacaController::class, 'latihan'])->name('baca.latihan');
+});
+
+Route::prefix('teacher')->name('teacher.')->middleware(['auth', 'role:teacher|admin'])->group(function () {
+
+    // Analisis Butir Soal
+    Route::get('/exams/{exam}/analysis', [ItemAnalysisController::class, 'index'])
+        ->name('analysis.index');
+
+    Route::get('/exams/{exam}/analysis/{session}', [ItemAnalysisController::class, 'show'])
+        ->name('analysis.show');
+
+    Route::get('/exams/{exam}/analysis/{session}/export', [ItemAnalysisController::class, 'export'])
+        ->name('analysis.export');
 });
 
 require __DIR__.'/auth.php';

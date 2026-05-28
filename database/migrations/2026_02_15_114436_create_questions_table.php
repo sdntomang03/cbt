@@ -31,7 +31,7 @@ return new class extends Migration
             ]);
 
             $table->longText('content'); // Soal
-
+            $table->longText('explanation')->nullable();
             // Metadata
             $table->foreignId('subject_id')->nullable()->constrained('subjects')->nullOnDelete();
             $table->foreignId('level_id')->nullable()->constrained('levels')->nullOnDelete();
