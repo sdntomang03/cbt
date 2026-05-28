@@ -463,27 +463,6 @@ class StudentExamController extends Controller
     {
         $user = auth()->user();
 
-        // Anda bisa menghitung statistik sederhana untuk siswa di sini
-        // Misalnya: Menghitung ujian aktif yang tersedia untuk kelas siswa tersebut
-        $stats = [
-            'total_ujian' => ExamSession::whereHas('classroom', function ($q) use ($user) {
-                // Asumsi model User Anda memiliki relasi ke kelas atau classrooms
-                $q->whereHas('students', function ($sq) use ($user) {
-                    $sq->where('users.id', $user->id);
-                });
-            })->count(),
-
-            // Contoh statistik statis jika tabel riwayat belum lengkap, bisa disesuaikan nanti
-            'ujian_selesai' => 0,
-        ];
-
-        return view('student.dashboard', compact('user', 'stats'));
-    }
-
-    public function dashboard()
-    {
-        $user = auth()->user();
-
         $stats = [
             // Gunakan try-catch agar jika relasinya berbeda, halaman tidak crash (error 500)
             'total_ujian' => 0,
