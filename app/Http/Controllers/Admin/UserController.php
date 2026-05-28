@@ -239,4 +239,26 @@ class UserController extends Controller
         // Download menggunakan class Export (lihat langkah ke-3 di bawah)
         return Excel::download(new UsersExport($ids), 'Data_User_Terpilih.xlsx');
     }
+
+    public function updateRole(Request $request, User $user)
+    {
+        $request->validate([
+            'role' => 'required|exists:roles,name',
+        ]);
+
+        // Opsional: Cegah admin mengubah role dirinya sendiri agar tidak terkunci keluar
+        if (auth()->id() === $user->id) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tidak dapat mengubah role akun sendiri.',
+            ], 403);
+        }
+
+        $user->syncRoles([$request->role]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Role berhasil diperbarui',
+        ]);
+    }
 }

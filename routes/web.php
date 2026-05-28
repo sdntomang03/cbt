@@ -127,6 +127,7 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         Route::post('/users/import', [UserController::class, 'importExcel'])->name('users.import');
         Route::get('/users/download-template', [UserController::class, 'downloadTemplate'])->name('users.download-template');
         Route::resource('users', UserController::class);
+        Route::post('/users/{user}/update-role', [UserController::class, 'updateRole'])->name('admin.users.update_role');
         Route::patch('/math/{id}/toggle-explanation', [MathExamController::class, 'toggleExplanation'])->name('math.toggle-explanation');
     });
 
