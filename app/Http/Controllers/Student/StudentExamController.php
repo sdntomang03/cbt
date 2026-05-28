@@ -8,7 +8,7 @@ use App\Models\ExamSession;
 use App\Models\ExamSessionUser;
 use App\Models\Question;
 use App\Models\RegistrationSetting;
-use App\Models\StudentAnswer; // Pastikan Model ini ada
+use App\Models\StudentAnswer;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,10 +21,7 @@ class StudentExamController extends Controller
 
         // Ambil sesi ujian via relasi Many-to-Many
         $mySessions = $user->examSessions()
-            // ----------------------------------------------------
-            // KUNCI PERBAIKANNYA ADA DI BARIS INI:
             ->withPivot('status', 'score')
-            // ----------------------------------------------------
             ->with(['exam' => function ($query) {
                 $query->withCount('questions');
             }])
@@ -32,8 +29,6 @@ class StudentExamController extends Controller
             ->get()
             ->map(function ($session) {
                 $session->is_open = now()->between($session->start_time, $session->end_time);
-
-                // Sekarang $session->pivot->status tidak akan null lagi
                 $session->user_status = $session->pivot->status;
                 $session->user_score = $session->pivot->score;
 
@@ -45,12 +40,17 @@ class StudentExamController extends Controller
 
     public function run(Exam $exam)
     {
-        if (! session()->has('verified_exam_'.$exam->id)) {
-            return redirect()->route('student.exam.verify.show', $exam->id)
+        // -----------------------------------------------------------------
+        // [DINAMIS] CEK TOKEN: Jika butuh token tapi belum verifikasi, tolak.
+        // Jika tidak butuh token, abaikan pengecekan session ini.
+        // -----------------------------------------------------------------
+        if ($exam->require_token && ! session()->has('verified_exam_'.$exam->id)) {
+            // Catatan: Gunakan $exam (tanpa ->id) agar Hashids berfungsi baik
+            return redirect()->route('student.exam.verify.show', $exam)
                 ->with('error', 'Akses Ditolak! Silakan masukkan Token Ujian terlebih dahulu.');
         }
+
         $user = Auth::user();
-        // Paksa timezone ke Jakarta agar sinkron dengan jadwal di database
         $now = Carbon::now('Asia/Jakarta');
 
         $session = ExamSession::where('exam_id', $exam->id)
@@ -62,13 +62,13 @@ class StudentExamController extends Controller
         $examUser = ExamSessionUser::where('exam_session_id', $session->id)
             ->where('user_id', $user->id)
             ->firstOrFail();
+
         if (request()->ajax()) {
             return response()->json([
                 'status' => $pivot->status,
                 'is_locked' => (bool) $examUser->is_locked,
             ]);
         }
-        // ----------------------------------------------------
 
         // BLOKIR 1: Jika terkunci
         if ($examUser->is_locked) {
@@ -84,8 +84,7 @@ class StudentExamController extends Controller
             return redirect()->route('student.index')->with('info', 'Ujian ini telah ditutup atau sudah Anda selesaikan.');
         }
 
-        // 2. LOGIKA WAKTU MULAI (DIPERBAIKI)
-        // Hanya update ke DB jika started_at BENAR-BENAR KOSONG (null)
+        // LOGIKA WAKTU MULAI
         if ($pivot->started_at === null) {
             $user->examSessions()->updateExistingPivot($session->id, [
                 'started_at' => $now,
@@ -94,75 +93,59 @@ class StudentExamController extends Controller
             ]);
             $startTime = $now;
         } else {
-            // Jika sudah ada isinya, JANGAN UPDATE 'started_at' lagi.
-            // Gunakan waktu yang sudah tersimpan di DB.
             $startTime = Carbon::parse($pivot->started_at)->timezone('Asia/Jakarta');
-
-            // Optional: Fix status jika datanya tidak konsisten (ada waktu tapi status not_started)
             if ($pivot->status === 'not_started') {
                 $user->examSessions()->updateExistingPivot($session->id, ['status' => 'ongoing']);
             }
         }
 
-        // 3. Perhitungan Deadline
-        $duration = (int) $session->exam->duration_minutes; // Durasi dalam menit
-        // dd($duration);
+        // Perhitungan Deadline
+        $duration = (int) $session->exam->duration_minutes;
         $deadlinePersonal = $startTime->copy()->addMinutes($duration);
         $deadlineSession = Carbon::parse($session->end_time)->timezone('Asia/Jakarta');
-
-        // Ambil waktu tersingkat antara durasi personal vs jadwal sesi
         $realDeadline = $deadlinePersonal->min($deadlineSession);
-
-        // Hitung sisa detik
         $timeLeftSeconds = $now->diffInSeconds($realDeadline, false);
 
-        // 4. Proteksi Terakhir: Jika selisih sangat tipis/negatif sedikit karena lag, berikan 1 menit
         if ($timeLeftSeconds <= 0 && $timeLeftSeconds > -60) {
             $timeLeftSeconds = 60;
         } elseif ($timeLeftSeconds <= -60) {
-            // Jika sudah lewat lebih dari 1 menit, baru anggap habis
             return $this->forceFinish($session);
         }
 
-        $questionsQuery = Question::where('exam_id', $exam->id)
-            ->with(['options', 'matches']);
+        $questionsQuery = Question::where('exam_id', $exam->id)->with(['options', 'matches']);
 
-        // CEK CONFIG: Jika random_question aktif, acak urutan soal
         if ($session->exam->random_question) {
-            // Gunakan inRandomOrder() agar acak, atau inRandomSeed(auth()->id())
-            // agar urutan tetap konsisten bagi user tersebut jika halaman direfresh
             $questionsQuery->inRandomOrder(Auth::id());
         }
 
         $questions = $questionsQuery->get();
 
-        // CEK CONFIG: Jika random_answer aktif, acak pilihan jawaban secara konsisten
         if ($session->exam->random_answer) {
             $questions->map(function ($question) use ($user) {
-                // Gunakan ID User + ID Soal sebagai Seed agar hasil acaknya
-                // unik per siswa per soal, tapi tetap sama jika di-refresh.
                 $seed = $user->id + $question->id;
-
-                // Kita acak menggunakan PHP native shuffle dengan seed manual
                 $optionsArray = $question->options->all();
-                srand($seed); // Atur bibit pengacak
-                shuffle($optionsArray); // Acak array
-                srand(); // Reset bibit pengacak ke default agar tidak merusak proses lain
-
-                // Set kembali ke relasi model
+                srand($seed);
+                shuffle($optionsArray);
+                srand();
                 $question->setRelation('options', collect($optionsArray));
 
                 return $question;
             });
         }
+
         $existingAnswers = StudentAnswer::where('exam_session_id', $session->id)
             ->where('user_id', $user->id)
             ->pluck('answer', 'question_id')
             ->toArray();
 
+        // -----------------------------------------------------------------
+        // [DINAMIS] CONFIG: Kirim status pelanggaran ke JavaScript (Blade)
+        // -----------------------------------------------------------------
         $config = [
             'random_question' => $session->exam->random_question ?? false,
             'random_answer' => $session->exam->random_answer ?? false,
+            'enable_violation' => $session->exam->enable_violation ?? true,
+            'max_tolerances' => $session->exam->max_tolerances ?? 3,
         ];
 
         return view('student.exams.run', [
@@ -184,23 +167,17 @@ class StudentExamController extends Controller
 
         $user = Auth::user();
 
-        // 1. Cari Exam Session User (Pivot)
-        // Gunakan Model ExamSessionUser agar casting boolean terbaca
         $examUser = ExamSessionUser::whereHas('session', function ($q) use ($request) {
             $q->where('exam_id', $request->exam_id);
         })->where('user_id', $user->id)->firstOrFail();
 
-        // --- [LOGIKA KEAMANAN BARU] ---
-        // Jika Terkunci, TOLAK simpan jawaban.
         if ($examUser->is_locked) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'UJIAN TERKUNCI! Jawaban tidak disimpan.',
-            ], 403); // Return 403 Forbidden
+            ], 403);
         }
-        // -----------------------------
 
-        // Lanjut simpan jawaban jika aman
         StudentAnswer::updateOrCreate(
             [
                 'exam_session_id' => $examUser->exam_session_id,
@@ -219,7 +196,6 @@ class StudentExamController extends Controller
     public function finish($exam_id)
     {
         $user = Auth::user();
-
         $session = ExamSession::where('exam_id', $exam_id)
             ->whereHas('students', fn ($q) => $q->where('users.id', $user->id))
             ->firstOrFail();
@@ -227,21 +203,13 @@ class StudentExamController extends Controller
         return $this->forceFinish($session);
     }
 
-    // Helper Private untuk Hitung Nilai & Tutup Sesi
     private function forceFinish($session)
     {
         $user = Auth::user();
-
-        // Ambil data pivot (tabel penghubung user dan exam_session)
         $pivot = $session->students()->where('users.id', $user->id)->first()->pivot;
-
-        // FIX: Inisialisasi $finalScore dari database.
-        // Jika sudah ada nilainya ambil, jika belum set 0.
         $finalScore = $pivot->score ?? 0;
 
-        // Cek apakah ujian belum selesai. Jika belum, baru hitung ulang.
         if ($pivot->status !== 'completed') {
-
             $answers = StudentAnswer::where('exam_session_id', $session->id)
                 ->where('user_id', $user->id)
                 ->with(['question.options', 'question.matches'])
@@ -253,9 +221,8 @@ class StudentExamController extends Controller
             foreach ($answers as $ans) {
                 $q = $ans->question;
                 $poin = 0;
-
-                // Decode JSON jika perlu
                 $studentAns = $ans->answer;
+
                 if (is_string($studentAns) && in_array($q->type, ['complex_choice', 'matching', 'true_false', 'true_false_multi'])) {
                     $decoded = json_decode($studentAns, true);
                     if (json_last_error() === JSON_ERROR_NONE) {
@@ -263,7 +230,6 @@ class StudentExamController extends Controller
                     }
                 }
 
-                // --- LOGIKA SKORING ---
                 if ($q->type === 'single_choice') {
                     $correctOption = $q->options->where('is_correct', true)->first();
                     if ($correctOption && $studentAns == $correctOption->id) {
@@ -319,7 +285,6 @@ class StudentExamController extends Controller
                 $totalScore += $poin;
             }
 
-            // Update variabel $finalScore dengan hasil perhitungan baru
             $finalScore = ($totalQuestions > 0) ? ($totalScore / $totalQuestions) * 100 : 0;
             $finalScore = round($finalScore, 2);
 
@@ -329,6 +294,7 @@ class StudentExamController extends Controller
                 'score' => $finalScore,
             ]);
         }
+
         session()->forget('verified_exam_'.$session->exam_id);
 
         return redirect()->route('student.index')->with('success', 'Ujian berhasil dikumpulkan! Nilai Anda: '.$finalScore);
@@ -339,26 +305,38 @@ class StudentExamController extends Controller
         $request->validate(['exam_id' => 'required']);
         $user = Auth::user();
 
-        // 1. Cari Exam Session ID dulu
+        // 1. Cari Exam Session dengan relasi exam
         $session = ExamSession::where('exam_id', $request->exam_id)
             ->whereHas('students', fn ($q) => $q->where('users.id', $user->id))
+            ->with('exam')
             ->firstOrFail();
 
-        // 2. Ambil data User di Session tersebut
         $examUser = ExamSessionUser::where('exam_session_id', $session->id)
             ->where('user_id', $user->id)
             ->firstOrFail();
 
-        // 3. Tambah hitungan
+        // -----------------------------------------------------------------
+        // [DINAMIS] CEK PELANGGARAN: Tolak catatan jika fitur OFF
+        // -----------------------------------------------------------------
+        $enableViolation = $session->exam->enable_violation ?? true;
+
+        if (! $enableViolation) {
+            return response()->json([
+                'violation_count' => $examUser->violation_count,
+                'is_locked' => false,
+                'message' => 'Sensor pelanggaran dinonaktifkan oleh guru.',
+            ]);
+        }
+
+        // 3. Tambah hitungan jika fitur ON
         $newCount = $examUser->violation_count + 1;
+        $maxTolerances = $session->exam->max_tolerances ?? 3;
         $isLocked = $examUser->is_locked;
 
-        // 4. Cek Lock (Jika >= 3, Paksa True)
-        if ($newCount >= 3) {
+        if ($newCount >= $maxTolerances) {
             $isLocked = true;
         }
 
-        // 5. Simpan ke Database
         $examUser->update([
             'violation_count' => $newCount,
             'is_locked' => $isLocked,
@@ -366,6 +344,7 @@ class StudentExamController extends Controller
 
         return response()->json([
             'violation_count' => $newCount,
+            'max_tolerances' => $maxTolerances,
             'is_locked' => (bool) $isLocked,
         ]);
     }
@@ -381,39 +360,38 @@ class StudentExamController extends Controller
 
         $pivot = $session->students()->where('users.id', $user->id)->first()->pivot;
 
-        // Cek jika akun terkunci
         if ($pivot->is_locked) {
             return redirect()->route('student.index')->with('error', 'AKSES DITOLAK: Ujian Anda telah dikunci karena pelanggaran.');
         }
 
-        // Cek jika ujian sudah selesai
         if ($pivot->status === 'completed' || $pivot->finished_at !== null) {
             return redirect()->route('student.index')->with('info', 'Anda sudah menyelesaikan ujian ini.');
         }
 
-        // Cek apakah jadwalnya sudah dibuka
         $now = now();
         if (! $now->between($session->start_time, $session->end_time)) {
             return redirect()->route('student.index')->with('error', 'Sesi ujian belum dibuka atau sudah ditutup.');
         }
 
-        // Jika sudah pernah diverifikasi sebelumnya dan ujian masih 'ongoing', langsung lompat (opsional)
-        if (session()->has('verified_exam_'.$exam->id) && $pivot->status === 'ongoing') {
-            return redirect()->route('student.exam.run', $exam->id);
+        // -----------------------------------------------------------------
+        // [DINAMIS] BYPASS TOKEN: Jika tidak butuh token, langsung masuk
+        // -----------------------------------------------------------------
+        if (! $session->exam->require_token) {
+            session()->put('verified_exam_'.$exam->id, true);
+
+            return redirect()->route('student.exam.run', $exam);
         }
 
-        // LOGIKA BARU: Cek apakah sekolah siswa terdaftar di registration_settings
-        $isAutoToken = RegistrationSetting::where('school_id', $user->school_id)->exists();
+        if (session()->has('verified_exam_'.$exam->id) && $pivot->status === 'ongoing') {
+            return redirect()->route('student.exam.run', $exam);
+        }
 
-        // Ambil token jika sekolah terdaftar, jika tidak biarkan null
+        $isAutoToken = RegistrationSetting::where('school_id', $user->school_id)->exists();
         $defaultToken = $isAutoToken ? $session->token : null;
 
         return view('student.exams.verify', compact('session', 'defaultToken'));
     }
 
-    // =========================================================================
-    // FITUR BARU: Memproses Token
-    // =========================================================================
     public function processToken(Request $request, Exam $exam)
     {
         $request->validate([
@@ -426,12 +404,10 @@ class StudentExamController extends Controller
             ->whereHas('students', fn ($q) => $q->where('users.id', $user->id))
             ->firstOrFail();
 
-        // Pengecekan Token (Case Insensitive / Mengabaikan huruf besar-kecil)
         if (strtoupper(trim($request->token)) !== strtoupper(trim($session->token))) {
             return back()->with('error', 'Token ujian tidak valid atau salah!');
         }
 
-        // Simpan tanda (flag) di session browser agar bisa masuk ke method run()
         session()->put('verified_exam_'.$exam->id, true);
 
         return redirect()->route('student.exam.run', $exam);
@@ -442,19 +418,15 @@ class StudentExamController extends Controller
         $user = auth()->user();
 
         $stats = [
-            // Gunakan try-catch agar jika relasinya berbeda, halaman tidak crash (error 500)
             'total_ujian' => 0,
             'ujian_selesai' => 0,
         ];
 
         try {
-            // Asumsi: ExamSession memiliki relasi belongsToMany ke User/Siswa dengan nama method 'students' atau 'users'
             $stats['total_ujian'] = ExamSession::whereHas('students', function ($q) use ($user) {
-                // Gunakan id siswa yang sedang login
                 $q->where('users.id', $user->id);
             })->count();
         } catch (\Throwable $th) {
-            // Jika relasi students belum ada, biarkan 0 sementara waktu
             $stats['total_ujian'] = 0;
         }
 
@@ -466,7 +438,7 @@ class StudentExamController extends Controller
         $user = Auth::user();
         $examUser = ExamSessionUser::whereHas('session', fn ($q) => $q->where('exam_id', $exam->id))
             ->where('user_id', $user->id)
-            ->select('status', 'is_locked') // Hanya kolom yang dibutuhkan
+            ->select('status', 'is_locked')
             ->firstOrFail();
 
         return response()->json([
