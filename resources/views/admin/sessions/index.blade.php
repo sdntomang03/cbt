@@ -241,19 +241,23 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="font-mono font-black text-lg text-slate-800 tracking-widest bg-slate-100 px-3 py-1 rounded-lg border border-slate-200"
+                                    {{-- PERBAIKAN: Gunakan flex-col agar letaknya atas-bawah --}}
+                                    <div class="flex flex-col gap-2">
+                                        {{-- Kotak Token --}}
+                                        <div class="font-mono font-black text-lg text-center text-slate-800 tracking-widest bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200"
                                             id="token-{{ $session->id }}">
                                             {{ $session->token ?? '------' }}
                                         </div>
-                                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+
+                                        {{-- Tombol Aksi Token (Selalu Tampil) --}}
+                                        <div class="flex gap-1.5 w-full">
                                             <button @click="copyToken({{ $session->id }})"
-                                                class="w-8 h-8 rounded-lg bg-white text-slate-400 hover:text-indigo-600 shadow-sm border border-slate-200 flex items-center justify-center transition"
+                                                class="flex-1 h-8 rounded-md bg-white text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm border border-slate-200 flex items-center justify-center transition"
                                                 title="Salin Token">
                                                 <i class="fas fa-copy"></i>
                                             </button>
                                             <button @click="regenerateToken({{ $session->id }})"
-                                                class="w-8 h-8 rounded-lg bg-white text-slate-400 hover:text-orange-500 shadow-sm border border-slate-200 flex items-center justify-center transition"
+                                                class="flex-1 h-8 rounded-md bg-white text-slate-400 hover:bg-orange-50 hover:text-orange-500 hover:border-orange-200 shadow-sm border border-slate-200 flex items-center justify-center transition"
                                                 title="Acak Ulang Token">
                                                 <i class="fas fa-sync-alt"></i>
                                             </button>
