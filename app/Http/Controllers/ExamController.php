@@ -104,19 +104,24 @@ class ExamController extends Controller
             'max_tolerances' => 'nullable|integer|min:1',
         ]);
 
-        if ($request->title !== $exam->title) {
-            $validated['slug'] = Str::slug($request->title).'-'.Str::random(5);
+        try {
+            if ($request->title !== $exam->title) {
+                $validated['slug'] = Str::slug($request->title).'-'.Str::random(5);
+            }
+
+            $validated['random_question'] = $request->has('random_question');
+            $validated['random_answer'] = $request->has('random_answer');
+            $validated['show_explanation'] = $request->has('show_explanation');
+            $validated['require_token'] = $request->has('require_token');
+            $validated['enable_violation'] = $request->has('enable_violation');
+            $validated['max_tolerances'] = $request->max_tolerances ?? 3;
+
+            $exam->update($validated);
+
+            return redirect()->back()->with('success', 'Ujian diperbarui!');
+        } catch (\Exception $e) {
+            return redirect()->back()->withInput()->with('error', 'Gagal memperbarui ujian: '.$e->getMessage());
         }
-
-        $validated['random_question'] = $request->has('random_question');
-        $validated['random_answer'] = $request->has('random_answer');
-        $validated['show_explanation'] = $request->has('show_explanation');
-        $validated['require_token'] = $request->has('require_token');
-        $validated['enable_violation'] = $request->has('enable_violation');
-        $validated['max_tolerances'] = $request->max_tolerances ?? 3;
-        $exam->update($validated);
-
-        return redirect()->back()->with('success', 'Ujian diperbarui!');
     }
 
     // Hapus Ujian
