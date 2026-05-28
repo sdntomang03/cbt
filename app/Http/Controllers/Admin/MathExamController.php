@@ -376,4 +376,43 @@ class MathExamController extends Controller
 
         return $pdf->stream('Lembar_Kerja_'.str_replace(' ', '_', $exam->title).'.pdf');
     }
+
+    public function autosave(Request $request, $id)
+    {
+        $userId = Auth::id();
+        $questionId = $request->question_id;
+        $answer = $request->answer;
+
+        // Pastikan ujian valid dan statusnya masih ongoing (belum dikumpulkan)
+        $examUser = MathExamUser::where('math_exam_id', $id)
+            ->where('student_id', $userId)
+            ->where('status', 'ongoing')
+            ->first();
+
+        if (! $examUser) {
+            return response()->json(['status' => 'error', 'message' => 'Ujian sudah ditutup.'], 403);
+        }
+
+        // Cari soal spesifik milik siswa ini
+        $question = MathExamQuestion::where('id', $questionId)
+            ->where('math_exam_id', $id)
+            ->where('student_id', $userId)
+            ->first();
+
+        if ($question) {
+            // Format jawaban (jika kosong, jadikan null)
+            $studentAns = ($answer !== null && $answer !== '') ? (int) $answer : null;
+            $isCorrect = ($studentAns === $question->correct_answer && $studentAns !== null);
+
+            // Simpan ke database
+            $question->update([
+                'student_answer' => $studentAns,
+                'is_correct' => $isCorrect,
+            ]);
+
+            return response()->json(['status' => 'success']);
+        }
+
+        return response()->json(['status' => 'error', 'message' => 'Soal tidak ditemukan.'], 404);
+    }
 }

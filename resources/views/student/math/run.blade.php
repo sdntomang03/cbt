@@ -580,6 +580,7 @@
         <input type="hidden" name="answers">
     </form>
 
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     {{-- Anti-Cheat Protection Scripts --}}
     <script>
         // Disable right-click
@@ -624,25 +625,43 @@
                 showCheatWarning: false,
                 violationCount: 0,
                 isPageVisible: true,
-
-                init() {},
-
-                startExam() {
-                    this.hasStarted = true;
-
-                    // Request fullscreen
-                    let elem = document.documentElement;
-                    if (elem.requestFullscreen) {
-                        elem.requestFullscreen().catch(err => console.warn("Fullscreen blocked:", err));
-                    } else if (elem.webkitRequestFullscreen) {
-                        elem.webkitRequestFullscreen();
-                    } else if (elem.msRequestFullscreen) {
-                        elem.msRequestFullscreen();
+                examId: '{{ $exam->id }}',
+                init() {
+                this.questions.forEach(q => {
+                    if (q.student_answer !== null && q.student_answer !== undefined) {
+                        this.answers[q.id] = q.student_answer;
                     }
+                });
+            },
 
-                    this.$nextTick(() => { this.focusInput(); });
-                    this.startTimer();
-                },
+            triggerAutosave(questionId) {
+                const answerValue = this.answers[questionId] !== undefined ? this.answers[questionId] : '';
+
+                axios.post(`/math-exam/${this.examId}/autosave`, {
+                    question_id: questionId,
+                    answer: answerValue
+                })
+                .then(response => {
+                    // Berhasil disimpan di background (tidak perlu alert agar tidak mengganggu)
+                    console.log('Autosave sukses soal ID:', questionId);
+                })
+                .catch(error => {
+                    console.error('Autosave gagal:', error);
+                });
+            },
+       startExam() {
+                this.hasStarted = true;
+                let elem = document.documentElement;
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(err => console.warn("Fullscreen blocked:", err));
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) {
+                    elem.msRequestFullscreen();
+                }
+                this.$nextTick(() => { this.focusInput(); });
+                this.startTimer();
+            },
 
                 handleVisibilityChange() {
                     if (this.hasStarted && !this.showCheatWarning) {
@@ -740,41 +759,47 @@
                     }, 50);
                 },
 
-                nextQuestion() {
-                    const currentQ = this.questions[this.currentIndex];
+               nextQuestion() {
+                const currentQ = this.questions[this.currentIndex];
 
-                    if (this.answers[currentQ.id] === undefined || this.answers[currentQ.id] === '') {
-                        this.focusInput();
-                        const input = document.getElementById('input-' + this.currentIndex);
-                        if(input) {
-                            input.classList.add('animate-shake');
-                            setTimeout(() => input.classList.remove('animate-shake'), 500);
-                        }
-                        return;
+                if (this.answers[currentQ.id] === undefined || this.answers[currentQ.id] === '') {
+                    this.focusInput();
+                    const input = document.getElementById('input-' + this.currentIndex);
+                    if(input) {
+                        input.classList.add('animate-shake');
+                        setTimeout(() => input.classList.remove('animate-shake'), 500);
                     }
+                    return;
+                }
 
-                    this.removeSkipped(currentQ.id);
+                this.removeSkipped(currentQ.id);
 
-                    if (this.currentIndex < this.questions.length - 1) {
-                        this.currentIndex++;
-                        this.focusInput();
-                    } else {
-                        this.finishExam();
-                    }
-                },
+                // 🔥 PANGGIL AUTOSAVE SEBELUM PINDAH
+                this.triggerAutosave(currentQ.id);
 
-                skipQuestion() {
-                    const currentQ = this.questions[this.currentIndex];
+                if (this.currentIndex < this.questions.length - 1) {
+                    this.currentIndex++;
+                    this.focusInput();
+                } else {
+                    this.finishExam();
+                }
+            },
 
-                    if (!this.skipped.includes(currentQ.id) && (this.answers[currentQ.id] === undefined || this.answers[currentQ.id] === '')) {
-                        this.skipped.push(currentQ.id);
-                    }
+   skipQuestion() {
+                const currentQ = this.questions[this.currentIndex];
 
-                    if (this.currentIndex < this.questions.length - 1) {
-                        this.currentIndex++;
-                        this.focusInput();
-                    }
-                },
+                if (!this.skipped.includes(currentQ.id) && (this.answers[currentQ.id] === undefined || this.answers[currentQ.id] === '')) {
+                    this.skipped.push(currentQ.id);
+                }
+
+                // 🔥 PANGGIL AUTOSAVE JIKA ADA JAWABAN TAPI DILEWATI
+                this.triggerAutosave(currentQ.id);
+
+                if (this.currentIndex < this.questions.length - 1) {
+                    this.currentIndex++;
+                    this.focusInput();
+                }
+            },
 
                 removeSkipped(id) {
                     const index = this.skipped.indexOf(id);
@@ -783,17 +808,25 @@
                     }
                 },
 
-                prevQuestion() {
-                    if (this.currentIndex > 0) {
-                        this.currentIndex--;
-                        this.focusInput();
-                    }
-                },
+        prevQuestion() {
+                if (this.currentIndex > 0) {
+                    const currentQ = this.questions[this.currentIndex];
+                    // 🔥 PANGGIL AUTOSAVE SEBELUM MUNDUR
+                    this.triggerAutosave(currentQ.id);
 
-                jumpToQuestion(index) {
-                    this.currentIndex = index;
+                    this.currentIndex--;
                     this.focusInput();
-                },
+                }
+            },
+
+       jumpToQuestion(index) {
+                const currentQ = this.questions[this.currentIndex];
+
+                this.triggerAutosave(currentQ.id);
+
+                this.currentIndex = index;
+                this.focusInput();
+            },
 
                 isAnswered(questionId) {
                     return this.answers[questionId] !== undefined && this.answers[questionId] !== '';
