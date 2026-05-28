@@ -281,42 +281,42 @@
                                     class="text-[10px] font-black text-slate-500 uppercase group-hover:text-indigo-600 transition">Tampilkan
                                     Pembahasan</span>
                             </label>
-                            <div class="col-span-2 pt-4 border-t border-slate-100">
-                                <h4 class="text-xs font-black text-slate-800 uppercase mb-3">Pengaturan Keamanan & Sesi
-                                </h4>
-                                <div class="grid grid-cols-2 gap-4">
 
+                        </div>
+                        <div class="col-span-2 pt-4 border-t border-slate-100">
+                            <h4 class="text-xs font-black text-slate-800 uppercase mb-3">Pengaturan Keamanan & Sesi</h4>
+                            <div class="grid grid-cols-2 gap-4">
+
+                                <label class="flex items-center gap-2 cursor-pointer group">
+                                    <input type="checkbox" name="require_token"
+                                        :checked="$store.examModule.formData.require_token"
+                                        @change="$store.examModule.formData.require_token = $event.target.checked"
+                                        class="rounded text-indigo-600 border-slate-300 w-5 h-5">
+                                    <span
+                                        class="text-[10px] font-black text-slate-500 uppercase group-hover:text-indigo-600 transition">Wajib
+                                        Pakai Token</span>
+                                </label>
+
+                                <div class="flex items-center gap-4">
                                     <label class="flex items-center gap-2 cursor-pointer group">
-                                        <input type="checkbox" name="require_token"
-                                            :checked="$store.examModule.formData.require_token"
-                                            @change="$store.examModule.formData.require_token = $event.target.checked"
-                                            class="rounded text-indigo-600 border-slate-300 w-5 h-5">
+                                        <input type="checkbox" name="enable_violation"
+                                            :checked="$store.examModule.formData.enable_violation"
+                                            @change="$store.examModule.formData.enable_violation = $event.target.checked"
+                                            class="rounded text-rose-500 border-slate-300 w-5 h-5">
                                         <span
-                                            class="text-[10px] font-black text-slate-500 uppercase group-hover:text-indigo-600 transition">Wajib
-                                            Pakai Token</span>
+                                            class="text-[10px] font-black text-slate-500 uppercase group-hover:text-rose-600 transition">Sensor
+                                            Pelanggaran</span>
                                     </label>
 
-                                    <div class="flex items-center gap-4">
-                                        <label class="flex items-center gap-2 cursor-pointer group">
-                                            <input type="checkbox" name="enable_violation"
-                                                :checked="$store.examModule.formData.enable_violation"
-                                                @change="$store.examModule.formData.enable_violation = $event.target.checked"
-                                                class="rounded text-rose-500 border-slate-300 w-5 h-5">
-                                            <span
-                                                class="text-[10px] font-black text-slate-500 uppercase group-hover:text-rose-600 transition">Sensor
-                                                Pelanggaran</span>
-                                        </label>
-
-                                        <div x-show="$store.examModule.formData.enable_violation" x-transition
-                                            class="flex items-center gap-2">
-                                            <span class="text-[10px] font-bold text-slate-400">Maks. Pindah Tab:</span>
-                                            <input type="number" name="max_tolerances"
-                                                x-model="$store.examModule.formData.max_tolerances"
-                                                class="w-16 rounded-lg border-slate-200 py-1 px-2 text-xs text-center font-bold">
-                                        </div>
+                                    <div x-show="$store.examModule.formData.enable_violation" x-transition
+                                        class="flex items-center gap-2">
+                                        <span class="text-[10px] font-bold text-slate-400">Maks. Pindah Tab:</span>
+                                        <input type="number" name="max_tolerances"
+                                            x-model="$store.examModule.formData.max_tolerances"
+                                            class="w-16 rounded-lg border-slate-200 py-1 px-2 text-xs text-center font-bold">
                                     </div>
-
                                 </div>
+
                             </div>
                         </div>
                     </div>
