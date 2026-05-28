@@ -9,7 +9,6 @@
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
 <style>
-    /* ===== Narasi Editor ===== */
     .ql-toolbar.ql-snow {
         border: none !important;
         border-bottom: 1px solid #f1f5f9 !important;
@@ -28,7 +27,6 @@
         min-height: 300px;
     }
 
-    /* ===== Mini Option Editor ===== */
     .option-editor-wrap .ql-editor {
         min-height: 120px !important;
         font-size: 0.875rem;
@@ -46,10 +44,8 @@
         border: none !important;
     }
 
-    /* ===== Efek Resize Gambar & Iframe ===== */
     .ql-editor .active {
         outline: 2px solid rgba(79, 70, 229, 0.5);
-        /* Indigo 600 */
     }
 
     .ql-editor .selected {
@@ -58,11 +54,9 @@
 
     .ql-resize-toolbar .btn-alt {
         color: #f59e0b;
-        /* Amber 500 */
         font-weight: bold;
     }
 
-    /* ===== Tombol & UI Custom (Simbol Ω & Edit HTML) ===== */
     .ql-customSymbol,
     .ql-editHtml {
         width: 28px !important;
@@ -96,7 +90,6 @@
         color: #4f46e5;
     }
 
-    /* ===== Kotak Source Code HTML (Disembunyikan Bawaan) ===== */
     .html-source-editor {
         width: 100%;
         min-height: 300px;
@@ -117,39 +110,112 @@
         min-height: 120px;
         border-radius: 0;
     }
+
+    /* Loading overlay saat upload */
+    .ql-upload-loading {
+        position: absolute;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        border-radius: inherit;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #4f46e5;
+        gap: 8px;
+    }
 </style>
 
 <script>
-    // ── 1. Daftarkan Modul Resize secara Global ──
-    if (window.Quill && window.QuillResize) {
-        Quill.register('modules/resize', QuillResize.default);
-    }
+    // ── Setup CSRF Axios (HARUS paling atas, sebelum apapun) ──
 axios.defaults.headers.common['X-CSRF-TOKEN'] =
     document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    document.addEventListener('alpine:init', () => {
+
+// ── Daftarkan Modul Resize secara Global ──
+if (window.Quill && window.QuillResize) {
+    Quill.register('modules/resize', QuillResize.default);
+}
+
+document.addEventListener('alpine:init', () => {
     Alpine.data('questionEditor', (config) => {
 
-        let myEditor = null;
-        let optionEditors = {}; // object untuk menyimpan Quill instance Opsi
-        // ── Fungsi Upload ke Server ──
-function uploadImageToServer(file, quill) {
-    const formData = new FormData();
-    formData.append('image', file);
+        let myEditor      = null;
+        let optionEditors = {};
 
-    // Anda perlu memastikan route 'admin.image.upload' sudah ada di web.php
-    axios.post('{{ route("admin.image.upload") }}', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    })
-    .then(response => {
-        const url = response.data.url;
-        const range = quill.getSelection();
-        quill.insertEmbed(range.index, 'image', url);
-    })
-    .catch(error => {
-        Swal.fire('Error', 'Gagal mengupload gambar', 'error');
-    });
-}
-        // ── 2. Konfigurasi Resize Modul ──
+        // =========================================================
+        // UPLOAD GAMBAR KE SERVER
+        // =========================================================
+        function uploadImageToServer(file, quill) {
+            // Simpan posisi cursor SEBELUM dialog file terbuka (fokus bisa hilang)
+            const savedRange = quill.getSelection() || { index: quill.getLength() };
+
+            // Validasi tipe & ukuran file di sisi klien
+            const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!allowed.includes(file.type)) {
+                Swal.fire('Format Tidak Didukung', 'Hanya JPG, PNG, GIF, atau WEBP yang diizinkan.', 'warning');
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                Swal.fire('File Terlalu Besar', 'Ukuran gambar maksimal 2MB.', 'warning');
+                return;
+            }
+
+            // Tampilkan loading di dalam editor
+            const container = quill.container;
+            const loader    = document.createElement('div');
+            loader.className = 'ql-upload-loading';
+            loader.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 1s linear infinite"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Mengupload...';
+            container.style.position = 'relative';
+            container.appendChild(loader);
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            axios.post('{{ route("admin.image.upload") }}', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            })
+            .then(response => {
+                const url = response.data.url;
+                if (!url) throw new Error('URL tidak ditemukan dalam response server.');
+
+                // Fokus kembali ke editor lalu insert gambar
+                quill.focus();
+                quill.insertEmbed(savedRange.index, 'image', url);
+                quill.setSelection(savedRange.index + 1);
+            })
+            .catch(error => {
+                const detail = error.response?.data?.detail
+                    || error.response?.data?.error
+                    || error.response?.data?.message
+                    || error.message
+                    || 'Terjadi kesalahan tidak diketahui.';
+                Swal.fire('Gagal Upload', detail, 'error');
+                console.error('Upload error:', error.response?.data ?? error);
+            })
+            .finally(() => {
+                loader.remove();
+            });
+        }
+
+        // =========================================================
+        // HANDLER TOMBOL IMAGE (dipakai di narasi & opsi)
+        // =========================================================
+        function imageHandler(quillInstance) {
+            const input = document.createElement('input');
+            input.setAttribute('type', 'file');
+            input.setAttribute('accept', 'image/jpeg,image/png,image/gif,image/webp');
+            input.click();
+            input.onchange = () => {
+                const file = input.files[0];
+                if (file) uploadImageToServer(file, quillInstance);
+            };
+        }
+
+        // =========================================================
+        // KONFIGURASI RESIZE MODUL
+        // =========================================================
         function getResizeConfig() {
             return {
                 embedTags: ['VIDEO', 'IFRAME'],
@@ -158,24 +224,28 @@ function uploadImageToServer(file, quill) {
                     {
                         text: 'Alt',
                         attrs: { title: 'Set image alt', class: 'btn-alt' },
-                        verify(activeEle) { return activeEle && activeEle.tagName === 'IMG'; },
-                        handler(evt, button, activeEle) {
-                            let alt = activeEle.alt || '';
-                            alt = window.prompt('Masukkan teks Alt untuk gambar:', alt);
-                            if (alt != null) activeEle.setAttribute('alt', alt);
+                        verify(el) { return el && el.tagName === 'IMG'; },
+                        handler(evt, btn, el) {
+                            const alt = window.prompt('Teks Alt gambar:', el.alt || '');
+                            if (alt !== null) el.setAttribute('alt', alt);
                         },
                     },
                 ],
             };
         }
 
-        // ── 3. Fitur Custom Simbol (Ω) ──
+        // =========================================================
+        // FITUR SIMBOL KHUSUS (Ω)
+        // =========================================================
         function openSymbolPicker(quill) {
-            const range = quill.getSelection(true);
+            const range   = quill.getSelection(true);
             const symbols = ['±','×','÷','≈','≠','≤','≥','∞','∴','°','π','α','β','θ','µ','Ω','∑','∫','√','½','¼','¾'];
+
             let html = '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:12px">';
             symbols.forEach(s => {
-                html += `<button class="symbol-btn" data-val="${s}" style="padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:18px;font-weight:900;cursor:pointer">${s}</button>`;
+                html += `<button class="symbol-btn" data-val="${s}"
+                    style="padding:10px;background:#f8fafc;border:1px solid #e2e8f0;
+                           border-radius:8px;font-size:18px;font-weight:900;cursor:pointer">${s}</button>`;
             });
             html += '</div>';
 
@@ -184,7 +254,6 @@ function uploadImageToServer(file, quill) {
                 html,
                 showConfirmButton: false,
                 showCloseButton: true,
-                customClass: { popup: 'rounded-[2rem]' },
                 didOpen: () => {
                     document.querySelectorAll('.symbol-btn').forEach(btn => {
                         btn.addEventListener('click', () => {
@@ -197,43 +266,44 @@ function uploadImageToServer(file, quill) {
             });
         }
 
-        // ── 4. Fitur Mode HTML Code (</>) ──
+        // =========================================================
+        // FITUR TOGGLE MODE HTML (</>)
+        // =========================================================
         function toggleHtmlEdit(quill) {
             const container = quill.container;
-            const wrapper = container.parentNode;
+            const wrapper   = container.parentNode;
 
             let txtArea = wrapper.querySelector('.html-source-editor');
             if (!txtArea) {
-                txtArea = document.createElement('textarea');
+                txtArea           = document.createElement('textarea');
                 txtArea.className = 'html-source-editor custom-scrollbar';
                 wrapper.insertBefore(txtArea, container.nextSibling);
-
-                // Update state saat diketik di mode HTML
-                txtArea.addEventListener('input', function() {
+                txtArea.addEventListener('input', function () {
                     quill.root.innerHTML = this.value;
                     quill.emitter.emit('text-change');
                 });
             }
 
-            const qlEditor = container.querySelector('.ql-editor');
-            const toolbarButton = quill.getModule('toolbar').container.querySelector('.ql-editHtml');
+            const qlEditor     = container.querySelector('.ql-editor');
+            const toolbarBtn   = quill.getModule('toolbar').container.querySelector('.ql-editHtml');
+            const isHtmlMode   = txtArea.style.display === 'block';
 
-            if (txtArea.style.display === 'block') {
-                // Kembali ke Mode Rich Text
+            if (isHtmlMode) {
                 quill.clipboard.dangerouslyPasteHTML(txtArea.value);
-                txtArea.style.display = 'none';
+                txtArea.style.display  = 'none';
                 qlEditor.style.display = 'block';
-                toolbarButton.classList.remove('ql-active');
+                toolbarBtn.classList.remove('ql-active');
             } else {
-                // Pindah ke Mode Edit HTML
-                txtArea.value = quill.root.innerHTML;
-                txtArea.style.display = 'block';
+                txtArea.value          = quill.root.innerHTML;
+                txtArea.style.display  = 'block';
                 qlEditor.style.display = 'none';
-                toolbarButton.classList.add('ql-active');
+                toolbarBtn.classList.add('ql-active');
             }
         }
 
-        // ── 5. Setup Toolbar Mini (Untuk Opsi Jawaban) ──
+        // =========================================================
+        // TOOLBAR MINI (untuk opsi jawaban)
+        // =========================================================
         function miniToolbar() {
             return {
                 container: [
@@ -242,21 +312,48 @@ function uploadImageToServer(file, quill) {
                     ['image', 'formula', 'customSymbol', 'editHtml'],
                 ],
                 handlers: {
-                    customSymbol() { openSymbolPicker(this.quill); },
-                    editHtml() { toggleHtmlEdit(this.quill); }
+                    // FIX: tambahkan handler image agar tidak jadi base64
+                    image()       { imageHandler(this.quill); },
+                    customSymbol(){ openSymbolPicker(this.quill); },
+                    editHtml()    { toggleHtmlEdit(this.quill); },
                 }
             };
         }
 
-        // ── 6. Fungsi Inject Quill ke Div Target ──
+        // =========================================================
+        // TOOLBAR UTAMA (untuk narasi soal)
+        // =========================================================
+        function mainToolbar() {
+            return {
+                container: [
+                    [{ size: [] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ script: 'sub' }, { script: 'super' }],
+                    [{ list: 'ordered' }, { list: 'bullet' }],
+                    [{ align: [] }],
+                    ['blockquote'],
+                    ['link', 'image', 'video', 'formula', 'customSymbol', 'editHtml'],
+                    ['clean'],
+                ],
+                handlers: {
+                    image()       { imageHandler(this.quill); },
+                    customSymbol(){ openSymbolPicker(this.quill); },
+                    editHtml()    { toggleHtmlEdit(this.quill); },
+                }
+            };
+        }
+
+        // =========================================================
+        // MOUNT QUILL KE ELEMEN OPSI
+        // =========================================================
         function mountQuill(key, initialHtml, onChangeCb) {
             if (optionEditors[key]) return;
 
             const wrapper = document.querySelector(`[data-opt-id="${key}"]`);
             if (!wrapper) return;
 
-            const oldToolbar = wrapper.querySelector('.ql-toolbar');
-            if (oldToolbar) oldToolbar.remove();
+            // Bersihkan toolbar lama jika ada (cegah duplikat)
+            wrapper.querySelector('.ql-toolbar')?.remove();
 
             let el = wrapper.querySelector('.quill-option-target') || wrapper.querySelector('.ql-container');
             if (!el) return;
@@ -265,12 +362,13 @@ function uploadImageToServer(file, quill) {
             el = wrapper.querySelector('.quill-option-target');
 
             window.katex = katex;
+
             const q = new Quill(el, {
                 theme: 'snow',
                 modules: {
                     formula: true,
                     toolbar: miniToolbar(),
-                    resize: getResizeConfig()
+                    resize: getResizeConfig(),
                 }
             });
 
@@ -285,24 +383,26 @@ function uploadImageToServer(file, quill) {
             optionEditors[key] = q;
         }
 
-        // ── STATE & LOGIKA UTAMA ALPINE ──
+        // =========================================================
+        // STATE & LOGIKA UTAMA ALPINE
+        // =========================================================
         return {
             form: {
                 type: 'single_choice',
                 content: '',
                 subject_id: '',
                 level_id: '',
-                options: []
+                options: [],
             },
-            subjects: config.subjects || [],
-            levels: config.levels || [],
-            isSaving: false,
+            subjects:   config.subjects || [],
+            levels:     config.levels   || [],
+            isSaving:   false,
             types: [
-                { id: 'single_choice',  label: 'Pilgan',        icon: 'fa-dot-circle'    },
-                { id: 'complex_choice', label: 'PG Kompleks',   icon: 'fa-check-square'  },
-                { id: 'true_false',     label: 'Benar/Salah',   icon: 'fa-list-ol'       },
-                { id: 'matching',       label: 'Menjodohkan',   icon: 'fa-exchange-alt'  },
-                { id: 'essay',          label: 'Isian Singkat', icon: 'fa-keyboard'      },
+                { id: 'single_choice',  label: 'Pilgan',        icon: 'fa-dot-circle'   },
+                { id: 'complex_choice', label: 'PG Kompleks',   icon: 'fa-check-square' },
+                { id: 'true_false',     label: 'Benar/Salah',   icon: 'fa-list-ol'      },
+                { id: 'matching',       label: 'Menjodohkan',   icon: 'fa-exchange-alt' },
+                { id: 'essay',          label: 'Isian Singkat', icon: 'fa-keyboard'     },
             ],
 
             init() {
@@ -324,16 +424,16 @@ function uploadImageToServer(file, quill) {
                     opts = q.options?.length
                         ? q.options.map(o => ({ option_text: o.option_text, is_correct: o.is_correct }))
                         : [];
-                    if (['essay','true_false'].includes(q.type) && !opts.length) {
+                    if (['essay', 'true_false'].includes(q.type) && !opts.length) {
                         opts = [{ option_text: '', is_correct: 1 }];
                     }
                 }
                 this.form = {
-                    type: q.type,
-                    content: q.content,
+                    type:       q.type,
+                    content:    q.content,
                     subject_id: q.subject_id || '',
-                    level_id: q.level_id || '',
-                    options: opts
+                    level_id:   q.level_id   || '',
+                    options:    opts,
                 };
             },
 
@@ -341,45 +441,22 @@ function uploadImageToServer(file, quill) {
                 setTimeout(() => {
                     const el = document.getElementById('editorNarasi');
                     if (!el) return;
+
                     window.katex = katex;
 
                     myEditor = new Quill(el, {
                         theme: 'snow',
                         modules: {
                             formula: true,
-                            resize: getResizeConfig(),
-                            toolbar: {
-                                container: [
-                                    [{ 'size': [] }],
-                                    ['bold','italic','underline','strike'],
-                                    [{ script: 'sub' }, { script: 'super' }],
-                                    [{ list: 'ordered' }, { list: 'bullet' }],
-                                    [{ align: [] }],
-                                    ['blockquote'],
-                                    ['link','image','video','formula','customSymbol', 'editHtml'],
-                                    ['clean'],
-                                ],
-                                handlers: {
-                                    image: function() {
-            const input = document.createElement('input');
-            input.setAttribute('type', 'file');
-            input.setAttribute('accept', 'image/*');
-            input.click();
-
-            input.onchange = () => {
-                const file = input.files[0];
-                if (file) uploadImageToServer(file, this.quill);
-            };
-        },
-                                    customSymbol() { openSymbolPicker(this.quill); },
-                                    editHtml() { toggleHtmlEdit(this.quill); }
-                                }
-                            }
+                            resize:  getResizeConfig(),
+                            toolbar: mainToolbar(),
                         },
-                        placeholder: 'Ketik narasi pertanyaan di sini...'
+                        placeholder: 'Ketik narasi pertanyaan di sini...',
                     });
 
-                    if (this.form.content) myEditor.clipboard.dangerouslyPasteHTML(this.form.content);
+                    if (this.form.content) {
+                        myEditor.clipboard.dangerouslyPasteHTML(this.form.content);
+                    }
 
                     myEditor.on('text-change', () => {
                         let html = myEditor.root.innerHTML;
@@ -394,29 +471,20 @@ function uploadImageToServer(file, quill) {
             initAllOptionEditors() {
                 this.$nextTick(() => {
                     setTimeout(() => {
-                        this.form.options.forEach((opt, i) => this.mountOptionAt(i));
+                        this.form.options.forEach((_, i) => this.mountOptionAt(i));
                     }, 50);
                 });
             },
 
             mountOptionAt(i) {
                 if (this.form.type === 'matching') {
-                    mountQuill(
-                        `opt-${i}-premise`,
-                        this.form.options[i].premise_text,
-                        html => { this.form.options[i].premise_text = html; }
-                    );
-                    mountQuill(
-                        `opt-${i}-target`,
-                        this.form.options[i].target_text,
-                        html => { this.form.options[i].target_text = html; }
-                    );
+                    mountQuill(`opt-${i}-premise`, this.form.options[i].premise_text,
+                        html => { this.form.options[i].premise_text = html; });
+                    mountQuill(`opt-${i}-target`,  this.form.options[i].target_text,
+                        html => { this.form.options[i].target_text  = html; });
                 } else {
-                    mountQuill(
-                        `opt-${i}`,
-                        this.form.options[i].option_text,
-                        html => { this.form.options[i].option_text = html; }
-                    );
+                    mountQuill(`opt-${i}`, this.form.options[i].option_text,
+                        html => { this.form.options[i].option_text = html; });
                 }
             },
 
@@ -431,11 +499,14 @@ function uploadImageToServer(file, quill) {
                 if (this.form.type === 'essay') {
                     this.form.options.push({ option_text: '', is_correct: 1 });
                 } else if (this.form.type === 'true_false') {
-                    for (let i = 0; i < 3; i++) this.form.options.push({ option_text: '', is_correct: 1 });
+                    for (let i = 0; i < 3; i++)
+                        this.form.options.push({ option_text: '', is_correct: 1 });
                 } else if (this.form.type === 'matching') {
-                    for (let i = 0; i < 3; i++) this.form.options.push({ premise_text: '', target_text: '' });
+                    for (let i = 0; i < 3; i++)
+                        this.form.options.push({ premise_text: '', target_text: '' });
                 } else {
-                    for (let i = 0; i < 4; i++) this.form.options.push({ option_text: '', is_correct: i === 0 ? 1 : 0 });
+                    for (let i = 0; i < 4; i++)
+                        this.form.options.push({ option_text: '', is_correct: i === 0 ? 1 : 0 });
                 }
 
                 this.$nextTick(() => setTimeout(() => this.initAllOptionEditors(), 100));
@@ -444,7 +515,7 @@ function uploadImageToServer(file, quill) {
             addOption() {
                 if (this.form.type === 'matching') {
                     this.form.options.push({ premise_text: '', target_text: '' });
-                } else if (['essay','true_false'].includes(this.form.type)) {
+                } else if (['essay', 'true_false'].includes(this.form.type)) {
                     this.form.options.push({ option_text: '', is_correct: 1 });
                 } else {
                     this.form.options.push({ option_text: '', is_correct: 0 });
@@ -462,6 +533,7 @@ function uploadImageToServer(file, quill) {
                 }
                 this.form.options.splice(index, 1);
 
+                // Re-mount semua editor agar indeks tidak kacau
                 this.$nextTick(() => setTimeout(() => {
                     this.destroyOptionEditors();
                     this.initAllOptionEditors();
@@ -472,7 +544,7 @@ function uploadImageToServer(file, quill) {
                 if (this.form.type === 'complex_choice') {
                     this.form.options[index].is_correct = !this.form.options[index].is_correct;
                 } else if (this.form.type !== 'true_false') {
-                    this.form.options.forEach((o, i) => o.is_correct = i === index ? 1 : 0);
+                    this.form.options.forEach((o, i) => { o.is_correct = i === index ? 1 : 0; });
                 }
             },
 
@@ -480,34 +552,48 @@ function uploadImageToServer(file, quill) {
                 if (!this.form.content.trim() || this.form.content === '<p><br></p>') {
                     return Swal.fire({ icon: 'warning', title: 'Oops!', text: 'Isi narasi pertanyaan terlebih dahulu!' });
                 }
+
                 this.isSaving = true;
 
+                // Deep copy agar state Alpine tidak termutasi
                 let payload = JSON.parse(JSON.stringify(this.form));
 
-                // Encode Base64
-                payload.content = btoa(unescape(encodeURIComponent(payload.content)));
+                // Encode konten ke Base64 (aman untuk HTML + unicode)
+                const toB64 = str => btoa(unescape(encodeURIComponent(str)));
 
-                payload.options = payload.options.map(opt => {
-                    let newOpt = { ...opt };
-                    if (newOpt.option_text) newOpt.option_text = btoa(unescape(encodeURIComponent(newOpt.option_text)));
-                    if (newOpt.premise_text) newOpt.premise_text = btoa(unescape(encodeURIComponent(newOpt.premise_text)));
-                    if (newOpt.target_text) newOpt.target_text = btoa(unescape(encodeURIComponent(newOpt.target_text)));
-                    return newOpt;
+                payload.content  = toB64(payload.content);
+                payload.options  = payload.options.map(opt => {
+                    const o = { ...opt };
+                    if (o.option_text)  o.option_text  = toB64(o.option_text);
+                    if (o.premise_text) o.premise_text = toB64(o.premise_text);
+                    if (o.target_text)  o.target_text  = toB64(o.target_text);
+                    return o;
                 });
 
                 const method = config.isEdit ? 'put' : 'post';
                 axios[method](config.submitUrl, payload)
                     .then(() => {
                         Swal.fire({ icon: 'success', title: 'Tersimpan!', timer: 1500, showConfirmButton: false })
-                        .then(() => window.location.href = config.redirectUrl);
+                            .then(() => { window.location.href = config.redirectUrl; });
                     })
                     .catch(err => {
-                        let errorMsg = err.response?.data?.debug_error || err.response?.data?.message || 'Terjadi kesalahan sistem';
-                        Swal.fire({ icon: 'error', title: 'Gagal', text: errorMsg });
+                        const msg = err.response?.data?.debug_error
+                            || err.response?.data?.message
+                            || 'Terjadi kesalahan sistem.';
+                        Swal.fire({ icon: 'error', title: 'Gagal Menyimpan', text: msg });
                         this.isSaving = false;
                     });
-            }
+            },
         };
     });
 });
 </script>
+
+{{-- Animasi spin untuk ikon loading upload --}}
+<style>
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+</style>
