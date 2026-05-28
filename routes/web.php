@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\ClassroomController;
 use App\Http\Controllers\Admin\ExamSessionController;
 use App\Http\Controllers\Admin\MathExamController;
 use App\Http\Controllers\Admin\RegistrationSettingController;
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SchoolController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ExamController;
@@ -69,7 +70,7 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
             Route::get('settings/registration', [RegistrationSettingController::class, 'edit'])->name('settings.registration');
             Route::put('settings/registration', [RegistrationSettingController::class, 'update'])->name('settings.registration.update');
         });
-
+        Route::resource('roles', RoleController::class)->only(['index', 'store', 'update', 'destroy']);
         // --- 2. Manajemen Kelas ---
         Route::resource('classrooms', ClassroomController::class)->except(['show', 'create', 'edit']); // create/edit dihapus karena pakai modal
         Route::get('classrooms/{classroom}/students', [ClassroomController::class, 'manageStudents'])->name('classrooms.students');
