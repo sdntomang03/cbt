@@ -168,7 +168,8 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
 Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
 
     // Dashboard Utama Siswa
-    Route::get('/siswa', [StudentExamController::class, 'index'])->name('student.dashboard');
+    Route::get('/siswa', [StudentExamController::class, 'index'])->name('student.index');
+    Route::get('/home', [StudentExamController::class, 'dashboard'])->name('student.dashboard');
 
     // Ujian Biasa (Reguler)
     Route::get('/exam/{exam}/verify', [StudentExamController::class, 'showVerifyPage'])->name('student.exam.verify.show');
