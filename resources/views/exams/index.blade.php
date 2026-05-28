@@ -7,6 +7,10 @@
                 <p class="text-[10px] text-slate-400 mt-2 font-black uppercase tracking-widest">Kelola Bank Soal & Sesi
                     Ujian</p>
             </div>
+            <a href="{{ route('admin.analysis.index', $exam->id) }}"
+                class="bg-purple-600 text-white px-6 py-2.5 rounded-xl hover:bg-purple-700 text-sm font-black shadow-lg shadow-purple-200 transition-all flex items-center gap-2 active:scale-95 w-fit">
+                <i class="fas fa-chart-pie"></i> <span>Analisis Soal</span>
+            </a>
             <button @click="$store.examModule.newExam()"
                 class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl hover:bg-indigo-700 text-sm font-black shadow-lg shadow-indigo-200 transition-all flex items-center gap-2 active:scale-95">
                 <i class="fas fa-plus"></i> <span>Ujian Baru</span>
