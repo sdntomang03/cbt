@@ -61,7 +61,6 @@ class ExamController extends Controller
             'status' => ['required', Rule::enum(ExamStatus::class)],
             'level_id' => 'required|exists:levels,id',
             'subject_id' => 'required|exists:subjects,id',
-            'show_explanation' => 'boolean',
             'max_tolerances' => 'nullable|integer|min:1',
         ]);
 
@@ -100,7 +99,6 @@ class ExamController extends Controller
             'status' => ['required', Rule::enum(ExamStatus::class)],
             'level_id' => 'required|exists:levels,id',
             'subject_id' => 'required|exists:subjects,id',
-            'show_explanation' => 'boolean',
             'max_tolerances' => 'nullable|integer|min:1',
         ]);
 
