@@ -269,6 +269,7 @@
                                         <a href="{{ route('admin.exam-sessions.students.index', $session->id) }}"
                                             class="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition font-bold text-xs flex items-center gap-1"
                                             title="Kelola Peserta">
+                                            <i class="fas fa-users"></i>
                                         </a>
                                         <button @click="editSession({{ $session }})"
                                             class="w-8 h-8 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-500 hover:text-white transition flex items-center justify-center"
