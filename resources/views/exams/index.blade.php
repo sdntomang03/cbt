@@ -100,7 +100,7 @@
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <div class="flex justify-end gap-2">
-                                    <a href="{{ route('admin.exams.soal.index', $exam->id) }}"
+                                    <a href="{{ route('admin.exams.soal.index', $exam) }}"
                                         class="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition"
                                         title="Input Soal">
                                         <i class="fas fa-plus-square"></i>
