@@ -131,13 +131,13 @@
         <span>Ruang Ujian</span>
     </a>
 
-    @can('take exams')
+
     <a href="{{ route('student.math.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('student.math.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-superscript w-6 text-center text-lg"></i>
         <span>Latihan Hitung</span>
     </a>
-    @endcan
+
 
     <div class="text-xs font-black text-slate-400 uppercase tracking-widest mt-8 mb-3 px-4">Modul Interaktif</div>
 
