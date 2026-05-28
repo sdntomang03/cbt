@@ -294,7 +294,7 @@
                     Swal.fire({ title: 'Hapus Pertanyaan?', text: "Data tidak bisa dikembalikan!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'Ya, Hapus' })
                         .then(r => {
                             if(r.isConfirmed) {
-                                axios.delete(`/admin/exams/{{ $exam->id }}/soal/${id}`)
+                                axios.delete(`/admin/exams/{{ $exam->getRouteKey() }}/soal/${id}`)
                                     .then(() => window.location.reload());
                             }
                         });
