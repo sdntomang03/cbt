@@ -29,8 +29,8 @@ return [
     'connections' => [
 
         'main' => [
-            'salt' => '',
-            'length' => 0,
+            'salt' => env('HASHIDS_SALT', 'kunci-rahasia-cadangan'),
+            'length' => env('HASHIDS_LENGTH', 6),
             // 'alphabet' => 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
         ],
 
