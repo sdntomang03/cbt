@@ -580,20 +580,15 @@
                             if (this.timeLeft > 0) {
                                 this.timeLeft--;
 
-                                // HEARTBEAT: Cek status diam-diam setiap 5 detik
-                                if (this.timeLeft % 5 === 0) {
-                                    axios.get(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                                        .then(res => {
-                                            // Membaca balasan JSON dari Controller
-                                            if (res.data && (res.data.status === 'completed' || res.data.is_locked === true)) {
-                                                this.triggerForceEnd();
-                                            }
-                                        }).catch((err) => {
-                                            if (err.response && (err.response.status === 403 || err.response.status === 401)) {
-                                                this.triggerForceEnd();
-                                            }
-                                        });
-                                }
+                                // HEARTBEAT: Cek status diam-diam setiap 30 detik
+                           if (this.timeLeft % 30 === 0) {
+    axios.get('{{ route("student.exam.status", $exam->id) }}')
+        .then(res => {
+            if (res.data.status === 'completed' || res.data.is_locked) {
+                this.triggerForceEnd();
+            }
+        });
+}
 
                             } else {
                                 clearInterval(this.timerInterval);
@@ -640,7 +635,7 @@
                     saveAnswer(qId, val) {
                         if(val===undefined || window.isExitingExam) return;
                         this.answers[qId]=val;
-                        axios.post('{{ route("student.exam.save") }}', {exam_id:'{{$exam->id}}', question_id:qId, answer:val, is_doubtful:this.flags.includes(qId)}).catch(e=>console.error(e));
+                        axios.post('{{ route("student.exam.save") }}', {exam_id:'{{$exam->id}}', question_id:qId, answer:val, is_doubtful:this.flags.includes(qId)}).catch(e=>console.error(e),800);
                     },
 
                     finishExam() {

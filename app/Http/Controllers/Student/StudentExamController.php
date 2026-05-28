@@ -460,4 +460,18 @@ class StudentExamController extends Controller
 
         return view('student.dashboard', compact('user', 'stats'));
     }
+
+    public function checkStatus(Exam $exam)
+    {
+        $user = Auth::user();
+        $examUser = ExamSessionUser::whereHas('session', fn ($q) => $q->where('exam_id', $exam->id))
+            ->where('user_id', $user->id)
+            ->select('status', 'is_locked') // Hanya kolom yang dibutuhkan
+            ->firstOrFail();
+
+        return response()->json([
+            'status' => $examUser->status,
+            'is_locked' => (bool) $examUser->is_locked,
+        ]);
+    }
 }
