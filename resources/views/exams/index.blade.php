@@ -43,7 +43,41 @@
                 class="text-emerald-400 hover:text-emerald-600 transition"><i class="fas fa-times"></i></button>
         </div>
         @endif
+        {{-- Alert Notifikasi Success --}}
+        @if(session('success'))
+        <div
+            class="alert-box mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl font-bold flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-3"><i class="fas fa-check-circle text-xl"></i> {{ session('success') }}
+            </div>
+            <button type="button" onclick="this.closest('.alert-box').remove()"
+                class="text-emerald-400 hover:text-emerald-600 transition"><i class="fas fa-times"></i></button>
+        </div>
+        @endif
 
+        {{-- PERBAIKAN: Alert Notifikasi Error (Dari Try-Catch) --}}
+        @if(session('error'))
+        <div
+            class="alert-box mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl font-bold flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-3"><i class="fas fa-exclamation-triangle text-xl"></i> {{ session('error')
+                }}</div>
+            <button type="button" onclick="this.closest('.alert-box').remove()"
+                class="text-rose-400 hover:text-rose-600 transition"><i class="fas fa-times"></i></button>
+        </div>
+        @endif
+
+        {{-- PERBAIKAN: Alert Notifikasi Validasi (Jika input ditolak) --}}
+        @if($errors->any())
+        <div
+            class="alert-box mb-6 p-4 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl text-sm font-bold shadow-sm">
+            <div class="flex items-center gap-2 mb-2"><i class="fas fa-info-circle text-lg"></i> Gagal menyimpan data:
+            </div>
+            <ul class="list-disc list-inside ml-2">
+                @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+        @endif
         {{-- Tabel Data Ujian --}}
         <div class="bg-white shadow-sm sm:rounded-[2rem] border border-slate-100 overflow-hidden">
             <div class="p-6 border-b border-slate-50 bg-slate-50/30">
