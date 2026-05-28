@@ -43,16 +43,6 @@
                 class="text-emerald-400 hover:text-emerald-600 transition"><i class="fas fa-times"></i></button>
         </div>
         @endif
-        {{-- Alert Notifikasi Success --}}
-        @if(session('success'))
-        <div
-            class="alert-box mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl font-bold flex items-center justify-between shadow-sm">
-            <div class="flex items-center gap-3"><i class="fas fa-check-circle text-xl"></i> {{ session('success') }}
-            </div>
-            <button type="button" onclick="this.closest('.alert-box').remove()"
-                class="text-emerald-400 hover:text-emerald-600 transition"><i class="fas fa-times"></i></button>
-        </div>
-        @endif
 
         {{-- PERBAIKAN: Alert Notifikasi Error (Dari Try-Catch) --}}
         @if(session('error'))
