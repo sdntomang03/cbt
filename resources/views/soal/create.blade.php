@@ -1,5 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
+
         <div class="flex items-center gap-5 py-2 w-full">
             <a href="{{ route('admin.exams.soal.index', $exam) }}"
                 class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-slate-500 hover:text-indigo-600 shadow-sm border border-slate-100 transition-all hover:-translate-x-1 shrink-0">

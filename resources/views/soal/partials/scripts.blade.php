@@ -1,8 +1,10 @@
-<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<link href="https://fastly.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+<link href="https://fastly.jsdelivr.net/npm/quill-resize-module@2.1.2/dist/resize.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css">
 
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js"></script>
-<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+<script src="https://fastly.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<script src="https://fastly.jsdelivr.net/npm/quill-resize-module@2.1.2/dist/resize.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
@@ -29,10 +31,8 @@
     /* ===== Mini Option Editor ===== */
     .option-editor-wrap .ql-editor {
         min-height: 120px !important;
-        /* <-- Naikkan dari 60px menjadi 120px (atau sesuai selera) */
         font-size: 0.875rem;
         padding: 12px;
-        /* <-- Beri ruang ketik lebih lega */
     }
 
     .option-editor-wrap .ql-toolbar.ql-snow {
@@ -44,12 +44,6 @@
 
     .option-editor-wrap .ql-container.ql-snow {
         border: none !important;
-    }
-
-    .option-editor-wrap .ql-editor {
-        min-height: 60px !important;
-        font-size: 0.875rem;
-        padding: 8px 12px;
     }
 
     /* ===== Simbol Button ===== */
@@ -73,14 +67,57 @@
     .ql-customSymbol:hover::after {
         color: #4f46e5;
     }
+
+    /* ===== Efek Resize Gambar ===== */
+    .ql-editor .active {
+        outline: 2px solid rgba(79, 70, 229, 0.5);
+        /* Warna kotak seleksi (indigo) */
+    }
+
+    .ql-editor .selected {
+        opacity: 0.5;
+    }
+
+    .ql-resize-toolbar .btn-alt {
+        color: #f59e0b;
+        /* Warna tombol alt */
+        font-weight: bold;
+    }
 </style>
 
 <script>
+    // Daftarkan modul Resize ke Quill JS global
+    if (window.Quill && window.QuillResize) {
+        Quill.register('modules/resize', QuillResize.default);
+    }
+
     document.addEventListener('alpine:init', () => {
     Alpine.data('questionEditor', (config) => {
 
         let myEditor = null;
         let optionEditors = {}; // key => Quill instance
+
+        // ── Fungsi Konfigurasi Global untuk Modul Resize ──
+        function getResizeConfig() {
+            return {
+                embedTags: ['VIDEO', 'IFRAME'],
+                tools: [
+                    'left', 'center', 'right', 'full', 'edit',
+                    {
+                        text: 'Alt',
+                        attrs: { title: 'Set image alt', class: 'btn-alt' },
+                        verify(activeEle) {
+                            return activeEle && activeEle.tagName === 'IMG';
+                        },
+                        handler(evt, button, activeEle) {
+                            let alt = activeEle.alt || '';
+                            alt = window.prompt('Masukkan teks Alt untuk gambar:', alt);
+                            if (alt != null) activeEle.setAttribute('alt', alt);
+                        },
+                    },
+                ],
+            };
+        }
 
         // ── Buka popup simbol dan sisipkan ke quill yg diberikan ──
         function openSymbolPicker(quill) {
@@ -115,7 +152,7 @@
                 container: [
                     ['bold', 'italic', 'underline'],
                     [{ script: 'sub' }, { script: 'super' }],
-                    ['formula', 'customSymbol'],
+                    ['image', 'formula', 'customSymbol'], // Tambahkan image agar opsi bisa disisipkan gambar
                 ],
                 handlers: {
                     customSymbol() { openSymbolPicker(this.quill); }
@@ -124,34 +161,32 @@
         }
 
         // ── Mount satu Quill mini pada wrapper dengan data-opt-id = key ──
-        // ── Mount satu Quill mini pada wrapper dengan data-opt-id = key ──
         function mountQuill(key, initialHtml, onChangeCb) {
             if (optionEditors[key]) return; // sudah ada
 
             const wrapper = document.querySelector(`[data-opt-id="${key}"]`);
             if (!wrapper) return;
 
-            // --- KUNCI PERBAIKAN DUPLIKASI TOOLBAR ---
-            // 1. Hapus toolbar lama jika tersisa akibat daur ulang DOM Alpine
             const oldToolbar = wrapper.querySelector('.ql-toolbar');
             if (oldToolbar) oldToolbar.remove();
 
-            // 2. Ambil container editornya (Quill biasanya merubahnya jadi .ql-container)
             let el = wrapper.querySelector('.quill-option-target') || wrapper.querySelector('.ql-container');
             if (!el) return;
 
-            // 3. Reset elemen menjadi div bersih agar Quill tidak bingung
             el.outerHTML = '<div class="quill-option-target"></div>';
             el = wrapper.querySelector('.quill-option-target');
-            // -----------------------------------------
 
             window.katex = katex;
             const q = new Quill(el, {
                 theme: 'snow',
-                modules: { formula: true, toolbar: miniToolbar() }
+                modules: {
+                    formula: true,
+                    toolbar: miniToolbar(),
+                    resize: getResizeConfig() // <-- AKTIFKAN RESIZE DI OPSI
+                }
             });
 
-            if (initialHtml) q.root.innerHTML = initialHtml;
+            if (initialHtml) q.clipboard.dangerouslyPasteHTML(initialHtml);
 
             q.on('text-change', () => {
                 let html = q.root.innerHTML;
@@ -208,11 +243,8 @@
               this.form = {
                     type: q.type,
                     content: q.content,
-
-                    // Cukup tarik datanya secara natural
                     subject_id: q.subject_id || '',
                     level_id: q.level_id || '',
-
                     options: opts
                 };
             },
@@ -228,8 +260,10 @@
                         theme: 'snow',
                         modules: {
                             formula: true,
+                            resize: getResizeConfig(), // <-- AKTIFKAN RESIZE DI NARASI UTAMA
                             toolbar: {
                                 container: [
+                                    [{ 'size': [] }], // Tambahan Size font
                                     ['bold','italic','underline','strike'],
                                     [{ script: 'sub' }, { script: 'super' }],
                                     [{ list: 'ordered' }, { list: 'bullet' }],
@@ -246,7 +280,8 @@
                         placeholder: 'Ketik narasi pertanyaan di sini...'
                     });
 
-                    if (this.form.content) myEditor.root.innerHTML = this.form.content;
+                    // Gunakan dangerouslyPasteHTML agar gambar dan iframe di-render sempurna
+                    if (this.form.content) myEditor.clipboard.dangerouslyPasteHTML(this.form.content);
 
                     myEditor.on('text-change', () => {
                         let html = myEditor.root.innerHTML;
@@ -254,12 +289,10 @@
                         this.form.content = html;
                     });
 
-                    // Init semua opsi setelah narasi siap
                     this.initAllOptionEditors();
                 }, 100);
             },
 
-            // ── Mount Quill untuk semua opsi yang ada ──
             initAllOptionEditors() {
                 this.$nextTick(() => {
                     setTimeout(() => {
@@ -268,7 +301,6 @@
                 });
             },
 
-            // ── Mount Quill untuk satu opsi di index i ──
             mountOptionAt(i) {
                 if (this.form.type === 'matching') {
                     mountQuill(
@@ -290,7 +322,6 @@
                 }
             },
 
-            // ── Hancurkan semua instance Quill opsi ──
             destroyOptionEditors() {
                 optionEditors = {};
             },
@@ -326,7 +357,6 @@
             },
 
             removeOption(index) {
-                // Hapus instance terkait
                 if (this.form.type === 'matching') {
                     delete optionEditors[`opt-${index}-premise`];
                     delete optionEditors[`opt-${index}-target`];
@@ -335,7 +365,6 @@
                 }
                 this.form.options.splice(index, 1);
 
-                // Re-index semua editor dari nol
                 this.$nextTick(() => setTimeout(() => {
                     this.destroyOptionEditors();
                     this.initAllOptionEditors();
@@ -351,43 +380,42 @@
             },
 
           saveQuestion() {
-    if (!this.form.content.trim()) {
-        return Swal.fire({ icon: 'warning', title: 'Oops!', text: 'Isi narasi pertanyaan terlebih dahulu!' });
-    }
-    this.isSaving = true;
+            if (!this.form.content.trim() || this.form.content === '<p><br></p>') {
+                return Swal.fire({ icon: 'warning', title: 'Oops!', text: 'Isi narasi pertanyaan terlebih dahulu!' });
+            }
+            this.isSaving = true;
 
-    // --- CLONE DATA UNTUK DI-ENCODE ---
-    let payload = JSON.parse(JSON.stringify(this.form));
+            // --- CLONE DATA UNTUK DI-ENCODE ---
+            let payload = JSON.parse(JSON.stringify(this.form));
 
-    // Encode Narasi Utama
-    payload.content = btoa(unescape(encodeURIComponent(payload.content)));
+            payload.content = btoa(unescape(encodeURIComponent(payload.content)));
 
-    // Encode Pilihan Jawaban
-    payload.options = payload.options.map(opt => {
-        let newOpt = { ...opt };
-        if (newOpt.option_text) {
-            newOpt.option_text = btoa(unescape(encodeURIComponent(newOpt.option_text)));
-        }
-        if (newOpt.premise_text) {
-            newOpt.premise_text = btoa(unescape(encodeURIComponent(newOpt.premise_text)));
-        }
-        if (newOpt.target_text) {
-            newOpt.target_text = btoa(unescape(encodeURIComponent(newOpt.target_text)));
-        }
-        return newOpt;
-    });
+            payload.options = payload.options.map(opt => {
+                let newOpt = { ...opt };
+                if (newOpt.option_text) {
+                    newOpt.option_text = btoa(unescape(encodeURIComponent(newOpt.option_text)));
+                }
+                if (newOpt.premise_text) {
+                    newOpt.premise_text = btoa(unescape(encodeURIComponent(newOpt.premise_text)));
+                }
+                if (newOpt.target_text) {
+                    newOpt.target_text = btoa(unescape(encodeURIComponent(newOpt.target_text)));
+                }
+                return newOpt;
+            });
 
-    const method = config.isEdit ? 'put' : 'post';
-    axios[method](config.submitUrl, payload) // Kirim payload yang sudah di-encode
-        .then(() => {  Swal.fire({ icon: 'success', title: 'Tersimpan!', timer: 1500, showConfirmButton: false })
-                            .then(() => window.location.href = config.redirectUrl);})
-        .catch(err => {
-            // Tampilkan pesan error detail dari server untuk debug
-            let errorMsg = err.response?.data?.debug_error || err.response?.data?.message || 'Terjadi kesalahan sistem';
-            Swal.fire({ icon: 'error', title: 'Gagal', text: errorMsg });
-            this.isSaving = false;
-        });
-}
+            const method = config.isEdit ? 'put' : 'post';
+            axios[method](config.submitUrl, payload)
+                .then(() => {
+                    Swal.fire({ icon: 'success', title: 'Tersimpan!', timer: 1500, showConfirmButton: false })
+                    .then(() => window.location.href = config.redirectUrl);
+                })
+                .catch(err => {
+                    let errorMsg = err.response?.data?.debug_error || err.response?.data?.message || 'Terjadi kesalahan sistem';
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: errorMsg });
+                    this.isSaving = false;
+                });
+            }
         };
     });
 });
