@@ -1,4 +1,3 @@
-<!-- Logo CBT Pro -->
 <div class="flex items-center justify-between h-20 px-6 border-b border-slate-100 shrink-0">
     <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
         <div
@@ -10,15 +9,13 @@
         </span>
     </a>
 
-    <!-- Tombol Tutup Sidebar (Hanya di HP) -->
     <button @click="sidebarOpen = false" class="text-slate-400 hover:text-rose-500 lg:hidden focus:outline-none p-2">
         <i class="fas fa-times text-2xl"></i>
     </button>
 </div>
 
-<!-- Daftar Menu -->
 <nav @click="if(window.innerWidth < 1024) sidebarOpen = false"
-    class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto overflow-x-hidden">
+    class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto overflow-x-hidden custom-scrollbar">
 
     @php
     $navClass = "flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all duration-200
@@ -33,7 +30,6 @@
         <span>Dashboard</span>
     </a>
 
-    <!-- Menu Administrasi Inti (Hanya Admin & Operator) -->
     @hasanyrole('admin|operator')
     <div class="text-xs font-black text-slate-400 uppercase tracking-widest mt-8 mb-3 px-4">Administrasi Sekolah</div>
 
@@ -57,7 +53,22 @@
     </a>
     @endhasanyrole
 
-    <!-- Menu Akademik & Ujian (Admin, Operator, & Guru) -->
+    @role('admin')
+    <div class="text-xs font-black text-slate-400 uppercase tracking-widest mt-8 mb-3 px-4">Keamanan Sistem</div>
+
+    <a href="{{ route('admin.roles.index') }}"
+        class="{{ $navClass }} {{ request()->routeIs('admin.roles.*') ? $activeClass : $inactiveClass }}">
+        <i class="fas fa-key w-6 text-center text-lg"></i>
+        <span>Roles</span>
+    </a>
+
+    <a href="{{ route('admin.permissions.index') }}"
+        class="{{ $navClass }} {{ request()->routeIs('admin.permissions.*') ? $activeClass : $inactiveClass }}">
+        <i class="fas fa-fingerprint w-6 text-center text-lg"></i>
+        <span>Permissions</span>
+    </a>
+    @endrole
+
     @hasanyrole('admin|operator|guru')
     <div class="text-xs font-black text-slate-400 uppercase tracking-widest mt-8 mb-3 px-4">Manajemen Ujian</div>
 
@@ -70,7 +81,7 @@
     <a href="{{ route('admin.exams.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('admin.exams.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-folder-open w-6 text-center text-lg"></i>
-        <span>ujian</span>
+        <span>Ujian</span>
     </a>
 
     <a href="{{ route('admin.exam-sessions.index') }}"
@@ -92,7 +103,6 @@
     </a>
     @endhasanyrole
 
-    <!-- Menu Siswa -->
     @role('siswa')
     <div class="text-xs font-black text-slate-400 uppercase tracking-widest mt-8 mb-3 px-4">Menu Siswa</div>
 
@@ -103,12 +113,11 @@
     </a>
 
     <a href="{{ route('student.math.index') }}"
-        class="{{ $navClass }} {{ request()->routeIs('student.math.index') ? $activeClass : $inactiveClass }}">
+        class="{{ $navClass }} {{ request()->routeIs('student.math.*') ? $activeClass : $inactiveClass }}">
         <i class="fas fa-superscript w-6 text-center text-lg"></i>
         <span>Latihan Hitung</span>
     </a>
 
-    <!-- Modul Kawan Interaktif (Untuk Siswa) -->
     <div class="text-xs font-black text-slate-400 uppercase tracking-widest mt-8 mb-3 px-4">Modul Interaktif</div>
 
     <a href="{{ route('hitung.index') }}"
