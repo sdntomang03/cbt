@@ -641,7 +641,7 @@
                 const metaToken = document.querySelector('meta[name="csrf-token"]');
                 const csrfToken = metaToken ? metaToken.getAttribute('content') : '';
 
-                axios.post(`/student/math-exam/${this.examId}/autosave`, {
+                axios.post(`/math-exam/${this.examId}/autosave`, {
                     question_id: questionId,
                     answer: answerValue
                 }, {
