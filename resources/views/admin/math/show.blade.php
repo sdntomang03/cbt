@@ -55,12 +55,12 @@
                     <i class="fas fa-user-plus"></i> Tambah Siswa
                 </button>
 
-                <a href="{{ route('admin.math.recap_export', $exam->id) }}"
+                <a href="{{ route('admin.math.recap_export', $exam) }}"
                     class="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-transform hover:-translate-y-1 flex items-center gap-2">
                     <i class="fas fa-file-excel"></i> Export Excel
                 </a>
 
-                <a href="{{ route('admin.math.print', $exam->id) }}" target="_blank"
+                <a href="{{ route('admin.math.print', $exam) }}" target="_blank"
                     class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-6 py-3 rounded-2xl font-bold shadow-sm transition-all flex items-center gap-2">
                     <i class="fas fa-print text-slate-400"></i> Cetak Lembar Kerja (PDF)
                 </a>

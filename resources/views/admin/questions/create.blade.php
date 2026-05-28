@@ -9,7 +9,7 @@
 
     <div class="py-10 max-w-7xl mx-auto sm:px-6 lg:px-8">
         {{-- Form Standar Laravel --}}
-        <form action="{{ route('admin.exams.questions.store', $exam->id) }}" method="POST" id="questionForm">
+        <form action="{{ route('admin.exams.questions.store', $exam) }}" method="POST" id="questionForm">
             @csrf
 
             {{-- AlpineJS untuk mengelola Opsi Dinamis --}}

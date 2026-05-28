@@ -176,7 +176,7 @@ class SoalController extends Controller
         ]);
 
         try {
-            Excel::import(new QuestionImport($exam->id, Auth::id(), Auth::user()->school_id), $request->file('file_excel'));
+            Excel::import(new QuestionImport($exam, Auth::id(), Auth::user()->school_id), $request->file('file_excel'));
 
             return redirect()->back()->with('success', 'Soal berhasil diimport dari Excel!');
         } catch (\Exception $e) {
@@ -291,7 +291,7 @@ class SoalController extends Controller
 
             DB::commit();
 
-            return redirect()->route('admin.exams.soal.index', $exam->id)
+            return redirect()->route('admin.exams.soal.index', $exam)
                 ->with('success', "Berhasil menambahkan $jumlahDisimpan soal ke dalam ujian.");
 
         } catch (\Exception $e) {
