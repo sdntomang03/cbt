@@ -112,13 +112,22 @@ class StudentExamController extends Controller
             return $this->forceFinish($session);
         }
 
-        $questionsQuery = Question::where('exam_id', $exam->id)->with(['options', 'matches']);
-
-        if ($session->exam->random_question) {
-            $questionsQuery->inRandomOrder(Auth::id());
-        }
-
-        $questions = $questionsQuery->get();
+        $questions = Question::where('exam_id', $exam->id)
+            // 1. Sebutkan HANYA kolom soal yang boleh dilihat siswa (TIDAK ADA 'explanation')
+            // WAJIB menyertakan 'id' agar relasi ke opsi bisa terhubung
+            ->select(['id', 'exam_id', 'user_id', 'type', 'content', 'subject_id', 'level_id'])
+            ->with([
+                'options' => function ($query) {
+                    // 2. Sebutkan HANYA kolom opsi yang boleh dilihat siswa (TIDAK ADA 'is_correct')
+                    // WAJIB menyertakan 'question_id' sebagai jembatan relasi
+                    $query->select(['id', 'question_id', 'option_text']);
+                },
+                'matches' => function ($query) {
+                    // Jika matches juga punya kolom rahasia, batasi di sini
+                    $query->select(['id', 'question_id', 'premise_text', 'target_text']);
+                },
+            ])
+            ->get();
 
         if ($session->exam->random_answer) {
             $questions->map(function ($question) use ($user) {

@@ -20,7 +20,7 @@ class SoalController extends Controller
     {
         // Tangkap parameter dari URL (jika ada)
         $search = $request->input('search');
-        $perPage = $request->input('per_page', 2); // Default tampilkan 10 baris
+        $perPage = $request->input('per_page', 10); // Default tampilkan 10 baris
 
         $questions = $exam->questions()
             ->with(['options', 'matches', 'subject', 'level'])
