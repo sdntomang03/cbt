@@ -91,6 +91,7 @@ class SoalController extends Controller
         $data = $request->validate([
             'type' => 'required|in:single_choice,complex_choice,essay,true_false,matching',
             'content' => 'required',
+            'explanation' => 'nullable',
             'options' => 'array',
             'subject_id' => 'nullable|exists:subjects,id',
             'level_id' => 'nullable|exists:levels,id',
@@ -102,6 +103,7 @@ class SoalController extends Controller
                 'content' => base64_decode($data['content']),
                 'subject_id' => $data['subject_id'],
                 'level_id' => $data['level_id'],
+                'explanation' => base64_decode($data['explanation'] ?? ''),
             ]);
 
             $soal->options()->delete();
