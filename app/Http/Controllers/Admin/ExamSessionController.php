@@ -246,7 +246,7 @@ class ExamSessionController extends Controller
 
         // 3. Lapis Keamanan
         if ($session->user_id !== auth()->id()) {
-            dd('ID Sesi: '.$session->id.' | ID User di Sesi: '.$session->user_id.' | ID User Auth: '.auth()->id());
+            dd('ID Sesi: '.$session->id.' | ID User di Sesi: '.$realId.' | ID User Auth: '.auth()->id());
         }
 
         if ($session->user_status !== 'completed') {
