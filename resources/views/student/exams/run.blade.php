@@ -398,14 +398,9 @@
         </button>
     </div>
 
-    <div class="fixed inset-0 flex flex-col h-screen bg-[#f1f5f9]" x-data='examRunner(
-                {{ json_encode($questions) }},
-                {{ $timeLeftSeconds }},
-                {{ json_encode($existingAnswers) }},
-                {{ json_encode($flags ?? []) }},
-                {{ auth()->id() }},
-                @json($config)
-            )' x-show="$store.examState.started && !$store.examState.isLocked" x-cloak>
+    <div class="fixed inset-0 flex flex-col h-screen bg-[#f1f5f9]"
+        x-data="examRunner(window.examPayload.questions, window.examPayload.timeLeft, window.examPayload.answered, window.examPayload.flagged, window.examPayload.total, window.examPayload.settings)"
+        x-show="$store.examState.started && !$store.examState.isLocked" x-cloak>
 
         <div
             class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 z-[100] shadow-sm select-none relative">
@@ -1306,6 +1301,22 @@ function renderMobileNav() {
         grid.appendChild(btn);
     });
 }
+    </script>
+    <script>
+        // Menyimpan data ke dalam memory browser (window), bukan di DOM HTML
+    window.examPayload = {
+        questions: @json($questions), // Array soal yang sudah disensor kunci jawabannya
+        timeLeft: {{ $timeLeft ?? 2189 }}, // Waktu tersisa (contoh)
+        answered: [], // Array jawaban awal
+        flagged: [], // Array ragu-ragu
+        total: {{ $questions->count() }}, // Total soal
+        settings: {
+            "random_question": {{ $exam->random_question ? 'true' : 'false' }},
+            "random_answer": {{ $exam->random_answer ? 'true' : 'false' }},
+            "enable_violation": {{ $exam->enable_violation ?? 0 }},
+            "max_tolerances": {{ $exam->max_tolerances ?? 3 }}
+        }
+    };
     </script>
     <div id="lightbox" onclick="closeLightbox(event)">
         <button id="lightbox-close" onclick="hideLightbox()">
