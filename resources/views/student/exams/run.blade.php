@@ -440,21 +440,41 @@
 
         <div class="flex-1 flex overflow-hidden">
             <div id="question-viewport" class="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-12 pb-32"
-                @scroll="repositionLines()">
+                @scroll="repositionLines()" x-data="{ zoomLevel: 1 }">
+
                 <div class="max-w-4xl mx-auto">
                     <template x-for="(q, index) in questions" :key="q.id">
                         <div x-show="currentIndex === index" x-transition:enter="transition duration-300 ease-out"
                             x-transition:enter-start="opacity-0 translate-y-4"
                             x-transition:enter-end="opacity-100 translate-y-0">
-                            <div class="flex justify-between items-center mb-8">
+
+                            <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
+
                                 <div class="flex items-center gap-3">
                                     <span
                                         class="bg-indigo-600 text-white px-6 py-2.5 rounded-2xl font-black shadow-lg">NO.
-                                        <span x-text="index + 1" class="text-xl"></span></span>
+                                        <span x-text="index + 1" class="text-xl"></span>
+                                    </span>
                                     <span
                                         class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 border border-slate-200 px-4 py-1.5 rounded-full"
                                         x-text="formatType(q.type)"></span>
                                 </div>
+
+                                <div
+                                    class="flex items-center bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden shrink-0">
+                                    <button @click="zoomLevel = Math.max(0.8, zoomLevel - 0.1)"
+                                        class="px-4 py-2 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 font-black text-sm border-r border-slate-200 transition-colors"
+                                        title="Perkecil Ukuran">A-</button>
+
+                                    <button @click="zoomLevel = 1"
+                                        class="px-4 py-2 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 font-black text-sm border-r border-slate-200 transition-colors"
+                                        title="Ukuran Normal">A</button>
+
+                                    <button @click="zoomLevel = Math.min(1.5, zoomLevel + 0.1)"
+                                        class="px-4 py-2 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 font-black text-sm transition-colors"
+                                        title="Perbesar Ukuran">A+</button>
+                                </div>
+
                                 <button @click="toggleFlag(q.id)"
                                     class="px-5 py-2.5 rounded-xl font-bold text-sm border-2 transition-all flex items-center gap-2"
                                     :class="flags.includes(q.id) ? 'bg-amber-400 text-white border-amber-400' : 'bg-white text-slate-400 border-slate-200'">
@@ -462,53 +482,63 @@
                                         x-text="flags.includes(q.id) ? 'Ditandai' : 'Ragu-ragu'"></span>
                                 </button>
                             </div>
-                            <div
-                                class="bg-white rounded-[2.5rem] p-10 shadow-sm border border-slate-100 mb-8 relative overflow-hidden">
+
+                            <div :style="`zoom: ${zoomLevel};`" class="origin-top">
+
                                 <div
-                                    class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
-                                </div>
-                                <div class="prose prose-indigo prose-lg text-lg max-w-none text-slate-700 leading-relaxed no-select"
-                                    x-html="q.content"></div>
-                            </div>
-                            <div class="space-y-4">
-                                <template x-if="q.type === 'single_choice'">
-                                    <x-exam.single-choice :q="'q'" />
-                                </template>
-                                <template x-if="['multiple_choice', 'complex_choice'].includes(q.type)">
-                                    <x-exam.complex-choice :q="'q'" />
-                                </template>
-                                <template x-if="['true_false', 'true_false_multi'].includes(q.type)">
-                                    <x-exam.true-false :q="'q'" />
-                                </template>
-                                <template x-if="q.type === 'matching'">
-                                    <div class="match-container">
-                                        <div class="match-column"><template x-for="m in q.matches" :key="'p-'+m.id">
-                                                <div class="match-item premise" :id="'premise-' + m.id"
-                                                    @click="clickMatch(q.id, m.id, 'premise')"
-                                                    :class="matchState.activePremise === m.id ? 'selected' : ''"><span
-                                                        x-html="m.premise_text"></span>
-                                                    <div class="match-dot dot-right"></div>
-                                                </div>
-                                            </template></div>
-                                        <div class="match-column"><template x-for="target in shuffledTargets[q.id]"
-                                                :key="'t-'+target.id">
-                                                <div class="match-item target" :id="'target-' + target.id"
-                                                    @click="clickMatch(q.id, target.id, 'target')"
-                                                    :class="matchState.activeTarget === target.id ? 'selected' : ''">
-                                                    <span x-html="target.text"></span>
-                                                    <div class="match-dot dot-left"></div>
-                                                </div>
-                                            </template></div>
+                                    class="bg-white rounded-[2.5rem] p-10 shadow-sm border border-slate-100 mb-8 relative overflow-hidden">
+                                    <div
+                                        class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
                                     </div>
-                                </template>
-                                <template x-if="q.type === 'essay'">
-                                    <x-exam.essay :q="'q'" />
-                                </template>
+                                    <div class="prose prose-indigo prose-lg text-lg max-w-none text-slate-700 leading-relaxed no-select"
+                                        x-html="q.content"></div>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <template x-if="q.type === 'single_choice'">
+                                        <x-exam.single-choice :q="'q'" />
+                                    </template>
+                                    <template x-if="['multiple_choice', 'complex_choice'].includes(q.type)">
+                                        <x-exam.complex-choice :q="'q'" />
+                                    </template>
+                                    <template x-if="['true_false', 'true_false_multi'].includes(q.type)">
+                                        <x-exam.true-false :q="'q'" />
+                                    </template>
+                                    <template x-if="q.type === 'matching'">
+                                        <div class="match-container">
+                                            <div class="match-column">
+                                                <template x-for="m in q.matches" :key="'p-'+m.id">
+                                                    <div class="match-item premise" :id="'premise-' + m.id"
+                                                        @click="clickMatch(q.id, m.id, 'premise')"
+                                                        :class="matchState.activePremise === m.id ? 'selected' : ''">
+                                                        <span x-html="m.premise_text"></span>
+                                                        <div class="match-dot dot-right"></div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                            <div class="match-column">
+                                                <template x-for="target in shuffledTargets[q.id]" :key="'t-'+target.id">
+                                                    <div class="match-item target" :id="'target-' + target.id"
+                                                        @click="clickMatch(q.id, target.id, 'target')"
+                                                        :class="matchState.activeTarget === target.id ? 'selected' : ''">
+                                                        <span x-html="target.text"></span>
+                                                        <div class="match-dot dot-left"></div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <template x-if="q.type === 'essay'">
+                                        <x-exam.essay :q="'q'" />
+                                    </template>
+                                </div>
+
                             </div>
                         </div>
                     </template>
                 </div>
             </div>
+            {{-- Daftar Soal --}}
             <div
                 class="w-72 bg-white border-l border-slate-200 hidden lg:flex flex-col z-50 shadow-[-5px_0_30px_rgba(0,0,0,0.02)]">
 
@@ -565,6 +595,7 @@
             </div>
         </div>
 
+        {{-- Navigasi Soal --}}
         <div
             class="h-16 bg-white/80 backdrop-blur border-t border-slate-100 flex items-center justify-between px-4 sm:px-8 z-[100] shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
 
