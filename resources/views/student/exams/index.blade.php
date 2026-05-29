@@ -205,13 +205,25 @@
                             </div>
                             @if(isset($exam) ? $exam->show_explanation : $session->exam->show_explanation)
                             <a href="{{ route('student.exams.explanation', Hashids::encode($session->id)) }}"
-                                class="w-full flex items-center justify-center gap-2 py-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl font-bold text-sm transition-all duration-300 border border-indigo-100 shadow-sm group">
+                                class="w-full flex items-center justify-center gap-2 py-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl font-bold text-sm transition-all duration-300 border border-indigo-100 shadow-sm group mt-3">
                                 <i class="fas fa-lightbulb text-amber-500 group-hover:text-white transition-colors"></i>
                                 Pelajari Pembahasan
                             </a>
                             @endif
-                            @elseif($session->is_open)
 
+                            {{-- KONDISI BARU: JIKA UJIAN TERKUNCI (BLOKIR) --}}
+                            @elseif(isset($session->pivot) && $session->pivot->is_locked)
+                            <button disabled
+                                class="w-full bg-rose-50 text-rose-500 py-3 rounded-2xl font-black cursor-not-allowed border border-rose-200 flex flex-col items-center justify-center shadow-sm">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-lock"></i> Ujian Dikunci
+                                </div>
+                                <span
+                                    class="text-[10px] uppercase tracking-widest opacity-70 mt-1 font-bold">Terindikasi
+                                    Pelanggaran</span>
+                            </button>
+
+                            @elseif($session->is_open)
                             <a href="{{ route('student.exam.verify.show', $session->exam) }}"
                                 class="group/btn relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-black rounded-2xl text-white bg-slate-900 hover:bg-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-200 shadow-xl shadow-slate-200 hover:shadow-indigo-200 transition-all active:scale-95">
                                 <span class="flex items-center gap-2">
@@ -219,11 +231,12 @@
                                         class="fas fa-arrow-right group-hover/btn:translate-x-1 transition-transform"></i>
                                 </span>
                             </a>
+
                             @else
                             <div x-data="{
-                                    startsAt: new Date('{{ \Carbon\Carbon::parse($session->start_time)->toIso8601String() }}'),
-                                    now: new Date()
-                                }" class="text-center w-full">
+                startsAt: new Date('{{ \Carbon\Carbon::parse($session->start_time)->toIso8601String() }}'),
+                now: new Date()
+            }" class="text-center w-full">
 
                                 <template x-if="startsAt > now">
                                     <button disabled
