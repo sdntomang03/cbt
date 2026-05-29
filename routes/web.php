@@ -183,15 +183,16 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
         ->name('student.exam.status');
     Route::get('/student/exams/{session}/explanation', [ExamSessionController::class, 'explanation'])
         ->name('student.exams.explanation');
+    // Ubah {exam} menjadi {hashed_exam_id}
+    Route::get('/student/exam/{exam}/question/{question_id}', [StudentExamController::class, 'fetchSingleQuestion'])
+        ->name('student.exam.fetch_question');
     // Ujian Matematika (Siswa)
     Route::get('/math-exam/', [StudentMathExamController::class, 'index'])->name('student.math.index');
     Route::get('/math-exam/{id}/run', [StudentMathExamController::class, 'run'])->name('student.math.run');
     Route::post('/math-exam/{id}/submit', [StudentMathExamController::class, 'submit'])->name('student.math.submit');
     Route::get('/math-exam/{id}/result', [StudentMathExamController::class, 'result'])->name('student.math.result');
     Route::post('/math-exam/{id}/autosave', [StudentMathExamController::class, 'autosave'])->name('student.math.autosave');
-    // Ubah {exam} menjadi {hashed_exam_id}
-    Route::get('/student/exam/{hashed_exam_id}/question/{question_id}', [StudentExamController::class, 'fetchSingleQuestion'])
-        ->name('student.exam.fetch_question');
+
 });
 
 // ==================================================================

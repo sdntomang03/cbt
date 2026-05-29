@@ -12,7 +12,6 @@ use App\Models\StudentAnswer;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Vinkla\Hashids\Facades\Hashids;
 
 class StudentExamController extends Controller
 {
@@ -149,29 +148,31 @@ class StudentExamController extends Controller
     // METHOD BARU: Melayani Request AJAX per Soal (AMAN & SENSOR)
     // ==============================================================
     // Gunakan parameter $hashed_exam_id sesuai route
-    public function fetchSingleQuestion(Request $request, $hashed_exam_id, $question_id)
+    public function fetchSingleQuestion(Request $request, Exam $exam, $question_id)
     {
-        // 1. Decode Hashids
-        $decodedExam = Hashids::decode($hashed_exam_id);
+        $user = Auth::user();
 
-        // Cegah error jika orang mencoba memanipulasi URL dengan teks ngawur
-        if (empty($decodedExam)) {
-            return response()->json(['error' => 'Ujian tidak valid'], 404);
+        // Pastikan siswa memang terdaftar di sesi ujian ini
+        $session = ExamSession::where('exam_id', $exam->id)
+            ->whereHas('students', fn ($q) => $q->where('users.id', $user->id))
+            ->firstOrFail();
+
+        // Cek status — tolak jika terkunci atau sudah selesai
+        $examUser = ExamSessionUser::where('exam_session_id', $session->id)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        if ($examUser->is_locked || $session->students()->where('users.id', $user->id)->first()->pivot->status === 'completed') {
+            return response()->json(['error' => 'Akses ditolak'], 403);
         }
 
-        $realExamId = $decodedExam[0];
-
-        // 2. Cari Soal menggunakan ID Asli ($realExamId)
-        $question = Question::where('exam_id', $realExamId)
+        // Pastikan soal memang milik exam ini
+        $question = Question::where('exam_id', $exam->id)
             ->where('id', $question_id)
-            ->select(['id', 'exam_id', 'type', 'content', 'subject_id', 'level_id']) // Sensor penjelasan
+            ->select(['id', 'exam_id', 'type', 'content'])
             ->with([
-                'options' => function ($query) {
-                    $query->select(['id', 'question_id', 'option_text']); // Sensor kunci jawaban
-                },
-                'matches' => function ($query) {
-                    $query->select(['id', 'question_id', 'premise_text', 'target_text']);
-                },
+                'options' => fn ($q) => $q->select(['id', 'question_id', 'option_text']), // tanpa is_correct
+                'matches' => fn ($q) => $q->select(['id', 'question_id', 'premise_text', 'target_text']),
             ])
             ->firstOrFail();
 

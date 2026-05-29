@@ -396,14 +396,14 @@
     {{-- APLIKASI UTAMA (AJAX VERSION) --}}
     {{-- ================================================================= --}}
     <div class="fixed inset-0 flex flex-col h-screen bg-[#f1f5f9]" x-data='examRunner(
-                @json($questionIds),
-                {{ $timeLeftSeconds }},
-                @json($existingAnswers),
-                @json($flags ?? []),
-                {{ auth()->id() }},
-                @json($config),
-                {{ $exam->id }}
-            )' x-show="$store.examState.started && !$store.examState.isLocked" x-cloak>
+    @json($questionIds),
+    {{ $timeLeftSeconds }},
+    @json($existingAnswers),
+    @json($flags ?? []),
+    {{ auth()->id() }},
+    @json($config),
+    {{ $exam->id }}
+)'>
 
         <div
             class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 z-[100] shadow-sm select-none relative">
@@ -806,7 +806,7 @@
                     }
 
                     try {
-                        const res = await axios.get(`/student/exam/${this.examId}/question/${qId}`);
+                        const res = await axios.get(`{{ url('/student/exam') }}/${this.examId}/question/${qId}`);
                         let fetchedQuestion = res.data.question;
 
                         if (this.config.random_answer && ['single_choice','complex_choice', 'true_false', 'true_false_multi'].includes(fetchedQuestion.type) && fetchedQuestion.options) {
