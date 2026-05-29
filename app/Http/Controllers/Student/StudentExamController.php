@@ -40,12 +40,8 @@ class StudentExamController extends Controller
 
     public function run(Exam $exam)
     {
-        // -----------------------------------------------------------------
-        // [DINAMIS] CEK TOKEN: Jika butuh token tapi belum verifikasi, tolak.
-        // Jika tidak butuh token, abaikan pengecekan session ini.
-        // -----------------------------------------------------------------
+        // Cek Token Ujian
         if ($exam->require_token && ! session()->has('verified_exam_'.$exam->id)) {
-            // Catatan: Gunakan $exam (tanpa ->id) agar Hashids berfungsi baik
             return redirect()->route('student.exam.verify.show', $exam)
                 ->with('error', 'Akses Ditolak! Silakan masukkan Token Ujian terlebih dahulu.');
         }
@@ -59,6 +55,7 @@ class StudentExamController extends Controller
             ->firstOrFail();
 
         $pivot = $session->students()->where('users.id', $user->id)->first()->pivot;
+
         $examUser = ExamSessionUser::where('exam_session_id', $session->id)
             ->where('user_id', $user->id)
             ->firstOrFail();
@@ -77,7 +74,7 @@ class StudentExamController extends Controller
             return redirect()->route('student.index')->with('error', 'AKSES DITOLAK: Ujian Anda telah dikunci karena pelanggaran.');
         }
 
-        // BLOKIR 2: KUNCI UTAMA JIKA SUDAH SELESAI
+        // BLOKIR 2: Jika sudah selesai
         if ($pivot->status === 'completed' || $pivot->finished_at !== null) {
             session()->forget('verified_exam_'.$exam->id);
 
@@ -99,7 +96,7 @@ class StudentExamController extends Controller
             }
         }
 
-        // Perhitungan Deadline
+        // PERHITUNGAN DEADLINE
         $duration = (int) $session->exam->duration_minutes;
         $deadlinePersonal = $startTime->copy()->addMinutes($duration);
         $deadlineSession = Carbon::parse($session->end_time)->timezone('Asia/Jakarta');
@@ -109,52 +106,26 @@ class StudentExamController extends Controller
         if ($timeLeftSeconds <= 0 && $timeLeftSeconds > -60) {
             $timeLeftSeconds = 60;
         } elseif ($timeLeftSeconds <= -60) {
+            // Asumsi Anda memiliki method forceFinish() di controller ini
             return $this->forceFinish($session);
         }
 
-        $questions = Question::where('exam_id', $exam->id)
-            // 1. Sebutkan HANYA kolom soal yang boleh dilihat siswa (TIDAK ADA 'explanation')
-            // WAJIB menyertakan 'id' agar relasi ke opsi bisa terhubung
-            ->select(['id', 'exam_id', 'user_id', 'type', 'content', 'subject_id', 'level_id'])
-            ->with([
-                'options' => function ($query) {
-                    // 2. Sebutkan HANYA kolom opsi yang boleh dilihat siswa (TIDAK ADA 'is_correct')
-                    // WAJIB menyertakan 'question_id' sebagai jembatan relasi
-                    $query->select(['id', 'question_id', 'option_text']);
-                },
-                'matches' => function ($query) {
-                    // Jika matches juga punya kolom rahasia, batasi di sini
-                    $query->select(['id', 'question_id', 'premise_text', 'target_text']);
-                },
-            ])
-            ->get();
-
-        if ($session->exam->random_answer) {
-            $questions->map(function ($question) use ($user) {
-                $seed = $user->id + $question->id;
-                $optionsArray = $question->options->all();
-                srand($seed);
-                shuffle($optionsArray);
-                srand();
-                $question->setRelation('options', collect($optionsArray));
-
-                return $question;
-            });
-        }
+        // ==============================================================
+        // PERUBAHAN AJAX: HANYA AMBIL ARRAY ID SOAL
+        // ==============================================================
+        $questionIds = Question::where('exam_id', $exam->id)->pluck('id')->toArray();
 
         $existingAnswers = StudentAnswer::where('exam_session_id', $session->id)
             ->where('user_id', $user->id)
             ->pluck('answer', 'question_id')
             ->toArray();
+
         $flags = StudentAnswer::where('exam_session_id', $session->id)
             ->where('user_id', $user->id)
             ->where('is_doubtful', true)
             ->pluck('question_id')
             ->toArray();
 
-        // -----------------------------------------------------------------
-        // [DINAMIS] CONFIG: Kirim status pelanggaran ke JavaScript (Blade)
-        // -----------------------------------------------------------------
         $config = [
             'random_question' => $session->exam->random_question ?? false,
             'random_answer' => $session->exam->random_answer ?? false,
@@ -164,13 +135,34 @@ class StudentExamController extends Controller
 
         return view('student.exams.run', [
             'exam' => $session->exam,
-            'questions' => $questions,
+            'questionIds' => $questionIds, // Ganti questions dengan questionIds
             'config' => $config,
             'timeLeftSeconds' => (int) $timeLeftSeconds,
             'existingAnswers' => $existingAnswers,
             'flags' => $flags,
             'pivot' => $examUser,
         ]);
+    }
+
+    // ==============================================================
+    // METHOD BARU: Melayani Request AJAX per Soal (AMAN & SENSOR)
+    // ==============================================================
+    public function fetchSingleQuestion(Request $request, Exam $exam, $question_id)
+    {
+        $question = Question::where('exam_id', $exam->id)
+            ->where('id', $question_id)
+            ->select(['id', 'exam_id', 'type', 'content', 'subject_id', 'level_id']) // Sensor kolom explanation
+            ->with([
+                'options' => function ($query) {
+                    $query->select(['id', 'question_id', 'option_text']); // Sensor kolom is_correct
+                },
+                'matches' => function ($query) {
+                    $query->select(['id', 'question_id', 'premise_text', 'target_text']);
+                },
+            ])
+            ->firstOrFail();
+
+        return response()->json(['question' => $question]);
     }
 
     public function saveAnswer(Request $request)
