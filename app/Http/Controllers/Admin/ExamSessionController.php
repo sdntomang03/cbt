@@ -8,7 +8,6 @@ use App\Models\ExamSession;
 use App\Models\School;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Vinkla\Hashids\Facades\Hashids;
 
@@ -231,7 +230,6 @@ class ExamSessionController extends Controller
 
     public function explanation($hashedId)
     {
-        // 1. Decode ID Sesi menggunakan Hashids
         $decodedArray = Hashids::decode($hashedId);
 
         if (empty($decodedArray)) {
@@ -240,20 +238,16 @@ class ExamSessionController extends Controller
 
         $realSessionId = $decodedArray[0];
 
-        // 2. Ambil Data Master Sesi & Soal
+        // 1. Ambil Data Sesi & Soal
         $examSession = ExamSession::with(['exam.questions.options'])->findOrFail($realSessionId);
 
-        // 3. Ambil Data Progres Siswa (dari tabel exam_session_user)
-        $participant = DB::table('exam_session_user')
-            ->where('exam_session_id', $realSessionId)
+        // 2. Ambil Data Progres Siswa menggunakan Model ExamSessionUser
+        // Menggunakan firstOrFail() agar otomatis 404 jika siswa tidak terdaftar di sesi tersebut
+        $participant = ExamSessionUser::where('exam_session_id', $realSessionId)
             ->where('user_id', auth()->id())
-            ->first();
+            ->firstOrFail();
 
-        // 4. Lapis Keamanan yang sudah Disesuaikan dengan Skema Anda
-        if (! $participant) {
-            abort(403, 'Akses ditolak. Anda tidak terdaftar di sesi ujian ini.');
-        }
-
+        // 3. Lapis Keamanan
         if ($participant->status !== 'completed') {
             abort(403, 'Anda belum menyelesaikan ujian ini.');
         }
@@ -262,7 +256,7 @@ class ExamSessionController extends Controller
             abort(403, 'Fitur pembahasan tidak diaktifkan untuk ujian ini.');
         }
 
-        // 5. Lempar data ke View
+        // 4. Kirim ke view (ingat nama variabelnya: examSession dan participant)
         return view('student.exams.explanation', compact('examSession', 'participant'));
     }
 }
