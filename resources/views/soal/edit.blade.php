@@ -153,7 +153,7 @@
                                         </div>
 
                                         <div class="py-1 md:pt-3 shrink-0">
-                                            <i class="fas fa-arrow-down md:fa-arrow-right text-indigo-300"></i>
+                                            <i class="fas fa-arrow-right text-indigo-300"></i>
                                         </div>
 
                                         <div class="option-editor-wrap flex-1 w-full min-w-0"
