@@ -111,7 +111,6 @@
         border-radius: 0;
     }
 
-    /* Loading overlay saat upload */
     .ql-upload-loading {
         position: absolute;
         inset: 0;
@@ -126,10 +125,16 @@
         color: #4f46e5;
         gap: 8px;
     }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
 </style>
 
 <script>
-    // ── Setup CSRF Axios (HARUS paling atas, sebelum apapun) ──
+    // ── Setup CSRF Axios ──
 axios.defaults.headers.common['X-CSRF-TOKEN'] =
     document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
@@ -141,17 +146,16 @@ if (window.Quill && window.QuillResize) {
 document.addEventListener('alpine:init', () => {
     Alpine.data('questionEditor', (config) => {
 
-        let myEditor      = null;
-        let optionEditors = {};
+        let myEditor          = null;
+        let explanationEditor = null;
+        let optionEditors     = {};
 
         // =========================================================
         // UPLOAD GAMBAR KE SERVER
         // =========================================================
         function uploadImageToServer(file, quill) {
-            // Simpan posisi cursor SEBELUM dialog file terbuka (fokus bisa hilang)
             const savedRange = quill.getSelection() || { index: quill.getLength() };
 
-            // Validasi tipe & ukuran file di sisi klien
             const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
             if (!allowed.includes(file.type)) {
                 Swal.fire('Format Tidak Didukung', 'Hanya JPG, PNG, GIF, atau WEBP yang diizinkan.', 'warning');
@@ -162,7 +166,6 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
-            // Tampilkan loading di dalam editor
             const container = quill.container;
             const loader    = document.createElement('div');
             loader.className = 'ql-upload-loading';
@@ -179,8 +182,6 @@ document.addEventListener('alpine:init', () => {
             .then(response => {
                 const url = response.data.url;
                 if (!url) throw new Error('URL tidak ditemukan dalam response server.');
-
-                // Fokus kembali ke editor lalu insert gambar
                 quill.focus();
                 quill.insertEmbed(savedRange.index, 'image', url);
                 quill.setSelection(savedRange.index + 1);
@@ -194,49 +195,39 @@ document.addEventListener('alpine:init', () => {
                 Swal.fire('Gagal Upload', detail, 'error');
                 console.error('Upload error:', error.response?.data ?? error);
             })
-            .finally(() => {
-                loader.remove();
-            });
+            .finally(() => loader.remove());
         }
 
         // =========================================================
-// HANDLER PASTE GAMBAR (copy dari internet/clipboard)
-// =========================================================
-// =========================================================
-// HANDLER PASTE GAMBAR - Override clipboard Quill
-// =========================================================
-function setupPasteHandler(quill) {
-    // Override matcher untuk image di clipboard Quill
-    quill.clipboard.addMatcher('IMG', function (node, delta) {
-        // Cegah Quill insert gambar apapun dari clipboard secara default
-        // (termasuk base64 dari copy-paste browser)
-        return new quill.constructor.import('delta')();
-    });
+        // HANDLER PASTE GAMBAR - Override clipboard Quill
+        // =========================================================
+        function setupPasteHandler(quill) {
+            // Cegah Quill insert base64 dari clipboard
+            quill.clipboard.addMatcher('IMG', function () {
+                return new quill.constructor.import('delta')();
+            });
 
-    // Tangkap paste di level DOM, sebelum Quill sempat memproses
-    quill.root.addEventListener('paste', function (e) {
-        const clipboardData = e.clipboardData || window.clipboardData;
-        if (!clipboardData) return;
+            // Capture phase agar lebih awal dari Quill
+            quill.root.addEventListener('paste', function (e) {
+                const clipboardData = e.clipboardData || window.clipboardData;
+                if (!clipboardData) return;
 
-        const items = Array.from(clipboardData.items);
-        const imageItem = items.find(item => item.type.startsWith('image/'));
+                const items     = Array.from(clipboardData.items);
+                const imageItem = items.find(item => item.type.startsWith('image/'));
 
-        if (!imageItem) return; // bukan gambar, biarkan paste teks normal
+                if (!imageItem) return; // bukan gambar, biarkan paste teks normal
 
-        // Cegah Quill memproses paste ini sama sekali
-        e.stopPropagation();
-        e.preventDefault();
+                e.stopPropagation();
+                e.preventDefault();
 
-        const file = imageItem.getAsFile();
-        if (!file) return;
+                const file = imageItem.getAsFile();
+                if (file) uploadImageToServer(file, quill);
 
-        uploadImageToServer(file, quill);
-
-    }, true); // true = capture phase, lebih awal dari Quill
-}
+            }, true);
+        }
 
         // =========================================================
-        // HANDLER TOMBOL IMAGE (dipakai di narasi & opsi)
+        // HANDLER TOMBOL IMAGE
         // =========================================================
         function imageHandler(quillInstance) {
             const input = document.createElement('input');
@@ -320,9 +311,9 @@ function setupPasteHandler(quill) {
                 });
             }
 
-            const qlEditor     = container.querySelector('.ql-editor');
-            const toolbarBtn   = quill.getModule('toolbar').container.querySelector('.ql-editHtml');
-            const isHtmlMode   = txtArea.style.display === 'block';
+            const qlEditor   = container.querySelector('.ql-editor');
+            const toolbarBtn = quill.getModule('toolbar').container.querySelector('.ql-editHtml');
+            const isHtmlMode = txtArea.style.display === 'block';
 
             if (isHtmlMode) {
                 quill.clipboard.dangerouslyPasteHTML(txtArea.value);
@@ -348,16 +339,15 @@ function setupPasteHandler(quill) {
                     ['image', 'formula', 'customSymbol', 'editHtml'],
                 ],
                 handlers: {
-                    // FIX: tambahkan handler image agar tidak jadi base64
-                    image()       { imageHandler(this.quill); },
-                    customSymbol(){ openSymbolPicker(this.quill); },
-                    editHtml()    { toggleHtmlEdit(this.quill); },
+                    image()        { imageHandler(this.quill); },
+                    customSymbol() { openSymbolPicker(this.quill); },
+                    editHtml()     { toggleHtmlEdit(this.quill); },
                 }
             };
         }
 
         // =========================================================
-        // TOOLBAR UTAMA (untuk narasi soal)
+        // TOOLBAR UTAMA (untuk narasi & penjelasan)
         // =========================================================
         function mainToolbar() {
             return {
@@ -372,11 +362,44 @@ function setupPasteHandler(quill) {
                     ['clean'],
                 ],
                 handlers: {
-                    image()       { imageHandler(this.quill); },
-                    customSymbol(){ openSymbolPicker(this.quill); },
-                    editHtml()    { toggleHtmlEdit(this.quill); },
+                    image()        { imageHandler(this.quill); },
+                    customSymbol() { openSymbolPicker(this.quill); },
+                    editHtml()     { toggleHtmlEdit(this.quill); },
                 }
             };
+        }
+
+        // =========================================================
+        // HELPER: Buat Quill Editor (narasi & penjelasan)
+        // =========================================================
+        function createEditor(elId, placeholder, initialContent, onChangeCb) {
+            const el = document.getElementById(elId);
+            if (!el) return null;
+
+            window.katex = katex;
+
+            const editor = new Quill(el, {
+                theme: 'snow',
+                modules: {
+                    formula: true,
+                    resize:  getResizeConfig(),
+                    toolbar: mainToolbar(),
+                },
+                placeholder,
+            });
+
+            setupPasteHandler(editor);
+
+            if (initialContent) {
+                editor.clipboard.dangerouslyPasteHTML(initialContent);
+            }
+
+            editor.on('text-change', () => {
+                const html = editor.root.innerHTML;
+                onChangeCb(html === '<p><br></p>' ? '' : html);
+            });
+
+            return editor;
         }
 
         // =========================================================
@@ -388,7 +411,6 @@ function setupPasteHandler(quill) {
             const wrapper = document.querySelector(`[data-opt-id="${key}"]`);
             if (!wrapper) return;
 
-            // Bersihkan toolbar lama jika ada (cegah duplikat)
             wrapper.querySelector('.ql-toolbar')?.remove();
 
             let el = wrapper.querySelector('.quill-option-target') || wrapper.querySelector('.ql-container');
@@ -404,16 +426,15 @@ function setupPasteHandler(quill) {
                 modules: {
                     formula: true,
                     toolbar: miniToolbar(),
-                    resize: getResizeConfig(),
+                    resize:  getResizeConfig(),
                 }
             });
 
             if (initialHtml) q.clipboard.dangerouslyPasteHTML(initialHtml);
 
             q.on('text-change', () => {
-                let html = q.root.innerHTML;
-                if (html === '<p><br></p>') html = '';
-                onChangeCb(html);
+                const html = q.root.innerHTML;
+                onChangeCb(html === '<p><br></p>' ? '' : html);
             });
 
             optionEditors[key] = q;
@@ -425,15 +446,16 @@ function setupPasteHandler(quill) {
         // =========================================================
         return {
             form: {
-                type: 'single_choice',
-                content: '',
-                subject_id: '',
-                level_id: '',
-                options: [],
+                type:        'single_choice',
+                content:     '',
+                explanation: '',
+                subject_id:  '',
+                level_id:    '',
+                options:     [],
             },
-            subjects:   config.subjects || [],
-            levels:     config.levels   || [],
-            isSaving:   false,
+            subjects: config.subjects || [],
+            levels:   config.levels   || [],
+            isSaving: false,
             types: [
                 { id: 'single_choice',  label: 'Pilgan',        icon: 'fa-dot-circle'   },
                 { id: 'complex_choice', label: 'PG Kompleks',   icon: 'fa-check-square' },
@@ -448,7 +470,7 @@ function setupPasteHandler(quill) {
                 } else {
                     this.resetOptions();
                 }
-                this.$nextTick(() => this.initNarasiEditor());
+                this.$nextTick(() => this.initEditors());
             },
 
             setupEditData(q) {
@@ -466,46 +488,40 @@ function setupPasteHandler(quill) {
                     }
                 }
                 this.form = {
-                    type:       q.type,
-                    content:    q.content,
-                    subject_id: q.subject_id || '',
-                    level_id:   q.level_id   || '',
-                    options:    opts,
+                    type:        q.type,
+                    content:     q.content     || '',
+                    explanation: q.explanation || '',
+                    subject_id:  q.subject_id  || '',
+                    level_id:    q.level_id    || '',
+                    options:     opts,
                 };
             },
 
-            initNarasiEditor() {
+            initEditors() {
                 setTimeout(() => {
-                    const el = document.getElementById('editorNarasi');
-                    if (!el) return;
+                    // 1. Editor Narasi
+                    myEditor = createEditor(
+                        'editorNarasi',
+                        'Ketik narasi pertanyaan di sini...',
+                        this.form.content,
+                        html => { this.form.content = html; }
+                    );
 
-                    window.katex = katex;
+                    // 2. Editor Penjelasan
+                    explanationEditor = createEditor(
+                        'editorPenjelasan',
+                        'Ketik pembahasan soal di sini (kosongkan jika tidak ada)...',
+                        this.form.explanation,
+                        html => { this.form.explanation = html; }
+                    );
 
-                    myEditor = new Quill(el, {
-                        theme: 'snow',
-                        modules: {
-                            formula: true,
-                            resize:  getResizeConfig(),
-                            toolbar: mainToolbar(),
-                        },
-                        placeholder: 'Ketik narasi pertanyaan di sini...',
-                    });
-
-                    setupPasteHandler(myEditor);
-
-                    if (this.form.content) {
-                        myEditor.clipboard.dangerouslyPasteHTML(this.form.content);
-                    }
-
-                    myEditor.on('text-change', () => {
-                        let html = myEditor.root.innerHTML;
-                        if (html === '<p><br></p>') html = '';
-                        this.form.content = html;
-                    });
-
+                    // 3. Editor Opsi Jawaban
                     this.initAllOptionEditors();
                 }, 100);
             },
+
+            // Alias agar tidak break jika ada pemanggilan lama
+            initNarasiEditor() { this.initEditors(); },
 
             initAllOptionEditors() {
                 this.$nextTick(() => {
@@ -572,7 +588,6 @@ function setupPasteHandler(quill) {
                 }
                 this.form.options.splice(index, 1);
 
-                // Re-mount semua editor agar indeks tidak kacau
                 this.$nextTick(() => setTimeout(() => {
                     this.destroyOptionEditors();
                     this.initAllOptionEditors();
@@ -594,14 +609,12 @@ function setupPasteHandler(quill) {
 
                 this.isSaving = true;
 
-                // Deep copy agar state Alpine tidak termutasi
-                let payload = JSON.parse(JSON.stringify(this.form));
+                const toB64 = str => str ? btoa(unescape(encodeURIComponent(str))) : null;
 
-                // Encode konten ke Base64 (aman untuk HTML + unicode)
-                const toB64 = str => btoa(unescape(encodeURIComponent(str)));
-
-                payload.content  = toB64(payload.content);
-                payload.options  = payload.options.map(opt => {
+                let payload      = JSON.parse(JSON.stringify(this.form));
+                payload.content     = toB64(payload.content);
+                payload.explanation = toB64(payload.explanation) ?? null;
+                payload.options     = payload.options.map(opt => {
                     const o = { ...opt };
                     if (o.option_text)  o.option_text  = toB64(o.option_text);
                     if (o.premise_text) o.premise_text = toB64(o.premise_text);
@@ -627,12 +640,3 @@ function setupPasteHandler(quill) {
     });
 });
 </script>
-
-{{-- Animasi spin untuk ikon loading upload --}}
-<style>
-    @keyframes spin {
-        to {
-            transform: rotate(360deg);
-        }
-    }
-</style>

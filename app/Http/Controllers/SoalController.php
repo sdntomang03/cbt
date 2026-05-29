@@ -40,6 +40,7 @@ class SoalController extends Controller
         $data = $request->validate([
             'type' => 'required|in:single_choice,complex_choice,essay,true_false,matching',
             'content' => 'required',
+            'explanation' => 'nullable',
             'options' => 'array',
             'subject_id' => 'nullable', // Wajib ada agar masuk ke array $data
             'level_id' => 'nullable',   // Wajib ada agar masuk ke array $data
@@ -52,6 +53,7 @@ class SoalController extends Controller
                     'user_id' => Auth::id(),
                     'type' => $data['type'],
                     'content' => base64_decode($data['content']),
+                    'explanation' => base64_decode($data['explanation'] ?? ''),
                     'subject_id' => $data['subject_id'] ?? null,
                     'level_id' => $data['level_id'] ?? null,
                     'school_id' => Auth::user()->school_id ?? Auth::user()->sekolah_id,

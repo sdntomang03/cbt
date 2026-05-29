@@ -224,6 +224,20 @@
                 </div>
             </div>
 
+            {{-- Editor Penjelasan / Pembahasan (BARU) --}}
+            <div
+                class="bg-white p-1 rounded-[1.5rem] sm:rounded-[2rem] shadow-sm border border-slate-200 flex flex-col min-h-[300px] w-full overflow-hidden mt-6">
+                <div
+                    class="bg-emerald-50/50 px-4 sm:px-6 py-4 rounded-t-[1.5rem] sm:rounded-t-[2rem] border-b border-emerald-100 flex items-center justify-between shrink-0">
+                    <span class="text-xs font-black text-emerald-600 uppercase tracking-widest">
+                        <i class="fas fa-lightbulb mr-2"></i> Penjelasan / Pembahasan (Opsional)
+                    </span>
+                </div>
+                <div class="flex-1 flex flex-col w-full overflow-hidden" x-ignore>
+                    <div id="editorPenjelasan" class="flex-1 bg-white w-full" style="min-height: 250px;"></div>
+                </div>
+            </div>
+            {{-- Tombol Simpan --}}
             <div class="mt-8 flex justify-end w-full">
                 <button @click="saveQuestion()" :disabled="isSaving"
                     class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-10 py-3.5 rounded-xl font-black shadow-lg shadow-indigo-200 transition-all flex justify-center items-center gap-3 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed">
