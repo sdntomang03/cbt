@@ -243,7 +243,7 @@ class ExamSessionController extends Controller
 
         // 2. Ambil data dengan ID asli
         $session = ExamSession::with(['exam.questions.options'])->findOrFail($realId);
-
+        dd($session); // Debug: Pastikan data sesi ujian sudah benar
         // 3. Lapis Keamanan
         if ($session->user_id !== auth()->id()) {
             dd('ID Sesi: '.$session->id.' | ID User di Sesi: '.$session->user_id.' | ID User Auth: '.auth()->id());
