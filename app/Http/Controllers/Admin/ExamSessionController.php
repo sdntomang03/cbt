@@ -226,4 +226,28 @@ class ExamSessionController extends Controller
 
         return redirect()->back()->with('success', count($request->student_ids).' siswa berhasil dikeluarkan dari sesi ujian.');
     }
+
+    public function explanation($id)
+    {
+        // 1. Ambil data sesi ujian beserta relasi ke soal dan pilihan jawabannya
+        $session = ExamSession::with(['exam.questions.options'])->findOrFail($id);
+
+        // 2. Keamanan: Pastikan sesi ini milik siswa yang sedang login
+        if ($session->user_id !== auth()->id()) {
+            abort(403, 'Akses ditolak. Ini bukan ujian Anda.');
+        }
+
+        // 3. Keamanan: Pastikan ujian sudah berstatus 'completed' (selesai)
+        if ($session->user_status !== 'completed') {
+            abort(403, 'Anda belum menyelesaikan ujian ini.');
+        }
+
+        // 4. Keamanan: Pastikan guru mengaktifkan fitur pembahasan
+        if (! $session->exam->show_explanation) {
+            abort(403, 'Fitur pembahasan tidak diaktifkan untuk ujian ini.');
+        }
+
+        // Jika semua lolos, tampilkan halaman view pembahasan
+        return view('student.exams.explanation', compact('session'));
+    }
 }

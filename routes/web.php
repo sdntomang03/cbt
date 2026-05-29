@@ -181,6 +181,8 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
     Route::post('/exam/record-violation', [StudentExamController::class, 'recordViolation'])->name('student.exam.violation');
     Route::get('/exam/{exam}/status', [StudentExamController::class, 'checkStatus'])
         ->name('student.exam.status');
+    Route::get('/student/exams/{session}/explanation', [ExamSessionController::class, 'explanation'])
+        ->name('student.exams.explanation');
     // Ujian Matematika (Siswa)
     Route::get('/math-exam/', [StudentMathExamController::class, 'index'])->name('student.math.index');
     Route::get('/math-exam/{id}/run', [StudentMathExamController::class, 'run'])->name('student.math.run');
