@@ -180,7 +180,7 @@ class SoalController extends Controller
 
             return redirect()->back()->with('success', 'Soal berhasil diimport dari Excel!');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Gagal import soal. Pastikan format sesuai template. Error: '.$e->getMessage());
+            return redirect()->back()->with('error', 'Gagal mengimport soal. Pastikan format sesuai template. Error: '.$e->getMessage());
         }
     }
 
