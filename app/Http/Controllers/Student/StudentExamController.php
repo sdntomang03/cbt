@@ -137,6 +137,11 @@ class StudentExamController extends Controller
             ->where('user_id', $user->id)
             ->pluck('answer', 'question_id')
             ->toArray();
+        $flags = StudentAnswer::where('exam_session_id', $session->id)
+            ->where('user_id', $user->id)
+            ->where('is_doubtful', true)
+            ->pluck('question_id')
+            ->toArray();
 
         // -----------------------------------------------------------------
         // [DINAMIS] CONFIG: Kirim status pelanggaran ke JavaScript (Blade)
@@ -154,6 +159,7 @@ class StudentExamController extends Controller
             'config' => $config,
             'timeLeftSeconds' => (int) $timeLeftSeconds,
             'existingAnswers' => $existingAnswers,
+            'flags' => $flags,
             'pivot' => $examUser,
         ]);
     }
