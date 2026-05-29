@@ -227,27 +227,35 @@ class ExamSessionController extends Controller
         return redirect()->back()->with('success', count($request->student_ids).' siswa berhasil dikeluarkan dari sesi ujian.');
     }
 
-    public function explanation($id)
+    public function explanation($hashedId) // Ubah nama variabel agar tidak bingung
     {
-        // 1. Ambil data sesi ujian beserta relasi ke soal dan pilihan jawabannya
-        $session = ExamSession::with(['exam.questions.options'])->findOrFail($id);
+        // 1. Decode ID
+        // Hashids::decode mengembalikan bentuk Array, ambil elemen ke-0
+        $decodedArray = Hashids::decode($hashedId);
 
-        // 2. Keamanan: Pastikan sesi ini milik siswa yang sedang login
+        // Jika array kosong (artinya orang mencoba menebak URL dengan teks ngawur)
+        if (empty($decodedArray)) {
+            abort(404, 'Halaman tidak ditemukan atau link tidak valid.');
+        }
+
+        $realId = $decodedArray[0];
+
+        // 2. Ambil data dengan ID asli
+        $session = ExamSession::with(['exam.questions.options'])->findOrFail($realId);
+
+        // 3. Lapis Keamanan
         if ($session->user_id !== auth()->id()) {
             abort(403, 'Akses ditolak. Ini bukan ujian Anda.');
         }
 
-        // 3. Keamanan: Pastikan ujian sudah berstatus 'completed' (selesai)
         if ($session->user_status !== 'completed') {
             abort(403, 'Anda belum menyelesaikan ujian ini.');
         }
 
-        // 4. Keamanan: Pastikan guru mengaktifkan fitur pembahasan
         if (! $session->exam->show_explanation) {
             abort(403, 'Fitur pembahasan tidak diaktifkan untuk ujian ini.');
         }
 
-        // Jika semua lolos, tampilkan halaman view pembahasan
         return view('student.exams.explanation', compact('session'));
     }
 }
