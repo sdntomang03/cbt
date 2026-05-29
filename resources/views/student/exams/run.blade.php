@@ -231,6 +231,50 @@
             box-shadow: 0 0 0 3px #4f46e5;
         }
 
+        /* ── Mobile Nav Toggle ── */
+        #mobile-nav-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 150;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        #mobile-nav-overlay.open {
+            display: block;
+        }
+
+        #mobile-nav-panel {
+            position: fixed;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 151;
+            width: 300px;
+            max-width: 85vw;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            transform: translateX(100%);
+            transition: transform .3s cubic-bezier(.4, 0, .2, 1);
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.15);
+        }
+
+        #mobile-nav-panel.open {
+            transform: translateX(0);
+        }
+
+        @media (min-width: 1024px) {
+            #mobile-nav-btn {
+                display: none !important;
+            }
+
+            #mobile-nav-overlay,
+            #mobile-nav-panel {
+                display: none !important;
+            }
+        }
+
         [x-cloak] {
             display: none !important;
         }
@@ -374,6 +418,16 @@
                 :class="timeLeft < 300 ? 'bg-rose-600 animate-pulse' : ''">
                 <i class="fas fa-clock text-sm opacity-50"></i> <span x-text="formatTime(timeLeft)"></span>
             </div>
+            <button type="button" onclick="toggleMobileNav()" id="mobile-nav-btn"
+                class="lg:hidden relative bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl font-bold transition flex items-center gap-2 border border-slate-200">
+                <i class="fas fa-th text-sm"></i>
+                <span class="text-xs font-black">Soal</span>
+                {{-- Badge jumlah soal dijawab --}}
+                <span
+                    class="absolute -top-1.5 -right-1.5 bg-indigo-600 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center"
+                    x-text="Object.keys(answers).filter(k => hasAnswer(parseInt(k))).length">
+                </span>
+            </button>
             <button type="button" @click.prevent="finishExam()"
                 class="relative z-[101] bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-xl font-bold transition shadow-lg flex items-center gap-2 cursor-pointer">
                 <span x-show="!isSubmitting">Selesai</span> <span x-show="isSubmitting"><i
@@ -495,6 +549,112 @@
                     x-text="currentIndex === questions.length - 1 ? 'SELESAI & KUMPULKAN' : 'SELANJUTNYA'"></span><i
                     class="fas"
                     :class="currentIndex === questions.length - 1 ? 'fa-check-double' : 'fa-arrow-right'"></i></button>
+        </div>
+        {{-- Mobile Nav Overlay --}}
+        <div id="mobile-nav-overlay" onclick="toggleMobileNav()"></div>
+
+        {{-- Mobile Nav Panel --}}
+        <div id="mobile-nav-panel">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="font-black text-slate-800 text-lg">Navigasi Soal</h3>
+                <button onclick="toggleMobileNav()"
+                    class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            {{-- Legenda --}}
+            <div class="px-5 py-3 border-b border-slate-100 flex flex-wrap gap-x-4 gap-y-1.5">
+                <div class="flex items-center gap-1.5 text-xs text-slate-500">
+                    <div class="w-4 h-4 rounded bg-blue-500"></div> Dijawab
+                </div>
+                <div class="flex items-center gap-1.5 text-xs text-slate-500">
+                    <div class="w-4 h-4 rounded bg-amber-100 border border-amber-400"></div> Ragu
+                </div>
+                <div class="flex items-center gap-1.5 text-xs text-slate-500">
+                    <div class="w-4 h-4 rounded bg-white border-2 border-slate-200"></div> Belum
+                </div>
+            </div>
+
+            {{-- Grid soal --}}
+            <div class="flex-1 overflow-y-auto p-5">
+                <div class="grid grid-cols-5 gap-2" x-data>
+                    <template x-for="(q, index) in $store.examState.started ? [] : []">{{-- dummy --}}</template>
+                </div>
+                {{-- Gunakan Alpine dari parent scope --}}
+                <div class="grid grid-cols-5 gap-2" x-data x-init="$watch('$store.examState.started', () => {})">
+                    <template x-for="(q, index) in $root.__x ? $root.__x.$data.questions : []" :key="q.id">
+                        <button @click="$root.__x.$data.currentIndex = index; toggleMobileNav()"
+                            class="aspect-square rounded-xl font-black text-xs transition-all border-2 flex items-center justify-center"
+                            :class="{
+                        'bg-indigo-600 text-white border-indigo-600 scale-105 shadow-md':
+                            $root.__x.$data.currentIndex === index,
+                        'bg-amber-100 text-amber-600 border-amber-400':
+                            $root.__x.$data.flags.includes(q.id) && $root.__x.$data.currentIndex !== index,
+                        'bg-blue-500 text-white border-blue-500':
+                            $root.__x.$data.hasAnswer(q.id) && !$root.__x.$data.flags.includes(q.id) && $root.__x.$data.currentIndex !== index,
+                        'bg-white text-slate-400 border-slate-200':
+                            !$root.__x.$data.hasAnswer(q.id) && !$root.__x.$data.flags.includes(q.id) && $root.__x.$data.currentIndex !== index
+                    }">
+                            <span x-text="index + 1"></span>
+                        </button>
+                    </template>
+                </div>
+            </div>
+
+            {{-- Footer ringkasan --}}
+            <div class="p-5 border-t border-slate-100 bg-slate-50" x-data>
+                <div class="flex justify-between text-sm mb-3" x-data>
+                    <span class="text-slate-500 font-semibold">Terjawab</span>
+                    <span class="font-black text-indigo-600" x-text="(document.querySelector('[x-data*=examRunner]')?.__x?.$data?.questions?.filter(q =>
+                    document.querySelector('[x-data*=examRunner]').__x.$data.hasAnswer(q.id))?.length ?? 0)
+                    + ' / ' +
+                    (document.querySelector('[x-data*=examRunner]')?.__x?.$data?.questions?.length ?? 0)">
+                    </span>
+                </div>
+                <button
+                    onclick="document.querySelector('[\\@click\\.prevent=finishExam()]')?.click(); toggleMobileNav();"
+                    class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-black transition flex items-center justify-center gap-2">
+                    <i class="fas fa-check-circle"></i> Kumpulkan Ujian
+                </button>
+            </div>
+        </div>
+
+        <div id="mobile-nav-panel">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="font-black text-slate-800 text-lg">Navigasi Soal</h3>
+                <button onclick="toggleMobileNav()"
+                    class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="px-5 py-3 border-b border-slate-100 flex flex-wrap gap-x-4 gap-y-1.5">
+                <div class="flex items-center gap-1.5 text-xs text-slate-500">
+                    <div class="w-4 h-4 rounded bg-blue-500"></div> Dijawab
+                </div>
+                <div class="flex items-center gap-1.5 text-xs text-slate-500">
+                    <div class="w-4 h-4 rounded bg-amber-100 border border-amber-400"></div> Ragu-ragu
+                </div>
+                <div class="flex items-center gap-1.5 text-xs text-slate-500">
+                    <div class="w-4 h-4 rounded bg-white border-2 border-slate-200"></div> Belum dijawab
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-5">
+                <div id="mobile-nav-grid" class="grid grid-cols-5 gap-2"></div>
+            </div>
+
+            <div class="p-5 border-t border-slate-100 bg-slate-50">
+                <div class="flex justify-between text-sm mb-3">
+                    <span class="text-slate-500 font-semibold">Terjawab</span>
+                    <span id="mobile-nav-count" class="font-black text-indigo-600">0 / 0</span>
+                </div>
+                <button onclick="toggleMobileNav(); document.querySelector('button[\\@click\\.prevent]')?.click();"
+                    class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-black transition flex items-center justify-center gap-2">
+                    <i class="fas fa-check-circle"></i> Kumpulkan Ujian
+                </button>
+            </div>
         </div>
         <form id="finish-form" action="{{ route('student.exam.finish', $exam->id) }}" method="POST"
             style="display: none;">@csrf</form>
@@ -673,6 +833,8 @@
                         window.onbeforeunload = () => {
                             if(!window.isExitingExam) return "Ujian sedang berlangsung!";
                         };
+                           // Expose ke window agar mobile nav panel bisa akses
+    window._examRunner = this;
                     },
 
                     renderMath() {
@@ -1024,6 +1186,60 @@
         return Math.sqrt(dx * dx + dy * dy);
     }
 })();
+
+// ── MOBILE NAV ──
+function toggleMobileNav() {
+    const overlay = document.getElementById('mobile-nav-overlay');
+    const panel   = document.getElementById('mobile-nav-panel');
+    const isOpen  = panel.classList.contains('open');
+
+    if (isOpen) {
+        panel.classList.remove('open');
+        overlay.classList.remove('open');
+    } else {
+        renderMobileNav();
+        panel.classList.add('open');
+        overlay.classList.add('open');
+    }
+}
+
+function renderMobileNav() {
+    const runner = window._examRunner;
+    if (!runner) return;
+
+    const grid  = document.getElementById('mobile-nav-grid');
+    const count = document.getElementById('mobile-nav-count');
+    if (!grid) return;
+
+    const questions = runner.questions;
+    const answered  = questions.filter(q => runner.hasAnswer(q.id)).length;
+
+    if (count) count.textContent = `${answered} / ${questions.length}`;
+
+    grid.innerHTML = '';
+    questions.forEach((q, index) => {
+        const btn = document.createElement('button');
+        btn.textContent = index + 1;
+
+        const isCurrent  = runner.currentIndex === index;
+        const isFlagged  = runner.flags.includes(q.id);
+        const isAnswered = runner.hasAnswer(q.id);
+
+        let cls = 'aspect-square rounded-xl font-black text-xs border-2 flex items-center justify-center w-full transition-all ';
+        if (isCurrent)        cls += 'bg-indigo-600 text-white border-indigo-600 scale-105 shadow-md';
+        else if (isFlagged)   cls += 'bg-amber-100 text-amber-600 border-amber-400';
+        else if (isAnswered)  cls += 'bg-blue-500 text-white border-blue-500';
+        else                  cls += 'bg-white text-slate-400 border-slate-200';
+
+        btn.className = cls;
+        btn.onclick = () => {
+            runner.currentIndex = index;
+            toggleMobileNav();
+        };
+
+        grid.appendChild(btn);
+    });
+}
     </script>
     <div id="lightbox" onclick="closeLightbox(event)">
         <button id="lightbox-close" onclick="hideLightbox()">
