@@ -510,33 +510,58 @@
                 </div>
             </div>
             <div
-                class="w-80 bg-white border-l border-slate-200 hidden lg:flex flex-col z-50 shadow-[-5px_0_30px_rgba(0,0,0,0.02)]">
-                <div class="p-6 bg-white border-b border-slate-100">
-                    <h3 class="font-black text-slate-800 text-lg">Navigasi Soal</h3>
+                class="w-72 bg-white border-l border-slate-200 hidden lg:flex flex-col z-50 shadow-[-5px_0_30px_rgba(0,0,0,0.02)]">
+
+                {{-- Header --}}
+                <div class="p-5 bg-white border-b border-slate-100">
+                    <h3 class="font-black text-slate-800 text-base">Navigasi Soal</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        Terjawab:
+                        <span class="font-bold text-indigo-600"
+                            x-text="questions.filter(q => hasAnswer(q.id)).length + ' / ' + questions.length">
+                        </span>
+                    </p>
                 </div>
-                <div class="flex-1 overflow-y-auto p-6 custom-scrollbar bg-slate-50/50">
-                    <div class="grid grid-cols-4 gap-3">
+
+                {{-- Grid Nomor --}}
+                <div class="flex-1 overflow-y-auto p-4 custom-scrollbar bg-slate-50/50">
+                    <div class="grid grid-cols-5 gap-2">
                         <template x-for="(q, index) in questions" :key="q.id">
                             <button @click="currentIndex = index"
-                                class="aspect-square rounded-xl font-black text-sm transition-all border-2 flex items-center justify-center relative"
+                                class="aspect-square rounded-lg font-black text-xs transition-all border-2 flex items-center justify-center relative"
                                 :class="{
-                /* 1. Sedang Dilihat (Aktif) = Ungu Gelap & Membesar */
-                'bg-indigo-600 text-white border-indigo-600 scale-110 z-10 shadow-md': currentIndex === index,
-
-                /* 2. Ditandai Ragu-ragu (Bukan Aktif) = Kuning/Amber (Prioritas lebih tinggi dari sudah dijawab) */
-                'bg-amber-100 text-amber-600 border-amber-400': flags.includes(q.id) && currentIndex !== index,
-
-                /* 3. Sudah Dijawab (Bukan Aktif & Tidak Ragu) = BIRU (Blue) */
-                'bg-blue-500 text-white border-blue-500': hasAnswer(q.id) && !flags.includes(q.id) && currentIndex !== index,
-
-                /* 4. Belum Dijawab Sama Sekali = Putih Abu-abu */
-                'bg-white text-slate-400 border-slate-200': !hasAnswer(q.id) && !flags.includes(q.id) && currentIndex !== index
-            }">
+                        'bg-indigo-600 text-white border-indigo-600 scale-110 z-10 shadow-md': currentIndex === index,
+                        'bg-amber-100 text-amber-600 border-amber-400': flags.includes(q.id) && currentIndex !== index,
+                        'bg-blue-500 text-white border-blue-500': hasAnswer(q.id) && !flags.includes(q.id) && currentIndex !== index,
+                        'bg-white text-slate-400 border-slate-200': !hasAnswer(q.id) && !flags.includes(q.id) && currentIndex !== index
+                    }">
                                 <span x-text="index + 1"></span>
                             </button>
                         </template>
                     </div>
                 </div>
+
+                {{-- Keterangan Warna --}}
+                <div class="p-4 border-t border-slate-100 bg-white space-y-2">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Keterangan</p>
+                    <div class="flex items-center gap-2 text-xs text-slate-600">
+                        <div class="w-5 h-5 rounded-md bg-indigo-600 flex-shrink-0"></div>
+                        <span>Sedang dilihat</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-slate-600">
+                        <div class="w-5 h-5 rounded-md bg-blue-500 flex-shrink-0"></div>
+                        <span>Sudah dijawab</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-slate-600">
+                        <div class="w-5 h-5 rounded-md bg-amber-100 border-2 border-amber-400 flex-shrink-0"></div>
+                        <span>Ragu-ragu</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-slate-600">
+                        <div class="w-5 h-5 rounded-md bg-white border-2 border-slate-200 flex-shrink-0"></div>
+                        <span>Belum dijawab</span>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -556,7 +581,7 @@
         {{-- Mobile Nav Overlay --}}
         <div id="mobile-nav-overlay" onclick="toggleMobileNav()"></div>
 
-        {{-- Mobile Nav Panel (HANYA SATU INI) --}}
+        {{-- Mobile Nav Panel --}}
         <div id="mobile-nav-panel">
             <div class="p-5 border-b border-slate-100 flex items-center justify-between">
                 <h3 class="font-black text-slate-800 text-lg">Navigasi Soal</h3>
