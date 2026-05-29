@@ -8,6 +8,7 @@ use App\Models\ExamSession;
 use App\Models\School;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Vinkla\Hashids\Facades\Hashids;
 
