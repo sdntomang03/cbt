@@ -203,6 +203,13 @@
                                 <span class="text-[10px] uppercase tracking-widest opacity-60">Nilai Kamu</span>
                                 <span class="text-2xl">{{ $session->user_score }}</span>
                             </div>
+                            @if(isset($exam) ? $exam->show_explanation : $session->exam->show_explanation)
+                            <a href="#"
+                                class="w-full flex items-center justify-center gap-2 py-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl font-bold text-sm transition-all duration-300 border border-indigo-100 shadow-sm group">
+                                <i class="fas fa-lightbulb text-amber-500 group-hover:text-white transition-colors"></i>
+                                Pelajari Pembahasan
+                            </a>
+                            @endif
                             @elseif($session->is_open)
 
                             <a href="{{ route('student.exam.verify.show', $session->exam) }}"
