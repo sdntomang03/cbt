@@ -1303,8 +1303,7 @@ function renderMobileNav() {
 }
     </script>
     <script>
-        // Menyimpan data ke dalam memory browser (window), bukan di DOM HTML
-    window.examPayload = {
+        window.examPayload = {
         questions: @json($questions), // Array soal yang sudah disensor kunci jawabannya
         timeLeft: {{ $timeLeft ?? 2189 }}, // Waktu tersisa (contoh)
         answered: [], // Array jawaban awal
