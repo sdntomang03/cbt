@@ -200,6 +200,28 @@ document.addEventListener('alpine:init', () => {
         }
 
         // =========================================================
+// HANDLER PASTE GAMBAR (copy dari internet/clipboard)
+// =========================================================
+function setupPasteHandler(quill) {
+    quill.root.addEventListener('paste', function (e) {
+        const clipboardData = e.clipboardData || window.clipboardData;
+        if (!clipboardData) return;
+
+        const items = Array.from(clipboardData.items);
+        const imageItem = items.find(item => item.type.startsWith('image/'));
+
+        if (!imageItem) return; // bukan gambar, biarkan paste normal
+
+        e.preventDefault(); // cegah Quill insert base64
+
+        const file = imageItem.getAsFile();
+        if (!file) return;
+
+        uploadImageToServer(file, quill);
+    });
+}
+
+        // =========================================================
         // HANDLER TOMBOL IMAGE (dipakai di narasi & opsi)
         // =========================================================
         function imageHandler(quillInstance) {
@@ -381,6 +403,7 @@ document.addEventListener('alpine:init', () => {
             });
 
             optionEditors[key] = q;
+            setupPasteHandler(q);
         }
 
         // =========================================================
@@ -453,6 +476,8 @@ document.addEventListener('alpine:init', () => {
                         },
                         placeholder: 'Ketik narasi pertanyaan di sini...',
                     });
+
+                    setupPasteHandler(myEditor);
 
                     if (this.form.content) {
                         myEditor.clipboard.dangerouslyPasteHTML(this.form.content);
