@@ -201,28 +201,57 @@ document.addEventListener('alpine:init', () => {
         // =========================================================
         // HANDLER PASTE GAMBAR - Override clipboard Quill
         // =========================================================
+        // =========================================================
+        // HANDLER PASTE GAMBAR & TEKS - Hybrid Clipboard Quill
+        // =========================================================
         function setupPasteHandler(quill) {
-            // Cegah Quill insert base64 dari clipboard
-            quill.clipboard.addMatcher('IMG', function () {
+
+            // Mencegah Quill mengubah gambar base64 ke dalam Delta secara langsung
+            quill.clipboard.addMatcher('IMG', function (node, delta) {
+                // Jika gambar dari URL luar (bukan base64/file lokal), biarkan lewat
+                if (node.src && !node.src.startsWith('data:')) {
+                    return delta;
+                }
+
+                // Jika gambar adalah Base64 (biasanya hasil copy dari Word/Web langsung),
+                // ubah menjadi file blob dan unggah ke server diam-diam.
+                if (node.src && node.src.startsWith('data:image')) {
+                    fetch(node.src)
+                        .then(res => res.blob())
+                        .then(blob => {
+                            const file = new File([blob], "pasted-image.png", { type: blob.type });
+                            uploadImageToServer(file, quill);
+                        });
+
+                    // Kembalikan delta kosong agar base64 tidak tercetak di editor
+                    return new quill.constructor.import('delta')();
+                }
+
                 return new quill.constructor.import('delta')();
             });
 
-            // Capture phase agar lebih awal dari Quill
+            // Handle khusus untuk copy-paste File murni (Screenshot / Snipping Tool)
             quill.root.addEventListener('paste', function (e) {
                 const clipboardData = e.clipboardData || window.clipboardData;
                 if (!clipboardData) return;
 
-                const items     = Array.from(clipboardData.items);
+                // Cek apakah ada file murni yang di-paste (BUKAN HTML/TEKS)
+                const items = Array.from(clipboardData.items);
+                const isHtmlPaste = items.some(item => item.type === 'text/html');
                 const imageItem = items.find(item => item.type.startsWith('image/'));
 
-                if (!imageItem) return; // bukan gambar, biarkan paste teks normal
+                // Jika clipboard HANYA berisi gambar (tanpa HTML/Teks pengiring),
+                // tangkap dan upload secara manual.
+                if (imageItem && !isHtmlPaste) {
+                    e.stopPropagation();
+                    e.preventDefault();
 
-                e.stopPropagation();
-                e.preventDefault();
-
-                const file = imageItem.getAsFile();
-                if (file) uploadImageToServer(file, quill);
-
+                    const file = imageItem.getAsFile();
+                    if (file) {
+                        uploadImageToServer(file, quill);
+                    }
+                }
+                // Jika isHtmlPaste bernilai TRUE, biarkan Quill memprosesnya lewat addMatcher('IMG') di atas.
             }, true);
         }
 
