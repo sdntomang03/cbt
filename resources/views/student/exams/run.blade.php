@@ -924,13 +924,30 @@
                     drawLines() { this.clearLines(); const q = this.questions[this.currentIndex]; if (!q || q.type !== 'matching' || !this.answers[q.id]) return; const colors = ['#4f46e5', '#ec4899', '#10b981', '#f59e0b', '#06b6d4']; let i = 0; Object.entries(this.answers[q.id]).forEach(([p, t]) => { const s = document.getElementById('premise-'+p), e = document.getElementById('target-'+t); if(s && e && s.offsetParent && e.offsetParent) { this.lines.push(new LeaderLine(s, e, { color: colors[i++%colors.length], size: 3, path: 'fluid', startSocket: 'right', endSocket: 'left', endPlug: 'arrow3' })); } }); },
                     clearLines() { this.lines.forEach(l=>l.remove()); this.lines=[]; },
                     repositionLines() { if(this.lines.length) window.requestAnimationFrame(()=>this.lines.forEach(l=>l.position())); },
-                    toggleFlag(qId) { const idx=this.flags.indexOf(qId); if(idx===-1) this.flags.push(qId); else this.flags.splice(idx,1); this.saveAnswer(qId, this.answers[qId]); },
+                    toggleFlag(qId) {
+    const idx = this.flags.indexOf(qId);
+    if (idx === -1) this.flags.push(qId);
+    else            this.flags.splice(idx, 1);
 
+    // Kirim flag terlepas dari ada/tidaknya jawaban
+    axios.post('{{ route("student.exam.save") }}', {
+        exam_id:     '{{ $exam->id }}',
+        question_id: qId,
+        answer:      this.answers[qId] ?? null,
+        is_doubtful: this.flags.includes(qId)
+    }).catch(e => console.error(e));
+},
                     saveAnswer(qId, val) {
-                        if(val===undefined || window.isExitingExam) return;
-                        this.answers[qId]=val;
-                        axios.post('{{ route("student.exam.save") }}', {exam_id:'{{$exam->id}}', question_id:qId, answer:val, is_doubtful:this.flags.includes(qId)}).catch(e=>console.error(e),800);
-                    },
+    if (window.isExitingExam) return;
+    if (val !== undefined) this.answers[qId] = val;
+
+    axios.post('{{ route("student.exam.save") }}', {
+        exam_id:     '{{ $exam->id }}',
+        question_id: qId,
+        answer:      this.answers[qId] ?? null,
+        is_doubtful: this.flags.includes(qId)
+    }).catch(e => console.error(e));
+},
 
                     finishExam() {
                         if(this.isSubmitting) return;
