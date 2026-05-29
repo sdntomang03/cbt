@@ -413,8 +413,11 @@
                 <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
                     <i class="fas fa-graduation-cap"></i>
                 </div>
-                <h1 class="hidden lg:block font-black text-slate-800 text-sm tracking-widest uppercase">{{ $exam->title
-                    }}</h1>
+                <div>
+                    <h1 class="hidden lg:block font-black text-slate-800 text-sm tracking-widest uppercase">{{
+                        $exam->title }}</h1>
+                    <p class="font-bold text-slate-700 text-sm leading-none mt-0.5">{{ auth()->user()->name }}</p>
+                </div>
             </div>
             <div class="bg-slate-900 text-white px-3 py-1.5 lg:px-6 lg:py-2 rounded-xl font-mono font-bold text-sm lg:text-xl flex items-center gap-1.5 lg:gap-3 shadow-lg"
                 :class="timeLeft < 300 ? 'bg-rose-600 animate-pulse' : ''">
