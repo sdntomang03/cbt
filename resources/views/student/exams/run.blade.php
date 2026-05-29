@@ -410,9 +410,11 @@
         <div
             class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 z-[100] shadow-sm select-none relative">
             <div class="flex items-center gap-4">
-                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg"><i
-                        class="fas fa-graduation-cap"></i></div>
-                <h1 class="font-black text-slate-800 text-sm tracking-widest uppercase">{{ $exam->title }}</h1>
+                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <h1 class="hidden lg:block font-black text-slate-800 text-sm tracking-widest uppercase">{{ $exam->title
+                    }}</h1>
             </div>
             <div class="bg-slate-900 text-white px-6 py-2 rounded-xl font-mono font-bold text-xl flex items-center gap-3 shadow-lg"
                 :class="timeLeft < 300 ? 'bg-rose-600 animate-pulse' : ''">
@@ -421,18 +423,14 @@
             <button type="button" onclick="toggleMobileNav()" id="mobile-nav-btn"
                 class="lg:hidden relative bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl font-bold transition flex items-center gap-2 border border-slate-200">
                 <i class="fas fa-th text-sm"></i>
-                <span class="text-xs font-black">Soal</span>
-                {{-- Badge jumlah soal dijawab --}}
-                <span
-                    class="absolute -top-1.5 -right-1.5 bg-indigo-600 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center"
-                    x-text="Object.keys(answers).filter(k => hasAnswer(parseInt(k))).length">
-                </span>
+                <span class="text-xs font-black">Daftar Soal</span>
+
             </button>
             <button type="button" @click.prevent="finishExam()"
-                class="relative z-[101] bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-xl font-bold transition shadow-lg flex items-center gap-2 cursor-pointer">
-                <span x-show="!isSubmitting">Selesai</span> <span x-show="isSubmitting"><i
-                        class="fas fa-spinner fa-spin"></i></span> <i x-show="!isSubmitting"
-                    class="fas fa-check-circle"></i>
+                class="hidden lg:flex relative z-[101] bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-xl font-bold transition shadow-lg items-center gap-2 cursor-pointer">
+                <span x-show="!isSubmitting">Selesai</span>
+                <span x-show="isSubmitting"><i class="fas fa-spinner fa-spin"></i></span>
+                <i x-show="!isSubmitting" class="fas fa-check-circle"></i>
             </button>
         </div>
 
