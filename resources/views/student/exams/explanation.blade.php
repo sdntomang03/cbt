@@ -116,141 +116,165 @@
                     {{-- 2. PREVIEW: BENAR SALAH (TRUE/FALSE) --}}
                     @elseif(in_array($q->type, ['true_false', 'true_false_multi']))
                     <div class="space-y-3 mb-8 pl-0 sm:pl-4 border-l-2 border-slate-100">
-                        <h5 class="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">Evaluasi Pernyataan:
-                        </h5>
-                        <div class="grid grid-cols-1 gap-3">
-                            @foreach($q->options as $opt)
-                            @php
-                            // Jawaban siswa per baris opsi (0 atau 1)
-                            $studentOptAns = is_array($studentAns) ? ($studentAns[$opt->id] ?? null) : null;
-                            $correctVal = $opt->is_correct ? 1 : 0;
-
-                            $isCorrect = ($studentOptAns !== null && $studentOptAns == $correctVal);
-                            $isAnswered = $studentOptAns !== null;
-                            @endphp
-                            <div
-                                class="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col md:flex-row gap-4 justify-between md:items-center shadow-sm">
-                                <div
-                                    class="flex-1 prose prose-sm max-w-none text-sm font-bold text-slate-700 __se__katex_container">
-                                    {!! $opt->option_text !!}
-                                </div>
-
-                                <div
-                                    class="flex items-center gap-4 shrink-0 bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm">
-                                    <div class="text-center">
-                                        <span
-                                            class="text-[9px] font-bold uppercase tracking-wider text-indigo-400 block mb-1">Kunci</span>
-                                        <span
-                                            class="px-3 py-1 rounded-md text-[10px] font-black tracking-widest uppercase shadow-sm {{ $correctVal ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white' }}">
-                                            {{ $correctVal ? 'BENAR' : 'SALAH' }}
-                                        </span>
-                                    </div>
-                                    <div class="w-px h-8 bg-slate-200 mx-1"></div>
-                                    <div class="text-center">
-                                        <span
-                                            class="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Jawabanmu</span>
-                                        @if($isAnswered)
-                                        <span
-                                            class="px-3 py-1 rounded-md text-[10px] font-black tracking-widest uppercase shadow-sm {{ $isCorrect ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700' }}">
-                                            <i class="fas {{ $isCorrect ? 'fa-check' : 'fa-times' }} mr-1"></i>
-                                            {{ $studentOptAns ? 'BENAR' : 'SALAH' }}
-                                        </span>
-                                        @else
-                                        <span class="text-xs text-slate-400 italic font-medium">Kosong</span>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                            @endforeach
+                        <div class="overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
+                            <table class="w-full text-sm text-left">
+                                <thead
+                                    class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
+                                    <tr>
+                                        <th class="px-5 py-4 w-3/5">Pernyataan</th>
+                                        <th class="px-5 py-4 text-center border-l border-slate-200">Kunci Benar</th>
+                                        <th class="px-5 py-4 text-center border-l border-slate-200">Jawaban Kamu</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 bg-white">
+                                    @foreach($q->options as $opt)
+                                    @php
+                                    $studentOptAns = is_array($studentAns) ? ($studentAns[$opt->id] ?? null) : null;
+                                    $correctVal = $opt->is_correct ? 1 : 0;
+                                    $isAnswered = $studentOptAns !== null;
+                                    $isCorrect = ($isAnswered && $studentOptAns == $correctVal);
+                                    @endphp
+                                    <tr class="hover:bg-slate-50 transition-colors">
+                                        <td class="px-5 py-4 font-bold text-slate-700 __se__katex_container">
+                                            {!! $opt->option_text !!}
+                                        </td>
+                                        <td class="px-5 py-4 text-center border-l border-slate-200">
+                                            <span
+                                                class="px-3 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase shadow-sm {{ $correctVal ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600' }}">
+                                                {{ $correctVal ? 'BENAR' : 'SALAH' }}
+                                            </span>
+                                        </td>
+                                        <td class="px-5 py-4 text-center border-l border-slate-200">
+                                            @if($isAnswered)
+                                            <span
+                                                class="px-3 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase shadow-sm inline-flex items-center gap-1.5 {{ $isCorrect ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white' }}">
+                                                <i class="fas {{ $isCorrect ? 'fa-check' : 'fa-times' }}"></i>
+                                                {{ $studentOptAns ? 'BENAR' : 'SALAH' }}
+                                            </span>
+                                            @else
+                                            <span class="text-xs text-slate-400 italic font-bold">- Kosong -</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
                     {{-- 3. PREVIEW: MENJODOHKAN (MATCHING) --}}
                     @elseif($q->type === 'matching')
-                    <div class="space-y-3 mb-8 pl-0 sm:pl-4 border-l-2 border-slate-100">
-                        <h5 class="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Pasangan Benar vs
-                            Jawaban Siswa:</h5>
-                        <div class="grid grid-cols-1 gap-3">
-                            @foreach($q->matches ?? [] as $m)
-                            @php
-                            $studentTargetId = is_array($studentAns) ? ($studentAns[$m->id] ?? null) : null;
+                    <div class="space-y-5 mb-8 pl-0 sm:pl-4 border-l-2 border-slate-100">
+                        @php
+                        $matchedAnswers = [];
+                        if (!empty($studentAns)) {
+                        $matchedAnswers = is_string($studentAns) ? json_decode($studentAns, true) : (array) $studentAns;
+                        }
+                        @endphp
 
-                            $studentTargetHtml = '<span class="text-slate-400 italic font-medium">- Tidak Dijawab
-                                -</span>';
-                            $isMatchCorrect = false;
+                        @foreach($q->matches ?? [] as $m)
+                        @php
+                        $studentTargetId = $matchedAnswers[$m->id] ?? null;
+                        $studentTargetHtml = '<span class="text-slate-400 italic font-medium">- Tidak Dijawab -</span>';
+                        $isMatchCorrect = false;
 
-                            if($studentTargetId) {
-                            if($studentTargetId == $m->id) {
-                            $isMatchCorrect = true;
-                            $studentTargetHtml = $m->target_text; // Tidak menggunakan strip_tags agar KaTeX selamat
-                            } else {
-                            $fallbackTarget = collect($q->matches)->firstWhere('id', $studentTargetId);
-                            $studentTargetHtml = $fallbackTarget ? $fallbackTarget->target_text : '<span
-                                class="text-rose-500">- Pilihan Tidak Valid -</span>';
-                            }
-                            }
-                            @endphp
+                        if($studentTargetId) {
+                        if($studentTargetId == $m->id) {
+                        $isMatchCorrect = true;
+                        $studentTargetHtml = $m->target_text;
+                        } else {
+                        $fallbackTarget = collect($q->matches)->firstWhere('id', $studentTargetId);
+                        $studentTargetHtml = $fallbackTarget ? $fallbackTarget->target_text : '<span
+                            class="text-rose-500">- Tidak Valid -</span>';
+                        }
+                        }
+                        @endphp
 
+                        <div class="flex flex-col md:flex-row items-center gap-2 md:gap-4 relative w-full">
+                            {{-- KOTAK PREMIS (KIRI) --}}
                             <div
-                                class="bg-slate-50 p-4 rounded-2xl border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <span
-                                        class="text-[10px] font-bold uppercase tracking-wider text-indigo-500 block mb-2">Pasangan
-                                        Seharusnya:</span>
-                                    <div
-                                        class="text-sm font-bold text-slate-700 flex flex-col sm:flex-row sm:items-center gap-2 __se__katex_container">
-                                        <div class="prose prose-sm max-w-none">{!! $m->premise_text !!}</div>
-                                        <i class="fas fa-arrow-right text-slate-400 hidden sm:block"></i>
-                                        <i class="fas fa-arrow-down text-slate-400 sm:hidden"></i>
-                                        <div class="prose prose-sm max-w-none">{!! $m->target_text !!}</div>
-                                    </div>
-                                </div>
-                                <div class="border-t md:border-t-0 md:border-l border-slate-200 pt-3 md:pt-0 md:pl-4">
-                                    <span
-                                        class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2">Jawaban
-                                        Siswa:</span>
-                                    <div
-                                        class="text-sm font-bold flex items-start gap-2 __se__katex_container {{ $isMatchCorrect ? 'text-emerald-700' : 'text-rose-700' }}">
-                                        <i
-                                            class="fas {{ $isMatchCorrect ? 'fa-check-circle text-emerald-500' : 'fa-times-circle text-rose-500' }} mt-1"></i>
-                                        <div class="prose prose-sm max-w-none">{!! $studentTargetHtml !!}</div>
-                                    </div>
-                                </div>
+                                class="match-item w-full md:w-5/12 !cursor-default !border-slate-300 shadow-sm relative">
+                                <div
+                                    class="text-xs font-black text-indigo-500 uppercase tracking-widest mb-2 opacity-70">
+                                    Premis:</div>
+                                <div class="prose prose-sm max-w-none text-slate-700 font-bold __se__katex_container">
+                                    {!! $m->premise_text !!}</div>
+                                <div class="match-dot dot-right hidden md:block"></div>
                             </div>
-                            @endforeach
+
+                            {{-- IKON PENGHUBUNG --}}
+                            <div class="shrink-0 text-slate-300 flex flex-col items-center">
+                                <i class="fas fa-link text-lg md:rotate-0 rotate-90 my-1 md:my-0"></i>
+                            </div>
+
+                            {{-- KOTAK TARGET JAWABAN SISWA (KANAN) --}}
+                            <div
+                                class="match-item w-full md:w-5/12 !cursor-default shadow-sm relative {{ $isMatchCorrect ? '!border-emerald-500 !bg-emerald-50' : '!border-rose-500 !bg-rose-50' }}">
+                                <div
+                                    class="match-dot dot-left hidden md:block {{ $isMatchCorrect ? '!bg-emerald-500' : '!bg-rose-500' }}">
+                                </div>
+                                <div class="flex items-center gap-2 mb-2">
+                                    <i
+                                        class="fas {{ $isMatchCorrect ? 'fa-check-circle text-emerald-500' : 'fa-times-circle text-rose-500' }}"></i>
+                                    <div
+                                        class="text-xs font-black {{ $isMatchCorrect ? 'text-emerald-600' : 'text-rose-600' }} uppercase tracking-widest opacity-70">
+                                        Jawaban Kamu</div>
+                                </div>
+                                <div
+                                    class="prose prose-sm max-w-none font-bold {{ $isMatchCorrect ? 'text-emerald-800' : 'text-rose-800' }} __se__katex_container">
+                                    {!! $studentTargetHtml !!}
+                                </div>
+
+                                {{-- Jika salah, tunjukkan pasangan yang benar di bawahnya --}}
+                                @if(!$isMatchCorrect)
+                                <div
+                                    class="mt-4 pt-3 border-t border-rose-200 text-xs text-rose-700 __se__katex_container">
+                                    <span class="font-black uppercase tracking-widest block mb-1">Seharusnya:</span>
+                                    <div class="font-bold opacity-80">{!! $m->target_text !!}</div>
+                                </div>
+                                @endif
+                            </div>
                         </div>
+                        @endforeach
                     </div>
 
                     {{-- 4. PREVIEW: ESSAY / ISIAN SINGKAT --}}
                     @elseif($q->type === 'essay')
-                    <div class="space-y-4 mb-8 pl-0 sm:pl-4 border-l-2 border-slate-100">
-                        <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm relative mt-4">
+                    <div class="space-y-8 mb-8 pl-0 sm:pl-4 border-l-2 border-slate-100">
+
+                        {{-- Kotak Jawaban Siswa --}}
+                        <div class="relative pt-6">
                             <span
-                                class="text-[10px] bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full font-black uppercase tracking-widest absolute -top-3 left-4 border border-indigo-200 shadow-sm">
+                                class="text-[10px] bg-slate-800 text-white px-4 py-2 rounded-t-xl font-black uppercase tracking-widest absolute top-0 left-0 shadow-sm">
                                 Jawaban Kamu
                             </span>
                             <div
-                                class="text-slate-800 font-medium px-1 mt-2 whitespace-pre-wrap __se__katex_container text-base">
-                                {{ is_string($studentAnsRaw) ? $studentAnsRaw : '- Kosong (Tidak dijawab) -' }}</div>
-                        </div>
-
-                        <div class="bg-emerald-50/60 p-5 rounded-2xl border border-emerald-100 relative mt-6">
-                            <span
-                                class="text-[10px] bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full font-black uppercase tracking-widest absolute -top-3 left-4 border border-emerald-200 shadow-sm">
-                                Kunci Jawaban Benar
-                            </span>
-                            <div class="space-y-1.5 mt-2">
-                                @forelse($q->options as $opt)
-                                <div
-                                    class="text-emerald-800 font-black flex items-center gap-2 text-sm __se__katex_container">
-                                    <i class="fas fa-key text-emerald-500 text-xs mt-0.5"></i> {!! $opt->option_text !!}
-                                </div>
-                                @empty
-                                <div class="text-emerald-600 text-sm italic font-medium">Kunci jawaban belum diatur oleh
-                                    guru.</div>
-                                @endforelse
+                                class="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl rounded-tl-none p-5 text-slate-700 font-bold whitespace-pre-wrap min-h-[100px] __se__katex_container shadow-inner">
+                                {{ is_string($studentAnsRaw) && $studentAnsRaw !== '' ? $studentAnsRaw : '- Kosong
+                                (Siswa tidak memberikan jawaban) -' }}
                             </div>
                         </div>
+
+                        {{-- Kotak Kunci Jawaban --}}
+                        <div class="relative pt-6">
+                            <span
+                                class="text-[10px] bg-emerald-500 text-white px-4 py-2 rounded-t-xl font-black uppercase tracking-widest absolute top-0 left-0 shadow-sm">
+                                Kunci / Kata Kunci
+                            </span>
+                            <div
+                                class="w-full bg-emerald-50 border-2 border-emerald-200 rounded-2xl rounded-tl-none p-5 text-emerald-800 font-bold shadow-sm">
+                                <ul class="list-disc list-inside space-y-2">
+                                    @forelse($q->options as $opt)
+                                    <li class="__se__katex_container marker:text-emerald-400">{!! $opt->option_text !!}
+                                    </li>
+                                    @empty
+                                    <li class="italic text-emerald-600/70 list-none font-medium">Kunci jawaban belum
+                                        diatur oleh guru.</li>
+                                    @endforelse
+                                </ul>
+                            </div>
+                        </div>
+
                     </div>
                     @endif
 
