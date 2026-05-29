@@ -202,7 +202,18 @@ document.addEventListener('alpine:init', () => {
         // =========================================================
 // HANDLER PASTE GAMBAR (copy dari internet/clipboard)
 // =========================================================
+// =========================================================
+// HANDLER PASTE GAMBAR - Override clipboard Quill
+// =========================================================
 function setupPasteHandler(quill) {
+    // Override matcher untuk image di clipboard Quill
+    quill.clipboard.addMatcher('IMG', function (node, delta) {
+        // Cegah Quill insert gambar apapun dari clipboard secara default
+        // (termasuk base64 dari copy-paste browser)
+        return new quill.constructor.import('delta')();
+    });
+
+    // Tangkap paste di level DOM, sebelum Quill sempat memproses
     quill.root.addEventListener('paste', function (e) {
         const clipboardData = e.clipboardData || window.clipboardData;
         if (!clipboardData) return;
@@ -210,15 +221,18 @@ function setupPasteHandler(quill) {
         const items = Array.from(clipboardData.items);
         const imageItem = items.find(item => item.type.startsWith('image/'));
 
-        if (!imageItem) return; // bukan gambar, biarkan paste normal
+        if (!imageItem) return; // bukan gambar, biarkan paste teks normal
 
-        e.preventDefault(); // cegah Quill insert base64
+        // Cegah Quill memproses paste ini sama sekali
+        e.stopPropagation();
+        e.preventDefault();
 
         const file = imageItem.getAsFile();
         if (!file) return;
 
         uploadImageToServer(file, quill);
-    });
+
+    }, true); // true = capture phase, lebih awal dari Quill
 }
 
         // =========================================================
