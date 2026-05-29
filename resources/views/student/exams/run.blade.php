@@ -416,9 +416,10 @@
                 <h1 class="hidden lg:block font-black text-slate-800 text-sm tracking-widest uppercase">{{ $exam->title
                     }}</h1>
             </div>
-            <div class="bg-slate-900 text-white px-6 py-2 rounded-xl font-mono font-bold text-xl flex items-center gap-3 shadow-lg"
+            <div class="bg-slate-900 text-white px-3 py-1.5 lg:px-6 lg:py-2 rounded-xl font-mono font-bold text-sm lg:text-xl flex items-center gap-1.5 lg:gap-3 shadow-lg"
                 :class="timeLeft < 300 ? 'bg-rose-600 animate-pulse' : ''">
-                <i class="fas fa-clock text-sm opacity-50"></i> <span x-text="formatTime(timeLeft)"></span>
+                <i class="fas fa-clock text-xs lg:text-sm opacity-50"></i>
+                <span x-text="formatTime(timeLeft)"></span>
             </div>
             <button type="button" onclick="toggleMobileNav()" id="mobile-nav-btn"
                 class="lg:hidden relative bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl font-bold transition flex items-center gap-2 border border-slate-200">
