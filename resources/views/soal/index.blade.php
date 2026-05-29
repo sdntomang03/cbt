@@ -295,8 +295,46 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
+
+            // 1. Render rumus yang diketik manual menggunakan $$...$$ atau $...$
             if (typeof renderMathInElement !== 'undefined') {
-                renderMathInElement(document.body, { throwOnError: false });
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false},
+                        {left: '\\(', right: '\\)', display: false},
+                        {left: '\\[', right: '\\]', display: true}
+                    ],
+                    throwOnError: false
+                });
+            }
+
+            // 2. Render rumus dari tombol Formula Quill Editor (jika ada tag .ql-formula)
+            if (typeof katex !== 'undefined') {
+                document.querySelectorAll('.ql-formula').forEach(el => {
+                    let exp = el.getAttribute('data-value');
+                    if (exp) {
+                        // Cuci karakter khusus HTML (Decoded)
+                        let decodedExp = exp
+                            .replace(/&gt;/g, '>')
+                            .replace(/&lt;/g, '<')
+                            .replace(/&amp;/g, '&')
+                            .replace(/&quot;/g, '"')
+                            .replace(/&#39;/g, "'")
+                            .replace(/&nbsp;/g, ' ')
+                            .replace(/\u00A0/g, ' ')
+                            .replace(/<br\s*\/?>/gi, '\n');
+
+                        try {
+                            katex.render(decodedExp, el, {
+                                throwOnError: false,
+                                displayMode: el.style.display === 'block' || el.tagName === 'DIV'
+                            });
+                        } catch (e) {
+                            console.error("Gagal render KaTeX:", e);
+                        }
+                    }
+                });
             }
         });
 
