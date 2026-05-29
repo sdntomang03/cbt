@@ -566,16 +566,36 @@
         </div>
 
         <div
-            class="h-24 bg-white border-t border-slate-200 flex items-center justify-between px-8 sm:px-12 z-[100] shadow-[0_-5px_30px_rgba(0,0,0,0.03)]">
+            class="h-16 bg-white/80 backdrop-blur border-t border-slate-100 flex items-center justify-between px-4 sm:px-8 z-[100] shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
+
+            {{-- Tombol Sebelumnya --}}
             <button @click="prevQuestion()" :disabled="currentIndex === 0"
-                class="px-8 py-3.5 rounded-2xl font-black bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200 transition-all flex items-center gap-3"><i
-                    class="fas fa-arrow-left"></i> SEBELUMNYA</button>
+                class="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200 transition-all">
+                <i class="fas fa-chevron-left text-xs"></i>
+                <span class="hidden sm:inline">Sebelumnya</span>
+            </button>
+
+            {{-- Indikator posisi soal --}}
+            <div class="flex flex-col items-center gap-1">
+                <span class="text-xs font-bold text-slate-400 tracking-wider uppercase">Soal</span>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-lg font-black text-slate-800" x-text="currentIndex + 1"></span>
+                    <span class="text-slate-300 font-light">/</span>
+                    <span class="text-sm font-bold text-slate-400" x-text="questions.length"></span>
+                </div>
+            </div>
+
+            {{-- Tombol Selanjutnya / Selesai --}}
             <button @click="nextQuestion()"
-                class="px-10 py-3.5 rounded-2xl font-black text-white shadow-xl transition-all flex items-center gap-3 hover:-translate-y-1"
-                :class="currentIndex === questions.length - 1 ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-indigo-600 hover:bg-indigo-700'"><span
-                    x-text="currentIndex === questions.length - 1 ? 'SELESAI & KUMPULKAN' : 'SELANJUTNYA'"></span><i
-                    class="fas"
-                    :class="currentIndex === questions.length - 1 ? 'fa-check-double' : 'fa-arrow-right'"></i></button>
+                class="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm text-white transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                :class="currentIndex === questions.length - 1
+            ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200'
+            : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'">
+                <span x-text="currentIndex === questions.length - 1 ? 'Selesai' : 'Selanjutnya'"></span>
+                <i class="fas text-xs"
+                    :class="currentIndex === questions.length - 1 ? 'fa-check-double' : 'fa-chevron-right'"></i>
+            </button>
+
         </div>
 
         {{-- Mobile Nav Overlay --}}
