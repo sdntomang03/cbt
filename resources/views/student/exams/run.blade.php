@@ -550,81 +550,16 @@
                     class="fas"
                     :class="currentIndex === questions.length - 1 ? 'fa-check-double' : 'fa-arrow-right'"></i></button>
         </div>
+
         {{-- Mobile Nav Overlay --}}
         <div id="mobile-nav-overlay" onclick="toggleMobileNav()"></div>
 
-        {{-- Mobile Nav Panel --}}
+        {{-- Mobile Nav Panel (HANYA SATU INI) --}}
         <div id="mobile-nav-panel">
             <div class="p-5 border-b border-slate-100 flex items-center justify-between">
                 <h3 class="font-black text-slate-800 text-lg">Navigasi Soal</h3>
                 <button onclick="toggleMobileNav()"
                     class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-
-            {{-- Legenda --}}
-            <div class="px-5 py-3 border-b border-slate-100 flex flex-wrap gap-x-4 gap-y-1.5">
-                <div class="flex items-center gap-1.5 text-xs text-slate-500">
-                    <div class="w-4 h-4 rounded bg-blue-500"></div> Dijawab
-                </div>
-                <div class="flex items-center gap-1.5 text-xs text-slate-500">
-                    <div class="w-4 h-4 rounded bg-amber-100 border border-amber-400"></div> Ragu
-                </div>
-                <div class="flex items-center gap-1.5 text-xs text-slate-500">
-                    <div class="w-4 h-4 rounded bg-white border-2 border-slate-200"></div> Belum
-                </div>
-            </div>
-
-            {{-- Grid soal --}}
-            <div class="flex-1 overflow-y-auto p-5">
-                <div class="grid grid-cols-5 gap-2" x-data>
-                    <template x-for="(q, index) in $store.examState.started ? [] : []">{{-- dummy --}}</template>
-                </div>
-                {{-- Gunakan Alpine dari parent scope --}}
-                <div class="grid grid-cols-5 gap-2" x-data x-init="$watch('$store.examState.started', () => {})">
-                    <template x-for="(q, index) in $root.__x ? $root.__x.$data.questions : []" :key="q.id">
-                        <button @click="$root.__x.$data.currentIndex = index; toggleMobileNav()"
-                            class="aspect-square rounded-xl font-black text-xs transition-all border-2 flex items-center justify-center"
-                            :class="{
-                        'bg-indigo-600 text-white border-indigo-600 scale-105 shadow-md':
-                            $root.__x.$data.currentIndex === index,
-                        'bg-amber-100 text-amber-600 border-amber-400':
-                            $root.__x.$data.flags.includes(q.id) && $root.__x.$data.currentIndex !== index,
-                        'bg-blue-500 text-white border-blue-500':
-                            $root.__x.$data.hasAnswer(q.id) && !$root.__x.$data.flags.includes(q.id) && $root.__x.$data.currentIndex !== index,
-                        'bg-white text-slate-400 border-slate-200':
-                            !$root.__x.$data.hasAnswer(q.id) && !$root.__x.$data.flags.includes(q.id) && $root.__x.$data.currentIndex !== index
-                    }">
-                            <span x-text="index + 1"></span>
-                        </button>
-                    </template>
-                </div>
-            </div>
-
-            {{-- Footer ringkasan --}}
-            <div class="p-5 border-t border-slate-100 bg-slate-50" x-data>
-                <div class="flex justify-between text-sm mb-3" x-data>
-                    <span class="text-slate-500 font-semibold">Terjawab</span>
-                    <span class="font-black text-indigo-600" x-text="(document.querySelector('[x-data*=examRunner]')?.__x?.$data?.questions?.filter(q =>
-                    document.querySelector('[x-data*=examRunner]').__x.$data.hasAnswer(q.id))?.length ?? 0)
-                    + ' / ' +
-                    (document.querySelector('[x-data*=examRunner]')?.__x?.$data?.questions?.length ?? 0)">
-                    </span>
-                </div>
-                <button
-                    onclick="document.querySelector('[\\@click\\.prevent=finishExam()]')?.click(); toggleMobileNav();"
-                    class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-black transition flex items-center justify-center gap-2">
-                    <i class="fas fa-check-circle"></i> Kumpulkan Ujian
-                </button>
-            </div>
-        </div>
-
-        <div id="mobile-nav-panel">
-            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
-                <h3 class="font-black text-slate-800 text-lg">Navigasi Soal</h3>
-                <button onclick="toggleMobileNav()"
-                    class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -650,7 +585,7 @@
                     <span class="text-slate-500 font-semibold">Terjawab</span>
                     <span id="mobile-nav-count" class="font-black text-indigo-600">0 / 0</span>
                 </div>
-                <button onclick="toggleMobileNav(); document.querySelector('button[\\@click\\.prevent]')?.click();"
+                <button onclick="toggleMobileNav(); window._examRunner?.finishExam();"
                     class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-black transition flex items-center justify-center gap-2">
                     <i class="fas fa-check-circle"></i> Kumpulkan Ujian
                 </button>
