@@ -958,29 +958,65 @@
                         try { const q = this.questions[this.currentIndex]; if(this.answers[q.id]) this.saveAnswer(q.id, this.answers[q.id]); } catch(e){}
 
                         if (typeof Swal !== 'undefined') {
-                            Swal.fire({
-                                title: 'Kumpulkan Ujian?',
-                                text: "Yakin ingin selesai?",
-                                icon: 'question',
-                                showCancelButton: true,
-                                confirmButtonText: 'Ya, Selesai',
-                                cancelButtonText: 'Batal',
-                                confirmButtonColor: '#10b981'
-                            }).then((result) => {
-                                if (result.isConfirmed) {
-                                    this.forceSubmit();
-                                } else {
-                                    // Matikan flag popup jika batal
-                                    setTimeout(() => window.isSystemPopup = false, 200);
-                                }
-                            });
-                        } else {
-                            if (confirm("Kumpulkan Ujian?")) {
-                                this.forceSubmit();
-                            } else {
-                                window.isSystemPopup = false;
-                            }
-                        }
+    Swal.fire({
+        title: 'Kumpulkan Ujian?',
+        icon: 'question',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Kumpulkan',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#94a3b8',
+        html: `
+            <p class="text-slate-500 text-sm mb-4">Pastikan semua jawaban sudah terisi sebelum mengumpulkan.</p>
+            <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:0.75rem;padding:1rem;margin-bottom:0.5rem">
+                <label style="display:flex;align-items:flex-start;gap:0.75rem;cursor:pointer;text-align:left">
+                    <input type="checkbox" id="swal-confirm-check"
+                        style="width:18px;height:18px;margin-top:2px;accent-color:#10b981;flex-shrink:0;cursor:pointer">
+                    <span style="font-size:0.85rem;font-weight:600;color:#334155;line-height:1.5">
+                        Saya yakin ingin mengakhiri ujian dan mengumpulkan semua jawaban saya.
+                    </span>
+                </label>
+            </div>
+        `,
+        didOpen: () => {
+            // Nonaktifkan tombol konfirmasi sampai checkbox dicentang
+            const confirmBtn = Swal.getConfirmButton();
+            const checkbox   = document.getElementById('swal-confirm-check');
+
+            confirmBtn.disabled = true;
+            confirmBtn.style.opacity = '0.4';
+            confirmBtn.style.cursor  = 'not-allowed';
+
+            checkbox.addEventListener('change', function () {
+                confirmBtn.disabled      = !this.checked;
+                confirmBtn.style.opacity = this.checked ? '1' : '0.4';
+                confirmBtn.style.cursor  = this.checked ? 'pointer' : 'not-allowed';
+            });
+        },
+        preConfirm: () => {
+            const checkbox = document.getElementById('swal-confirm-check');
+            if (!checkbox || !checkbox.checked) {
+                Swal.showValidationMessage('Centang kotak persetujuan terlebih dahulu.');
+                return false;
+            }
+            return true;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            this.forceSubmit();
+        } else {
+            setTimeout(() => window.isSystemPopup = false, 200);
+        }
+    });
+} else {
+    if (confirm("Kumpulkan Ujian?")) {
+        this.forceSubmit();
+    } else {
+        window.isSystemPopup = false;
+    }
+}
                     },
 
                     forceSubmit() {
