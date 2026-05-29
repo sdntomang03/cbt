@@ -207,7 +207,7 @@
                             <a href="#"
                                 class="w-full flex items-center justify-center gap-2 py-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl font-bold text-sm transition-all duration-300 border border-indigo-100 shadow-sm group">
                                 <i class="fas fa-lightbulb text-amber-500 group-hover:text-white transition-colors"></i>
-                                Pelajari Pembahasan
+                                Pembahasan
                             </a>
                             @endif
                             @elseif($session->is_open)
