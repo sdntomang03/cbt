@@ -47,22 +47,50 @@
                     @if(in_array($q->type, ['single_choice', 'complex_choice', 'true_false']))
                     <div class="space-y-3 mb-8 pl-0 sm:pl-4 border-l-2 border-slate-100">
                         @foreach($q->options as $opt)
-                        <div
-                            class="p-4 rounded-2xl border-2 transition-all flex items-start gap-4
-                                        {{ $opt->is_correct ? 'bg-emerald-50 border-emerald-400' : 'bg-slate-50 border-slate-100 opacity-70' }}">
 
+                        @php
+                        // Mengecek apakah opsi ini dipilih oleh siswa
+                        // (Membutuhkan variabel $studentAnswers dari Controller)
+                        $isStudentAnswer = false;
+                        if(isset($studentAnswers[$q->id])) {
+                        $ans = $studentAnswers[$q->id];
+                        // Handle pilihan ganda kompleks (array) maupun biasa (string/int)
+                        $isStudentAnswer = is_array($ans) ? in_array($opt->id, $ans) : ($ans == $opt->id);
+                        }
+
+                        // Konfigurasi warna default (Bukan kunci & tidak dipilih siswa)
+                        $bgClass = 'bg-slate-50 border-slate-100 opacity-70';
+                        $iconClass = 'fas fa-circle text-slate-300';
+
+                        if ($opt->is_correct) {
+                        // Jika ini adalah Kunci Jawaban Benar
+                        $bgClass = 'bg-emerald-50 border-emerald-400';
+                        $iconClass = 'fas fa-check-circle text-emerald-500 text-xl';
+                        } elseif ($isStudentAnswer && !$opt->is_correct) {
+                        // Jika ini dipilih siswa, TETAPI Salah
+                        $bgClass = 'bg-rose-50 border-rose-400';
+                        $iconClass = 'fas fa-times-circle text-rose-500 text-xl';
+                        }
+                        @endphp
+
+                        <div class="p-4 rounded-2xl border-2 transition-all flex items-start gap-4 {{ $bgClass }}">
                             <div class="mt-1 shrink-0">
-                                @if($opt->is_correct)
-                                <i class="fas fa-check-circle text-emerald-500 text-xl"></i>
-                                @else
-                                <i class="fas fa-circle text-slate-300"></i>
-                                @endif
+                                <i class="{{ $iconClass }}"></i>
                             </div>
 
-                            <div class="prose prose-sm max-w-none text-slate-700 overflow-x-auto">
+                            <div class="flex-1 prose prose-sm max-w-none text-slate-700 overflow-x-auto">
                                 {!! $opt->option_text !!}
                             </div>
 
+                            {{-- Tampilkan lencana (badge) jika ini adalah opsi yang diklik siswa --}}
+                            @if($isStudentAnswer)
+                            <div class="shrink-0 mt-0.5">
+                                <span
+                                    class="text-[10px] bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full font-black tracking-widest uppercase shadow-sm">
+                                    Jawaban Kamu
+                                </span>
+                            </div>
+                            @endif
                         </div>
                         @endforeach
                     </div>
@@ -76,7 +104,6 @@
                             <h4 class="font-black text-indigo-900 tracking-wide text-sm uppercase">Pembahasan Detail
                             </h4>
                         </div>
-
                         <div
                             class="prose prose-indigo max-w-none text-slate-700 text-sm md:text-base leading-relaxed overflow-x-auto">
                             {!! $q->explanation !!}
@@ -93,7 +120,7 @@
             </div>
 
             <div class="mt-10 text-center">
-                <a href="{{ route('dashboard') }}"
+                <a href="{{ route('student.dashboard') }}"
                     class="inline-flex items-center gap-2 bg-slate-800 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-700 transition-colors">
                     <i class="fas fa-arrow-left"></i> Kembali ke Dashboard
                 </a>
