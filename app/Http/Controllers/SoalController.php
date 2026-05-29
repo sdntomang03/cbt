@@ -16,12 +16,22 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SoalController extends Controller
 {
-    public function index(Exam $exam)
+    public function index(Request $request, Exam $exam)
     {
+        // Tangkap parameter dari URL (jika ada)
+        $search = $request->input('search');
+        $perPage = $request->input('per_page', 10); // Default tampilkan 10 baris
+
         $questions = $exam->questions()
             ->with(['options', 'matches', 'subject', 'level'])
+            ->when($search, function ($query) use ($search) {
+                // Pencarian berdasarkan isi narasi pertanyaan
+                $query->where('content', 'LIKE', "%{$search}%");
+            })
             ->latest()
-            ->get();
+            // Ganti get() dengan paginate() dan bawa parameter URL-nya
+            ->paginate($perPage)
+            ->withQueryString();
 
         return view('soal.index', compact('exam', 'questions'));
     }
