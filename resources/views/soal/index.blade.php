@@ -40,82 +40,83 @@
     </style>
 
     <x-slot name="header">
-        <div class="flex flex-col md:flex-row justify-between items-center gap-4 py-2">
-            <div class="flex items-center gap-5">
+        {{-- Header Bank Soal - Modern Redesign --}}
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 py-2">
+
+            {{-- Kiri: Navigasi & Judul --}}
+            <div class="flex items-center gap-4">
                 <a href="{{ route('admin.exams.index') }}"
-                    class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-slate-500 hover:text-indigo-600 shadow-sm border border-slate-100 transition-all hover:-translate-x-1"><i
-                        class="fas fa-arrow-left"></i></a>
-                <div
-                    class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200 rotate-3">
-                    <i class="fas fa-layer-group text-white text-2xl"></i>
+                    class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 shadow-sm border border-slate-200 transition-all hover:-translate-x-0.5 shrink-0">
+                    <i class="fas fa-arrow-left text-sm"></i>
+                </a>
+
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-11 h-11 rounded-xl bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-200 shrink-0">
+                        <i class="fas fa-layer-group text-white text-base"></i>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Bank
+                            Soal</p>
+                        <h2
+                            class="font-black text-lg text-slate-800 tracking-tight leading-tight truncate max-w-[260px] lg:max-w-[400px]">
+                            {{ $exam->title }}
+                        </h2>
+                    </div>
                 </div>
-                <div>
-                    <div class="flex items-center gap-2 mb-1"><span
-                            class="px-3 py-1 rounded-full bg-indigo-100 text-indigo-600 text-[10px] font-black uppercase tracking-wider">Manajemen
-                            Bank Soal</span></div>
-                    <h2 class="font-black text-2xl md:text-3xl text-slate-800 tracking-tight">{{ $exam->title }}</h2>
+
+                {{-- Badge total soal --}}
+                <div
+                    class="hidden sm:flex flex-col items-center justify-center bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-2 ml-1">
+                    <span class="text-2xl font-black text-indigo-600 leading-none">{{ $questions->count() }}</span>
+                    <span
+                        class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider leading-none mt-0.5">Soal</span>
                 </div>
             </div>
-            <div
-                class="flex items-center gap-2 md:gap-3 bg-white/80 backdrop-blur p-2 pl-6 rounded-full shadow-sm border border-white">
 
-                {{-- 1. Counter Total Soal --}}
-                <div class="flex flex-col items-end pr-2 md:pr-4">
-                    <span class="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1">Total Soal</span>
-                    <span class="text-2xl font-black text-indigo-600 leading-none">{{ $questions->count() }}</span>
-                </div>
+            {{-- Kanan: Aksi --}}
+            <div class="flex items-center gap-2 flex-wrap">
 
-                {{-- Garis Pemisah (Garis Vertikal) --}}
-                <div class="w-px h-8 bg-slate-200 hidden sm:block"></div>
-
-                {{-- ========================================== --}}
-                {{-- 2. FORM IMPORT EXCEL & JSON (TERSEMBUNYI) --}}
-                {{-- ========================================== --}}
-
-                {{-- Form Excel --}}
+                {{-- Form Import Excel (tersembunyi) --}}
                 <form action="{{ route('admin.exams.soal.import', $exam->id) }}" method="POST"
                     enctype="multipart/form-data" id="formImportExcel" class="hidden">
                     @csrf
-                    <input type="file" name="file_excel" id="fileExcel" accept=".xlsx, .xls, .csv"
+                    <input type="file" name="file_excel" id="fileExcel" accept=".xlsx,.xls,.csv"
                         onchange="document.getElementById('formImportExcel').submit()">
                 </form>
 
-
-
-
-
-                {{-- 3. TOMBOL DOWNLOAD TEMPLATE --}}
-                <a href="{{ route('admin.soal.template') }}" target="_blank"
-                    class="bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 px-4 md:px-5 py-3.5 rounded-full font-bold transition-all flex items-center gap-2 text-sm shadow-sm bounce-active"
-                    title="Download Template Excel">
-                    <i class="fas fa-file-download text-slate-400"></i>
-                    <span class="hidden lg:inline">Template</span>
+                {{-- Template --}}
+                <a href="{{ route('admin.soal.template') }}" target="_blank" title="Download Template Excel"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50 font-semibold text-sm transition-all shadow-sm">
+                    <i class="fas fa-file-download text-slate-400 text-xs"></i>
+                    <span class="hidden md:inline">Template</span>
                 </a>
 
-                {{-- 4. TOMBOL IMPORT EXCEL --}}
-                <button type="button" onclick="document.getElementById('fileExcel').click()"
-                    class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-100 px-4 md:px-5 py-3.5 rounded-full font-bold transition-all flex items-center gap-2 text-sm shadow-sm bounce-active"
-                    title="Import dari Excel">
-                    <i class="fas fa-file-excel text-emerald-500"></i>
-                    <span class="hidden lg:inline">Excel</span>
+                {{-- Import Excel --}}
+                <button type="button" onclick="document.getElementById('fileExcel').click()" title="Import dari Excel"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-semibold text-sm transition-all shadow-sm">
+                    <i class="fas fa-file-excel text-emerald-500 text-xs"></i>
+                    <span class="hidden md:inline">Excel</span>
                 </button>
 
-                {{-- 5. TOMBOL IMPORT JSON (BARU) --}}
-
+                {{-- Import JSON --}}
                 <a href="{{ route('admin.soal.import_json_view', $exam) }}"
-                    class="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-100 px-4 md:px-5 py-3.5 rounded-full font-bold transition-all flex items-center gap-2 text-sm shadow-sm bounce-active">
-                    <i class="fas fa-file-code text-amber-500"></i>
-                    <span class="hidden sm:inline">Import Json</span>
+                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 font-semibold text-sm transition-all shadow-sm">
+                    <i class="fas fa-file-code text-amber-500 text-xs"></i>
+                    <span class="hidden md:inline">JSON</span>
                 </a>
 
+                {{-- Pemisah --}}
+                <div class="w-px h-8 bg-slate-200 hidden sm:block mx-1"></div>
 
-                {{-- 6. TOMBOL MANUAL (Bawaan Anda) --}}
+                {{-- Buat Manual --}}
                 <a href="{{ route('admin.exams.soal.create', $exam) }}"
-                    class="bg-slate-900 hover:bg-black text-white px-6 md:px-8 py-3.5 rounded-full shadow-xl shadow-slate-300 transition-all bounce-active font-bold flex items-center gap-2 md:gap-3 ml-1 text-sm md:text-base">
-                    <i class="fas fa-plus-circle text-indigo-400"></i>
-                    <span class="hidden sm:inline">Buat Manual</span>
+                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition-all shadow-md shadow-indigo-200">
+                    <i class="fas fa-plus text-xs"></i>
+                    <span>Buat Soal</span>
                 </a>
             </div>
+
         </div>
     </x-slot>
 
