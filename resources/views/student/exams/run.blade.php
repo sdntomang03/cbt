@@ -336,8 +336,8 @@
     <script>
         window.initialExamState = {
             count: {{ (int) $pivot->violation_count }},
-            isLocked: false, // Karena masuk blok else, pasti false
-            config: @json($config) // <-- TAMBAHAN: Kirim pengaturan dari DB ke JS
+            isLocked: false,
+            config: @json($config)
         };
     </script>
 
