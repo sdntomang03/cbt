@@ -12,6 +12,7 @@ use App\Models\StudentAnswer;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Vinkla\Hashids\Facades\Hashids;
 
 class StudentExamController extends Controller
 {
@@ -147,14 +148,26 @@ class StudentExamController extends Controller
     // ==============================================================
     // METHOD BARU: Melayani Request AJAX per Soal (AMAN & SENSOR)
     // ==============================================================
-    public function fetchSingleQuestion(Request $request, Exam $exam, $question_id)
+    // Gunakan parameter $hashed_exam_id sesuai route
+    public function fetchSingleQuestion(Request $request, $hashed_exam_id, $question_id)
     {
-        $question = Question::where('exam_id', $exam->id)
+        // 1. Decode Hashids
+        $decodedExam = Hashids::decode($hashed_exam_id);
+
+        // Cegah error jika orang mencoba memanipulasi URL dengan teks ngawur
+        if (empty($decodedExam)) {
+            return response()->json(['error' => 'Ujian tidak valid'], 404);
+        }
+
+        $realExamId = $decodedExam[0];
+
+        // 2. Cari Soal menggunakan ID Asli ($realExamId)
+        $question = Question::where('exam_id', $realExamId)
             ->where('id', $question_id)
-            ->select(['id', 'exam_id', 'type', 'content', 'subject_id', 'level_id']) // Sensor kolom explanation
+            ->select(['id', 'exam_id', 'type', 'content', 'subject_id', 'level_id']) // Sensor penjelasan
             ->with([
                 'options' => function ($query) {
-                    $query->select(['id', 'question_id', 'option_text']); // Sensor kolom is_correct
+                    $query->select(['id', 'question_id', 'option_text']); // Sensor kunci jawaban
                 },
                 'matches' => function ($query) {
                     $query->select(['id', 'question_id', 'premise_text', 'target_text']);

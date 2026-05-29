@@ -189,7 +189,9 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
     Route::post('/math-exam/{id}/submit', [StudentMathExamController::class, 'submit'])->name('student.math.submit');
     Route::get('/math-exam/{id}/result', [StudentMathExamController::class, 'result'])->name('student.math.result');
     Route::post('/math-exam/{id}/autosave', [StudentMathExamController::class, 'autosave'])->name('student.math.autosave');
-    Route::get('/student/exam/{exam}/question/{question_id}', [StudentExamController::class, 'fetchSingleQuestion'])->name('student.exam.fetch_question');
+    // Ubah {exam} menjadi {hashed_exam_id}
+    Route::get('/student/exam/{hashed_exam_id}/question/{question_id}', [StudentExamController::class, 'fetchSingleQuestion'])
+        ->name('student.exam.fetch_question');
 });
 
 // ==================================================================
