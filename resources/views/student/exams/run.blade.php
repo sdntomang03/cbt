@@ -402,7 +402,7 @@
     @json($flags ?? []),
     {{ auth()->id() }},
     @json($config),
-    {{ $exam->id }}
+    {{ $exam->hashid }}
 )'>
 
         <div
@@ -758,7 +758,7 @@
             Alpine.data('examRunner', (questionIds, initialTime, existingAnswers, initialFlags, userId, config, examId) => ({
                 questionIds: questionIds,
                 q: null,
-                examId: examId,
+                hashedExamId: hashedExamId,
                 isLoading: true,
                 cachedQuestions: {},
                 currentIndex: 0,
@@ -806,7 +806,7 @@
                     }
 
                     try {
-                        const res = await axios.get(`{{ url('/student/exam') }}/${this.examId}/question/${qId}`);
+                        const res = await axios.get(`/student/exam/${this.hashedExamId}/question/${qId}`);
                         let fetchedQuestion = res.data.question;
 
                         if (this.config.random_answer && ['single_choice','complex_choice', 'true_false', 'true_false_multi'].includes(fetchedQuestion.type) && fetchedQuestion.options) {

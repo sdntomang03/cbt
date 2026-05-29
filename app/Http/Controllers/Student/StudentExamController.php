@@ -152,26 +152,31 @@ class StudentExamController extends Controller
     {
         $user = Auth::user();
 
-        // Pastikan siswa memang terdaftar di sesi ujian ini
+        // Pastikan siswa terdaftar di sesi ujian ini
         $session = ExamSession::where('exam_id', $exam->id)
             ->whereHas('students', fn ($q) => $q->where('users.id', $user->id))
             ->firstOrFail();
 
-        // Cek status — tolak jika terkunci atau sudah selesai
         $examUser = ExamSessionUser::where('exam_session_id', $session->id)
             ->where('user_id', $user->id)
             ->firstOrFail();
 
-        if ($examUser->is_locked || $session->students()->where('users.id', $user->id)->first()->pivot->status === 'completed') {
-            return response()->json(['error' => 'Akses ditolak'], 403);
+        // Tolak jika terkunci atau sudah selesai
+        if ($examUser->is_locked) {
+            return response()->json(['error' => 'Ujian terkunci'], 403);
         }
 
-        // Pastikan soal memang milik exam ini
+        $pivot = $session->students()->where('users.id', $user->id)->first()->pivot;
+        if ($pivot->status === 'completed') {
+            return response()->json(['error' => 'Ujian sudah selesai'], 403);
+        }
+
+        // Pastikan soal memang milik exam ini (keamanan)
         $question = Question::where('exam_id', $exam->id)
             ->where('id', $question_id)
             ->select(['id', 'exam_id', 'type', 'content'])
             ->with([
-                'options' => fn ($q) => $q->select(['id', 'question_id', 'option_text']), // tanpa is_correct
+                'options' => fn ($q) => $q->select(['id', 'question_id', 'option_text']),
                 'matches' => fn ($q) => $q->select(['id', 'question_id', 'premise_text', 'target_text']),
             ])
             ->firstOrFail();
