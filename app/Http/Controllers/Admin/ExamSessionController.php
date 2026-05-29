@@ -228,35 +228,40 @@ class ExamSessionController extends Controller
         return redirect()->back()->with('success', count($request->student_ids).' siswa berhasil dikeluarkan dari sesi ujian.');
     }
 
-    public function explanation($hashedId) // Ubah nama variabel agar tidak bingung
+    public function explanation($hashedId)
     {
-        // 1. Decode ID
-        // Hashids::decode mengembalikan bentuk Array, ambil elemen ke-0
+        // 1. Decode ID Sesi menggunakan Hashids
         $decodedArray = Hashids::decode($hashedId);
 
-        // Jika array kosong (artinya orang mencoba menebak URL dengan teks ngawur)
         if (empty($decodedArray)) {
-            abort(404, 'Halaman tidak ditemukan atau link tidak valid.');
+            abort(404, 'Link tidak valid atau sesi tidak ditemukan.');
         }
 
-        $realId = $decodedArray[0];
+        $realSessionId = $decodedArray[0];
 
-        // 2. Ambil data dengan ID asli
-        $session = ExamSession::with(['exam.questions.options'])->findOrFail($realId);
-        dd($session); // Debug: Pastikan data sesi ujian sudah benar
-        // 3. Lapis Keamanan
-        if ($session->user_id !== auth()->id()) {
-            dd('ID Sesi: '.$session->id.' | ID User di Sesi: '.$session->user_id.' | ID User Auth: '.auth()->id());
+        // 2. Ambil Data Master Sesi & Soal
+        $examSession = ExamSession::with(['exam.questions.options'])->findOrFail($realSessionId);
+
+        // 3. Ambil Data Progres Siswa (dari tabel exam_session_user)
+        $participant = DB::table('exam_session_user')
+            ->where('exam_session_id', $realSessionId)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        // 4. Lapis Keamanan yang sudah Disesuaikan dengan Skema Anda
+        if (! $participant) {
+            abort(403, 'Akses ditolak. Anda tidak terdaftar di sesi ujian ini.');
         }
 
-        if ($session->user_status !== 'completed') {
+        if ($participant->status !== 'completed') {
             abort(403, 'Anda belum menyelesaikan ujian ini.');
         }
 
-        if (! $session->exam->show_explanation) {
+        if (! $examSession->exam->show_explanation) {
             abort(403, 'Fitur pembahasan tidak diaktifkan untuk ujian ini.');
         }
 
-        return view('student.exams.explanation', compact('session'));
+        // 5. Lempar data ke View
+        return view('student.exams.explanation', compact('examSession', 'participant'));
     }
 }
