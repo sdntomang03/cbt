@@ -198,6 +198,53 @@ document.addEventListener('alpine:init', () => {
         }
 
         // =========================================================
+        // PEMINDAI OTOMATIS: Bersihkan Base64 yang sudah terlanjur masuk
+        // =========================================================
+        function scanAndUploadBase64Images(quill) {
+            // Cari semua tag gambar di dalam editor
+            const images = quill.root.querySelectorAll('img');
+
+            images.forEach(img => {
+                const src = img.src;
+
+                // Jika gambar tersebut berupa Base64
+                if (src && src.startsWith('data:image')) {
+                    img.style.opacity = '0.4';
+                    img.title = 'Sedang membersihkan & mengunggah...';
+
+                    fetch(src)
+                        .then(res => res.blob())
+                        .then(blob => {
+                            const ext = blob.type.split('/')[1] || 'png';
+                            const file = new File([blob], `cleaned-image.${ext}`, { type: blob.type });
+
+                            const formData = new FormData();
+                            formData.append('image', file);
+
+                            // Unggah ke server
+                            axios.post('{{ route("admin.soal.upload-image") }}', formData, {
+                                headers: { 'Content-Type': 'multipart/form-data' },
+                            })
+                            .then(response => {
+                                if (response.data.url) {
+                                    // Ganti Base64 yang panjang dengan URL server lokal
+                                    img.src = response.data.url;
+                                    img.style.opacity = '1';
+                                    img.removeAttribute('title');
+
+                                    // Beri tahu Quill & Alpine bahwa konten telah diperbarui
+                                    quill.emitter.emit('text-change');
+                                }
+                            })
+                            .catch(err => {
+                                img.style.opacity = '1';
+                                console.error('Gagal membersihkan gambar base64:', err);
+                            });
+                        });
+                }
+            });
+        }
+        // =========================================================
         // HANDLER PASTE GAMBAR & TEKS - Hybrid Clipboard Quill
         // =========================================================
         function setupPasteHandler(quill) {
@@ -441,7 +488,6 @@ document.addEventListener('alpine:init', () => {
             const el = document.getElementById(elId);
             if (!el) return null;
 
-            // Masukkan HTML secara mentah sebelum Quill dibentuk
             el.innerHTML = initialContent || '';
             window.katex = katex;
 
@@ -462,6 +508,9 @@ document.addEventListener('alpine:init', () => {
                 onChangeCb(html === '<p><br></p>' ? '' : html);
             });
 
+            // --- JALANKAN PEMINDAI BASE64 DI SINI ---
+            setTimeout(() => scanAndUploadBase64Images(editor), 500);
+
             return editor;
         }
 
@@ -479,7 +528,6 @@ document.addEventListener('alpine:init', () => {
             let el = wrapper.querySelector('.quill-option-target') || wrapper.querySelector('.ql-container');
             if (!el) return;
 
-            // Sisipkan initialHtml langsung ke dalam wadah target
             el.outerHTML = `<div class="quill-option-target">${initialHtml || ''}</div>`;
             el = wrapper.querySelector('.quill-option-target');
 
@@ -501,6 +549,9 @@ document.addEventListener('alpine:init', () => {
 
             optionEditors[key] = q;
             setupPasteHandler(q);
+
+            // --- JALANKAN PEMINDAI BASE64 DI SINI ---
+            setTimeout(() => scanAndUploadBase64Images(q), 500);
         }
 
         // =========================================================
