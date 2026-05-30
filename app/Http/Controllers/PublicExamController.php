@@ -35,7 +35,12 @@ class PublicExamController extends Controller
         // 4. Query utama untuk mengambil data ujian
         $publicExams = Exam::query()
             ->where('is_public', true)
-            ->with(['subject', 'level'])
+                    // Memfilter berdasarkan relasi ExamType yang namanya 'TKA'
+            ->whereHas('examType', function ($query) {
+                $query->where('name', 'TKA'); // Sesuaikan huruf besar/kecil dengan yang ada di database Anda
+            })
+                    // Tambahkan 'examType' agar tidak terjadi N+1 Query Problem
+            ->with(['subject', 'level', 'examType'])
             ->when($request->filled('level'), function ($query) use ($request) {
                 $query->where('level_id', $request->level);
             })
