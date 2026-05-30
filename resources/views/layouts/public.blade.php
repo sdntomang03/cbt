@@ -41,8 +41,8 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     </noscript>
 
-    @if(request()->is('public/exams/detail/*') || request()->is('public/exams/run/*') ||
-    request()->is('public/exams/result/*'))
+    @if(request()->is('tryout/detail/*') || request()->is('tryout/run/*') ||
+    request()->is('tryout/result/*'))
     <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
         onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
