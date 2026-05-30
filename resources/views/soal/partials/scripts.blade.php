@@ -198,7 +198,7 @@ document.addEventListener('alpine:init', () => {
             .finally(() => loader.remove());
         }
 
-        // =========================================================
+  // =========================================================
         // HANDLER PASTE GAMBAR & TEKS - Hybrid Clipboard Quill
         // =========================================================
         function setupPasteHandler(quill) {
@@ -273,6 +273,7 @@ document.addEventListener('alpine:init', () => {
                 // Jika isHtmlPaste bernilai TRUE, biarkan Quill memprosesnya lewat addMatcher('IMG') di atas.
             }, true);
         }
+
         // =========================================================
         // HANDLER TOMBOL IMAGE
         // =========================================================
