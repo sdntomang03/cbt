@@ -44,6 +44,46 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+
+        /* 1. Memaksa Text Alignment untuk Paragraf & Teks Biasa */
+        .prose .ql-align-center {
+            text-align: center !important;
+        }
+
+        .prose .ql-align-right {
+            text-align: right !important;
+        }
+
+        .prose .ql-align-justify {
+            text-align: justify !important;
+        }
+
+        /* 2. Fix List (UL/OL): Agar titik/angka ikut bergeser ke tengah bersama teks */
+        .prose li.ql-align-center,
+        .prose li.ql-align-right {
+            list-style-position: inside !important;
+        }
+
+        /* 3. Fix List (UL/OL): Menghapus padding kiri bawaan Tailwind agar benar-benar simetris di tengah */
+        .prose ul:has(> li.ql-align-center),
+        .prose ol:has(> li.ql-align-center) {
+            padding-left: 0 !important;
+        }
+
+        /* 4. Fix Gambar (Images): Memaksa gambar yang berada di dalam baris 'center' atau memiliki class 'center' untuk ke tengah */
+        .prose .ql-align-center img,
+        .prose img.ql-align-center {
+            display: block !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+        }
+
+        /* Tambahan opsional: Jika ada gambar yang diratakan kanan */
+        .prose .ql-align-right img,
+        .prose img.ql-align-right {
+            display: block !important;
+            margin-left: auto !important;
+            margin-right: 0 !important;
     </style>
     @stack('styles')
 </head>
