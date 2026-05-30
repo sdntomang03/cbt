@@ -12,6 +12,45 @@
             border-top-right-radius: 1rem;
         }
 
+        .ql-editHtml {
+            width: 36px !important;
+        }
+
+        .ql-editHtml::after {
+            content: "</>";
+            font-family: 'Nunito', sans-serif;
+            font-weight: 900;
+            font-size: 13px;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            transition: color 0.2s;
+        }
+
+        .ql-editHtml:hover::after,
+        .ql-editHtml.ql-active::after {
+            color: #4f46e5;
+        }
+
+        .html-source-editor {
+            width: 100%;
+            min-height: 250px;
+            font-family: 'IBM Plex Mono', 'Courier New', monospace;
+            font-size: 13px;
+            padding: 16px;
+            border: none !important;
+            background-color: #0f172a;
+            color: #38bdf8;
+            line-height: 1.6;
+            resize: vertical;
+            outline: none;
+            display: none;
+            border-bottom-left-radius: 1rem;
+            border-bottom-right-radius: 1rem;
+        }
+
         .ql-latexTemplate {
             width: 36px !important;
         }
@@ -317,6 +356,38 @@
     <script src="https://fastly.jsdelivr.net/npm/quill-resize-module@2.1.2/dist/resize.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
+        function toggleHtmlEdit(quill) {
+    const container = quill.container;
+    const wrapper   = container.parentNode;
+
+    let txtArea = wrapper.querySelector('.html-source-editor');
+    if (!txtArea) {
+        txtArea           = document.createElement('textarea');
+        txtArea.className = 'html-source-editor';
+        wrapper.insertBefore(txtArea, container.nextSibling);
+        txtArea.addEventListener('input', function () {
+            quill.root.innerHTML = this.value;
+            quill.emitter.emit('text-change');
+        });
+    }
+
+    const qlEditor   = container.querySelector('.ql-editor');
+    const toolbarBtn = quill.getModule('toolbar').container
+                           .querySelector('.ql-editHtml');
+    const isHtmlMode = txtArea.style.display === 'block';
+
+    if (isHtmlMode) {
+        quill.clipboard.dangerouslyPasteHTML(txtArea.value);
+        txtArea.style.display  = 'none';
+        qlEditor.style.display = 'block';
+        toolbarBtn?.classList.remove('ql-active');
+    } else {
+        txtArea.value          = quill.root.innerHTML;
+        txtArea.style.display  = 'block';
+        qlEditor.style.display = 'none';
+        toolbarBtn?.classList.add('ql-active');
+    }
+}
         document.addEventListener('alpine:init', () => {
      // ── Daftarkan Modul Resize secara Global (Dengan Pengecekan) ──
 if (window.Quill && window.QuillResize) {
@@ -343,7 +414,7 @@ if (window.Quill && window.QuillResize) {
                             ['bold', 'italic', 'underline', 'strike'],
                             [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                             // Masukkan 'latexTemplate' di samping 'image' dan 'video'
-                            ['link', 'image', 'video', 'latexTemplate'],
+                             ['link', 'image', 'video', 'latexTemplate', 'editHtml'],
                             ['clean']
                         ],
                         handlers: {
