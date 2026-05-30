@@ -55,15 +55,24 @@
 
                 {{-- KIRI: Konten Artikel (Materi/Panduan) --}}
                 <div class="lg:w-2/3">
-                    <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8 sm:p-12 overflow-hidden">
-                        @if($exam->thumbnail)
-                        <img src="{{ asset('storage/' . $exam->thumbnail) }}" alt="{{ $exam->title }}"
-                            class="w-full h-auto rounded-2xl mb-10 object-cover shadow-sm border border-slate-100">
-                        @endif
+                    {{-- Mengubah div menjadi article untuk semantik SEO --}}
+                    <article
+                        class="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8 sm:p-12 overflow-hidden">
 
-                        <h2 class="text-2xl font-black text-slate-800 mb-6 border-b border-slate-100 pb-4">Informasi &
-                            Panduan Ujian</h2>
+                        {{-- Mengelompokkan elemen pembuka dengan tag header --}}
+                        <header>
+                            @if($exam->thumbnail)
+                            <img src="{{ asset('storage/' . $exam->thumbnail) }}"
+                                alt="Banner informasi ujian {{ $exam->title }}" loading="lazy"
+                                class="w-full h-auto rounded-2xl mb-8 sm:mb-10 object-cover shadow-sm border border-slate-100">
+                            @endif
 
+                            <h2 class="text-2xl font-black text-slate-800 mb-6 border-b border-slate-100 pb-4">
+                                Informasi & Panduan Ujian
+                            </h2>
+                        </header>
+
+                        {{-- Konten utama artikel --}}
                         <div class="prose prose-indigo prose-lg max-w-none text-slate-600">
                             @if($exam->content)
                             {!! $exam->content !!}
@@ -73,12 +82,13 @@
                             <ul>
                                 <li>Berdoalah sebelum mengerjakan.</li>
                                 <li>Perhatikan batas waktu yang tersedia.</li>
-                                <li>Jika menggunakan Sensor Layar, dilarang berpindah *tab* atau mengecilkan *browser*.
-                                </li>
+                                <li>Jika menggunakan Sensor Layar, dilarang berpindah <em>tab</em> atau mengecilkan
+                                    <em>browser</em>.</li>
                             </ul>
                             @endif
                         </div>
-                    </div>
+
+                    </article>
                 </div>
 
                 {{-- KANAN: Sidebar Statistik & Tombol Pintar --}}
