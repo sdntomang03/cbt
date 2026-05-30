@@ -3,11 +3,15 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css">
 
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js"></script>
+
+<script>
+    window.katex = katex;
+</script>
+
 <script src="https://fastly.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="https://fastly.jsdelivr.net/npm/quill-resize-module@2.1.2/dist/resize.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-
 <style>
     .ql-toolbar.ql-snow {
         border: none !important;

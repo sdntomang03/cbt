@@ -7,6 +7,7 @@ use App\Models\Exam;
 use App\Models\Level;
 use App\Models\Question;
 use App\Models\Subject;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -80,7 +81,7 @@ class SoalController extends Controller
                     'message' => 'Soal dan pilihan jawaban berhasil disimpan!',
                 ]);
             });
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Gagal menyimpan soal: '.$e->getMessage());
 
             return response()->json([
@@ -164,9 +165,9 @@ class SoalController extends Controller
                         ]);
                     }
                 }
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 // Jika baris tertentu gagal, lempar exception agar DB::transaction melakukan Rollback
-                throw new \Exception('Gagal menyimpan detail pada baris ke-'.($index + 1).'. Pesan: '.$e->getMessage());
+                throw new Exception('Gagal menyimpan detail pada baris ke-'.($index + 1).'. Pesan: '.$e->getMessage());
             }
         }
     }
@@ -196,7 +197,7 @@ class SoalController extends Controller
             Excel::import(new QuestionImport($exam, Auth::id(), Auth::user()->school_id), $request->file('file_excel'));
 
             return redirect()->back()->with('success', 'Soal berhasil diimport dari Excel!');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return redirect()->back()->with('error', 'Gagal mengimport soal. Pastikan format sesuai template. Error: '.$e->getMessage());
         }
     }
@@ -311,7 +312,7 @@ class SoalController extends Controller
             return redirect()->route('admin.exams.soal.index', $exam)
                 ->with('success', "Berhasil menambahkan $jumlahDisimpan soal ke dalam ujian.");
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Gagal simpan JSON soal: '.$e->getMessage());
 
@@ -322,29 +323,32 @@ class SoalController extends Controller
 
     public function uploadImage(Request $request)
     {
-        // 1. JIKA YANG MASUK ADALAH FILE FISIK ATAU BASE64
+        // 1. FILE FISIK (Misal: dari Snipping Tool / Upload Manual)
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('soal_images', 'public');
 
             return response()->json(['url' => asset('storage/'.$path)]);
         }
 
-        // 2. JIKA YANG MASUK ADALAH URL DARI WEBSITE LAIN (BYPASS CORS)
+        // 2. BYPASS URL EKSTERNAL (Dari Copy-Paste Website)
         if ($request->filled('image_url')) {
             try {
-                // Server Laravel menyamar sebagai Browser (User-Agent) untuk mendownload gambar
-                $response = Http::withHeaders([
-                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                ])->get($request->image_url);
+                // Menggunakan withOptions(['verify' => false]) agar kebal dari error SSL Certificate
+                $response = Http::withOptions(['verify' => false])
+                    ->withHeaders([
+                        'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
+                    ])
+                    ->get($request->image_url);
 
                 if ($response->successful()) {
-                    // Ambil ekstensi gambar
-                    $contentType = $response->header('Content-Type');
                     $ext = 'png';
+                    $contentType = $response->header('Content-Type');
+
                     if ($contentType) {
-                        $extParts = explode('/', $contentType);
-                        if (isset($extParts[1])) {
-                            $ext = explode(';', $extParts[1])[0]; // contoh: memecah "png;charset=UTF-8"
+                        $parts = explode('/', $contentType);
+                        if (isset($parts[1])) {
+                            // Ambil hanya huruf ekstensi (misal png, jpg)
+                            $ext = preg_replace('/[^a-zA-Z0-9]/', '', explode(';', $parts[1])[0]);
                         }
                     }
 
@@ -354,11 +358,15 @@ class SoalController extends Controller
 
                     return response()->json(['url' => asset('storage/'.$filename)]);
                 }
-            } catch (\Exception $e) {
-                return response()->json(['error' => 'Gagal mendownload gambar eksternal'], 500);
+
+                return response()->json(['error' => 'Web sumber menolak akses ditarik (Status: '.$response->status().')'], 400);
+
+            } catch (Exception $e) {
+                // Jika error, kembalikan pesan jelas, bukan blank 500
+                return response()->json(['error' => 'Server gagal mendownload: '.$e->getMessage()], 500);
             }
         }
 
-        return response()->json(['error' => 'Tidak ada gambar yang diunggah'], 400);
+        return response()->json(['error' => 'Tidak ada gambar yang diproses'], 400);
     }
 }
