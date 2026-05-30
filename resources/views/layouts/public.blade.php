@@ -6,7 +6,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $pageTitle ?? 'CBT Pro' }}</title>
+    <title>{{ $pageTitle ?? 'CBT Pro - Platform Tryout Online' }}</title>
+    <meta name="description"
+        content="{{ $metaDescription ?? 'Platform simulasi ujian dan tryout online terbaik dengan format CBT.' }}">
+
+    @if(isset($metaKeywords))
+    <meta name="keywords" content="{{ $metaKeywords }}">
+    @endif
+
+    @if(request()->hasAny(['page', 'level', 'subject']))
+    <meta name="robots" content="noindex, follow">
+    <link rel="canonical" href="{{ url()->current() }}" />
+    @else
+    <link rel="canonical" href="{{ $canonicalUrl ?? url()->current() }}" />
+    @endif
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{ $pageTitle ?? 'CBT Pro' }}">
+    <meta property="og:description" content="{{ $metaDescription ?? 'Platform simulasi ujian dan tryout online.' }}">
+    <meta property="og:url" content="{{ url()->current() }}">
+    @if(isset($metaImage))
+    <meta property="og:image" content="{{ asset('storage/' . $metaImage) }}">
+    @endif
+
     <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -19,14 +41,16 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     </noscript>
 
+    @if(request()->is('public/exams/detail/*') || request()->is('public/exams/run/*') ||
+    request()->is('public/exams/result/*'))
     <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
         onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     </noscript>
-
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    @endif
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
