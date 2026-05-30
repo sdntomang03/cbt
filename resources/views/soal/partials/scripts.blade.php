@@ -135,8 +135,7 @@
 
 <script>
     // ── Setup CSRF Axios ──
-axios.defaults.headers.common['X-CSRF-TOKEN'] =
-    document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
 // ── Daftarkan Modul Resize secara Global ──
 if (window.Quill && window.QuillResize) {
@@ -202,56 +201,41 @@ document.addEventListener('alpine:init', () => {
         // HANDLER PASTE GAMBAR & TEKS - Hybrid Clipboard Quill
         // =========================================================
         function setupPasteHandler(quill) {
-
-            // Mencegah Quill menyisipkan gambar base64 atau URL luar secara langsung
             quill.clipboard.addMatcher('IMG', function (node, delta) {
                 const src = node.src;
                 if (!src) return new quill.constructor.import('delta')();
 
-                // Proses asinkron untuk mendownload gambar secara paksa
                 const processImage = async () => {
                     try {
                         let blob;
                         let filename = 'pasted-image.png';
 
                         if (src.startsWith('data:image')) {
-                            // 1. Tangani Base64 (Gambar yang menempel langsung di HTML)
                             const res = await fetch(src);
                             blob = await res.blob();
                         } else if (src.startsWith('http')) {
-                            // 2. Tangani URL Web Lain (Download ke server kita)
                             const res = await fetch(src);
-                            if (!res.ok) throw new Error('Gagal mengambil gambar dari sumber asal');
+                            if (!res.ok) throw new Error('Gagal mendownload gambar sumber asal');
                             blob = await res.blob();
-
-                            // Coba dapatkan ekstensi asli gambar
                             const ext = blob.type.split('/')[1] || 'png';
                             filename = `external-image.${ext}`;
                         }
 
-                        // Jika berhasil menjadi file, jalankan fungsi upload ke server Anda
                         if (blob) {
                             const file = new File([blob], filename, { type: blob.type });
                             uploadImageToServer(file, quill);
                         }
-
                     } catch (error) {
-                        console.warn("Gagal mendownload gambar eksternal (CORS Terblokir). Menyisipkan URL aslinya.", error);
-                        // Fallback: Jika web sumber melarang gambar didownload paksa (CORS),
-                        // terpaksa kita gunakan URL aslinya agar gambar tetap muncul.
+                        console.warn("Gagal fetch gambar (CORS block). Fallback ke URL aslinya.", error);
                         const cursor = quill.getSelection()?.index || quill.getLength();
                         quill.insertEmbed(cursor, 'image', src);
                     }
                 };
 
                 processImage();
-
-                // Kembalikan delta kosong agar Quill tidak nge-paste otomatis.
-                // Fungsi uploadImageToServer yang akan menyisipkan gambarnya nanti saat upload selesai.
                 return new quill.constructor.import('delta')();
             });
 
-            // Handle khusus untuk copy-paste File murni (Screenshot / Snipping Tool / PrtSc)
             quill.root.addEventListener('paste', function (e) {
                 const clipboardData = e.clipboardData || window.clipboardData;
                 if (!clipboardData) return;
@@ -260,7 +244,6 @@ document.addEventListener('alpine:init', () => {
                 const isHtmlPaste = items.some(item => item.type === 'text/html');
                 const imageItem = items.find(item => item.type.startsWith('image/'));
 
-                // Jika clipboard HANYA berisi gambar murni tanpa teks/HTML
                 if (imageItem && !isHtmlPaste) {
                     e.stopPropagation();
                     e.preventDefault();
@@ -270,7 +253,6 @@ document.addEventListener('alpine:init', () => {
                         uploadImageToServer(file, quill);
                     }
                 }
-                // Jika isHtmlPaste bernilai TRUE, biarkan Quill memprosesnya lewat addMatcher('IMG') di atas.
             }, true);
         }
 
@@ -364,7 +346,8 @@ document.addEventListener('alpine:init', () => {
             const isHtmlMode = txtArea.style.display === 'block';
 
             if (isHtmlMode) {
-                quill.clipboard.dangerouslyPasteHTML(txtArea.value);
+                // Saat kembali ke mode visual, biarkan HTML dirender ulang
+                quill.root.innerHTML = txtArea.value;
                 txtArea.style.display  = 'none';
                 qlEditor.style.display = 'block';
                 toolbarBtn.classList.remove('ql-active');
@@ -424,6 +407,8 @@ document.addEventListener('alpine:init', () => {
             const el = document.getElementById(elId);
             if (!el) return null;
 
+            // Masukkan HTML secara mentah sebelum Quill dibentuk
+            el.innerHTML = initialContent || '';
             window.katex = katex;
 
             const editor = new Quill(el, {
@@ -438,10 +423,6 @@ document.addEventListener('alpine:init', () => {
 
             setupPasteHandler(editor);
 
-            if (initialContent) {
-                editor.clipboard.dangerouslyPasteHTML(initialContent);
-            }
-
             editor.on('text-change', () => {
                 const html = editor.root.innerHTML;
                 onChangeCb(html === '<p><br></p>' ? '' : html);
@@ -454,45 +435,39 @@ document.addEventListener('alpine:init', () => {
         // MOUNT QUILL KE ELEMEN OPSI
         // =========================================================
         function mountQuill(key, initialHtml, onChangeCb) {
-    if (optionEditors[key]) return;
+            if (optionEditors[key]) return;
 
-    const wrapper = document.querySelector(`[data-opt-id="${key}"]`);
-    if (!wrapper) return;
+            const wrapper = document.querySelector(`[data-opt-id="${key}"]`);
+            if (!wrapper) return;
 
-    wrapper.querySelector('.ql-toolbar')?.remove();
+            wrapper.querySelector('.ql-toolbar')?.remove();
 
-    let el = wrapper.querySelector('.quill-option-target') || wrapper.querySelector('.ql-container');
-    if (!el) return;
+            let el = wrapper.querySelector('.quill-option-target') || wrapper.querySelector('.ql-container');
+            if (!el) return;
 
-    el.outerHTML = '<div class="quill-option-target"></div>';
-    el = wrapper.querySelector('.quill-option-target');
+            // Sisipkan initialHtml langsung ke dalam wadah target
+            el.outerHTML = `<div class="quill-option-target">${initialHtml || ''}</div>`;
+            el = wrapper.querySelector('.quill-option-target');
 
-    window.katex = katex;
+            window.katex = katex;
 
-    const q = new Quill(el, {
-        theme: 'snow',
-        modules: {
-            formula: true,
-            toolbar: miniToolbar(),
-            resize: getResizeConfig(),
+            const q = new Quill(el, {
+                theme: 'snow',
+                modules: {
+                    formula: true,
+                    toolbar: miniToolbar(),
+                    resize: getResizeConfig(),
+                }
+            });
+
+            q.on('text-change', () => {
+                const html = q.root.innerHTML;
+                onChangeCb(html === '<p><br></p>' ? '' : html);
+            });
+
+            optionEditors[key] = q;
+            setupPasteHandler(q);
         }
-    });
-
-    // ✅ Paste dulu SEBELUM setup paste handler
-    if (initialHtml) {
-        q.clipboard.dangerouslyPasteHTML(initialHtml);
-    }
-
-    q.on('text-change', () => {
-        const html = q.root.innerHTML;
-        onChangeCb(html === '<p><br></p>' ? '' : html);
-    });
-
-    optionEditors[key] = q;
-
-    // ✅ Setup paste handler SETELAH initial content di-load
-    setupPasteHandler(q);
-}
 
         // =========================================================
         // STATE & LOGIKA UTAMA ALPINE
