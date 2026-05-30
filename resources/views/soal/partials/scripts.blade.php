@@ -406,40 +406,45 @@ document.addEventListener('alpine:init', () => {
         // MOUNT QUILL KE ELEMEN OPSI
         // =========================================================
         function mountQuill(key, initialHtml, onChangeCb) {
-            if (optionEditors[key]) return;
+    if (optionEditors[key]) return;
 
-            const wrapper = document.querySelector(`[data-opt-id="${key}"]`);
-            if (!wrapper) return;
+    const wrapper = document.querySelector(`[data-opt-id="${key}"]`);
+    if (!wrapper) return;
 
-            wrapper.querySelector('.ql-toolbar')?.remove();
+    wrapper.querySelector('.ql-toolbar')?.remove();
 
-            let el = wrapper.querySelector('.quill-option-target') || wrapper.querySelector('.ql-container');
-            if (!el) return;
+    let el = wrapper.querySelector('.quill-option-target') || wrapper.querySelector('.ql-container');
+    if (!el) return;
 
-            el.outerHTML = '<div class="quill-option-target"></div>';
-            el = wrapper.querySelector('.quill-option-target');
+    el.outerHTML = '<div class="quill-option-target"></div>';
+    el = wrapper.querySelector('.quill-option-target');
 
-            window.katex = katex;
+    window.katex = katex;
 
-            const q = new Quill(el, {
-                theme: 'snow',
-                modules: {
-                    formula: true,
-                    toolbar: miniToolbar(),
-                    resize:  getResizeConfig(),
-                }
-            });
-
-            if (initialHtml) q.clipboard.dangerouslyPasteHTML(initialHtml);
-
-            q.on('text-change', () => {
-                const html = q.root.innerHTML;
-                onChangeCb(html === '<p><br></p>' ? '' : html);
-            });
-
-            optionEditors[key] = q;
-            setupPasteHandler(q);
+    const q = new Quill(el, {
+        theme: 'snow',
+        modules: {
+            formula: true,
+            toolbar: miniToolbar(),
+            resize: getResizeConfig(),
         }
+    });
+
+    // ✅ Paste dulu SEBELUM setup paste handler
+    if (initialHtml) {
+        q.clipboard.dangerouslyPasteHTML(initialHtml);
+    }
+
+    q.on('text-change', () => {
+        const html = q.root.innerHTML;
+        onChangeCb(html === '<p><br></p>' ? '' : html);
+    });
+
+    optionEditors[key] = q;
+
+    // ✅ Setup paste handler SETELAH initial content di-load
+    setupPasteHandler(q);
+}
 
         // =========================================================
         // STATE & LOGIKA UTAMA ALPINE
