@@ -361,9 +361,9 @@
         <i class="fas text-6xl mb-6"
             :class="$store.examState.enableViolation ? 'fa-shield-alt text-emerald-400' : 'fa-laptop-house text-indigo-400'"></i>
         <h1 class="text-3xl font-black mb-2"
-            x-text="$store.examState.enableViolation ? 'Mode Ujian Aman' : 'Mode Ujian Santai'"></h1>
+            x-text="$store.examState.enableViolation ? 'Mode Ujian Aman' : 'Utamakan Kejujuran'"></h1>
         <p class="text-slate-400 mb-8 max-w-lg"
-            x-text="$store.examState.enableViolation ? 'Ujian ini mewajibkan mode Layar Penuh. Dilarang berpindah tab.' : 'Ujian ini tidak mendeteksi perpindahan tab. Selamat mengerjakan.'">
+            x-text="$store.examState.enableViolation ? 'Ujian ini mewajibkan mode Layar Penuh. Dilarang berpindah tab dan keluar dari ruang ujian.' : 'Latihan ini merupakan ujian yang dirancang untuk mengukur pemahaman Anda. Jawablah dengan jujur untuk mendapatkan hasil yang akurat.'">
         </p>
         <button @click="$store.examState.startSecureExam()"
             class="text-white px-10 py-4 rounded-2xl font-black text-lg shadow-xl transition transform hover:scale-105"
