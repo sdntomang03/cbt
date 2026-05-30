@@ -650,18 +650,23 @@
                 });
             }
 
+            // =========================================================
+            // FUNGSI BYPASS PENYIMPANAN HTML
+            // =========================================================
             function toggleHtmlEdit(quill) {
                 const container = quill.container;
                 const wrapper = container.parentNode;
                 let txtArea = wrapper.querySelector('.html-source-editor');
+                const hiddenInput = document.getElementById('hiddenContent');
 
                 if (!txtArea) {
                     txtArea = document.createElement('textarea');
                     txtArea.className = 'html-source-editor';
                     wrapper.insertBefore(txtArea, container.nextSibling);
+
+                    // LANGSUNG SYNC KE HIDDEN INPUT SAAT MENGETIK HTML MENTAH
                     txtArea.addEventListener('input', function () {
-                        quill.root.innerHTML = this.value;
-                        quill.emitter.emit('text-change');
+                        hiddenInput.value = this.value;
                     });
                 }
 
@@ -670,12 +675,18 @@
                 const isHtmlMode = txtArea.style.display === 'block';
 
                 if (isHtmlMode) {
+                    // DARI HTML KEMBALI KE VISUAL (Quill akan otomatis menghapus <div> di sini)
                     quill.root.innerHTML = txtArea.value;
                     txtArea.style.display = 'none';
                     qlEditor.style.display = 'block';
                     toolbarBtn.classList.remove('ql-active');
+
+                    // Update hidden input dengan hasil yang sudah diformat Quill
+                    hiddenInput.value = quill.root.innerHTML;
                 } else {
-                    txtArea.value = quill.root.innerHTML;
+                    // MASUK KE MODE HTML
+                    // Ambil dari hidden input agar struktur <div> tidak hilang
+                    txtArea.value = hiddenInput.value || quill.root.innerHTML;
                     txtArea.style.display = 'block';
                     qlEditor.style.display = 'none';
                     toolbarBtn.classList.add('ql-active');
@@ -694,7 +705,6 @@
                         [{ list: 'ordered' }, { list: 'bullet' }],
                         [{ align: [] }],
                         ['blockquote'],
-                        // latexTemplate = TeX (Template Dasar LaTeX), formula = KaTeX bawaan, customSymbol = Ω
                         ['link', 'image', 'video', 'formula', 'latexTemplate', 'customSymbol', 'editHtml'],
                         ['clean'],
                     ],
@@ -720,6 +730,20 @@
                     // Render otomatis jika status awal adalah Publik (contoh saat halaman Edit)
                     if (this.isPublic) {
                         this.mountEditor();
+                    }
+
+                    // TANGKAP EVENT SUBMIT FORM
+                    // Paksa kirim HTML utuh jika pengguna menyimpan dalam mode HTML
+                    const form = document.querySelector('form');
+                    if (form) {
+                        form.addEventListener('submit', () => {
+                            const txtArea = document.querySelector('.html-source-editor');
+                            const hiddenInput = document.getElementById('hiddenContent');
+
+                            if (txtArea && txtArea.style.display === 'block') {
+                                hiddenInput.value = txtArea.value;
+                            }
+                        });
                     }
                 },
 
@@ -751,9 +775,13 @@
                         // Pasang Event Listeners
                         setupPasteHandler(myEditor);
 
+                        // HANYA UPDATE INPUT SAAT DI MODE VISUAL (Bypass Mode HTML)
                         myEditor.on('text-change', () => {
-                            const html = myEditor.root.innerHTML;
-                            hiddenInput.value = (html === '<p><br></p>') ? '' : html;
+                            const txtArea = document.querySelector('.html-source-editor');
+                            if (!txtArea || txtArea.style.display !== 'block') {
+                                const html = myEditor.root.innerHTML;
+                                hiddenInput.value = (html === '<p><br></p>') ? '' : html;
+                            }
                         });
 
                         setTimeout(() => scanAndUploadImages(myEditor), 500);
