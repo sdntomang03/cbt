@@ -16,6 +16,7 @@ use App\Http\Controllers\KawanBacaController;
 use App\Http\Controllers\KawanHitungController;
 use App\Http\Controllers\ProctorController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicExamController;
 use App\Http\Controllers\QuestionAjaxController;
 use App\Http\Controllers\SoalController;
 use App\Http\Controllers\Student\MathExamController as StudentMathExamController;
@@ -226,4 +227,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:teacher|admin'
     Route::post('/upload-image', [SoalController::class, 'uploadImage'])->name('soal.upload-image');
 });
 
+Route::group(['prefix' => 'public/exam', 'as' => 'public.exam.'], function () {
+    Route::get('/', [PublicExamController::class, 'index'])->name('index');
+    Route::get('/{exam}', [PublicExamController::class, 'publicRun'])->name('run');
+    Route::post('/{exam}/save', [PublicExamController::class, 'publicSaveAnswer'])->name('save');
+    Route::post('/{exam}/violation', [PublicExamController::class, 'publicViolation'])->name('violation');
+    Route::post('/{exam}/finish', [PublicExamController::class, 'publicFinish'])->name('finish');
+});
 require __DIR__.'/auth.php';

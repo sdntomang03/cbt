@@ -33,6 +33,7 @@ class Exam extends Model
             'status' => ExamStatus::class, // Laravel 12 Style
             'random_question' => 'boolean',
             'random_answer' => 'boolean',
+            'is_public' => 'boolean',
         ];
     }
 

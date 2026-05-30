@@ -39,7 +39,7 @@ return new class extends Migration
             $table->boolean('random_answer')->default(false);
             $table->boolean('show_explanation')->default(false);
             $table->enum('status', ['draft', 'published', 'closed'])->default('draft');
-
+            $table->boolean('is_public')->default(false);
             $table->timestamps();
         });
     }
