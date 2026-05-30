@@ -142,6 +142,9 @@ if (window.Quill && window.QuillResize) {
     Quill.register('modules/resize', QuillResize.default);
 }
 
+// ── FIX BUG FORMULA: Pendaftaran paksa KaTeX ke Window ──
+window.katex = window.katex || katex;
+
 document.addEventListener('alpine:init', () => {
     Alpine.data('questionEditor', (config) => {
 
@@ -150,7 +153,7 @@ document.addEventListener('alpine:init', () => {
         let optionEditors     = {};
 
         // =========================================================
-        // UPLOAD GAMBAR KE SERVER
+        // UPLOAD GAMBAR KE SERVER (Manual & Snipping Tool)
         // =========================================================
         function uploadImageToServer(file, quill) {
             const savedRange = quill.getSelection() || { index: quill.getLength() };
@@ -197,7 +200,7 @@ document.addEventListener('alpine:init', () => {
             .finally(() => loader.remove());
         }
 
-       // =========================================================
+        // =========================================================
         // PEMINDAI OTOMATIS: Membersihkan Base64 & Download Eksternal
         // =========================================================
         function scanAndUploadImages(quill) {
@@ -207,8 +210,8 @@ document.addEventListener('alpine:init', () => {
                 const src = img.getAttribute('src');
 
                 if (!src || img.dataset.uploading) return;
-                // Abaikan gambar yang sudah aman di server kita sendiri
-                if (src.includes(window.location.hostname)) return;
+                // Abaikan jika gambar sudah aman di server kita sendiri (Cegah loop)
+                if (src.includes(window.location.hostname) || src.startsWith('/')) return;
 
                 // 1. TANGANI BASE64 (Misal dari Microsoft Word)
                 if (src.startsWith('data:image')) {
@@ -230,40 +233,43 @@ document.addEventListener('alpine:init', () => {
                         })
                         .then(response => {
                             if (response.data.url) {
-                                img.setAttribute('src', response.data.url);
-                                img.style.opacity = '1';
-                                delete img.dataset.uploading;
-                                quill.emitter.emit('text-change');
+                                const blot = Quill.find(img);
+                                if (blot) {
+                                    const index = quill.getIndex(blot);
+                                    quill.deleteText(index, 1);
+                                    quill.insertEmbed(index, 'image', response.data.url);
+                                }
                             }
                         })
-                        .catch(err => console.error("Gagal base64:", err));
+                        .catch(err => {
+                            img.style.opacity = '1';
+                            delete img.dataset.uploading;
+                            console.error("Gagal convert Base64:", err);
+                        });
                 }
 
                 // 2. TANGANI URL DARI WEBSITE LAIN (Lempar ke Server Laravel)
                 else if (src.startsWith('http')) {
                     img.dataset.uploading = 'true';
                     img.style.opacity = '0.4';
-                    img.title = 'Server sedang menarik gambar...';
 
-                    // Kita tidak pakai FormData, tapi kirim URL-nya sebagai JSON
                     axios.post('{{ route("admin.soal.upload-image") }}', {
                         image_url: src
                     })
                     .then(response => {
                         if (response.data.url) {
-                            img.setAttribute('src', response.data.url); // Timpa URL asli dengan URL Server
-                            img.style.opacity = '1';
-                            img.removeAttribute('title');
-                            delete img.dataset.uploading;
-                            quill.emitter.emit('text-change');
+                            const blot = Quill.find(img);
+                            if (blot) {
+                                const index = quill.getIndex(blot);
+                                quill.deleteText(index, 1);
+                                quill.insertEmbed(index, 'image', response.data.url);
+                            }
                         }
                     })
                     .catch(err => {
-                        // Jika server gagal mendownload (misal situs asal dilindungi bot-protection)
                         img.style.opacity = '1';
-                        img.removeAttribute('title');
                         delete img.dataset.uploading;
-                        console.warn("Server gagal menarik gambar eksternal:", err);
+                        console.warn("Gambar eksternal gagal di-download, pakai URL asli.");
                     });
                 }
             });
@@ -273,17 +279,15 @@ document.addEventListener('alpine:init', () => {
         // HANDLER CLIPBOARD (COPY-PASTE)
         // =========================================================
         function setupPasteHandler(quill) {
-
-            // 1. PANTAU MS WORD & WEBSITE: Setiap kali ada perubahan isi editor (termasuk paste Teks + Gambar)
+            // 1. PANTAU MS WORD & WEBSITE: Setiap kali ada perubahan isi editor
             quill.on('text-change', function(delta, oldDelta, source) {
-                // Pastikan perubahan dilakukan oleh manusia (user), bukan sistem
                 if (source === 'user') {
-                    // Jeda 200ms agar Quill punya waktu meletakkan HTML MS Word dengan rapi
+                    // Beri jeda 200ms agar Quill punya waktu meletakkan HTML dengan rapi
                     setTimeout(() => scanAndUploadImages(quill), 200);
                 }
             });
 
-            // 2. PANTAU SNIPPING TOOL: Handle khusus untuk copy-paste File murni (Screenshot)
+            // 2. PANTAU SNIPPING TOOL: Handle khusus copy-paste File murni
             quill.root.addEventListener('paste', function (e) {
                 const clipboardData = e.clipboardData || window.clipboardData;
                 if (!clipboardData) return;
@@ -292,7 +296,6 @@ document.addEventListener('alpine:init', () => {
                 const hasText = items.some(item => item.type === 'text/plain' || item.type === 'text/html');
                 const imageItem = items.find(item => item.type.startsWith('image/'));
 
-                // Jika clipboard HANYA berisi file gambar (tanpa HTML MS Word), eksekusi manual
                 if (imageItem && !hasText) {
                     e.stopPropagation();
                     e.preventDefault();
@@ -305,9 +308,8 @@ document.addEventListener('alpine:init', () => {
             }, true);
         }
 
-
         // =========================================================
-        // HANDLER TOMBOL IMAGE
+        // HANDLER TOMBOL IMAGE (Klik Manual)
         // =========================================================
         function imageHandler(quillInstance) {
             const input = document.createElement('input');
@@ -396,7 +398,6 @@ document.addEventListener('alpine:init', () => {
             const isHtmlMode = txtArea.style.display === 'block';
 
             if (isHtmlMode) {
-                // Saat kembali ke mode visual, biarkan HTML dirender ulang
                 quill.root.innerHTML = txtArea.value;
                 txtArea.style.display  = 'none';
                 qlEditor.style.display = 'block';
@@ -457,8 +458,8 @@ document.addEventListener('alpine:init', () => {
             const el = document.getElementById(elId);
             if (!el) return null;
 
+            // Masukkan HTML ke DOM sebelum boot Quill untuk menghindari bug tampilan
             el.innerHTML = initialContent || '';
-            window.katex = katex;
 
             const editor = new Quill(el, {
                 theme: 'snow',
@@ -477,8 +478,8 @@ document.addEventListener('alpine:init', () => {
                 onChangeCb(html === '<p><br></p>' ? '' : html);
             });
 
-            // --- JALANKAN PEMINDAI BASE64 DI SINI ---
-            setTimeout(() => scanAndUploadBase64Images(editor), 500);
+            // FIX REFERNCE ERROR: Panggil fungsi yang benar
+            setTimeout(() => scanAndUploadImages(editor), 500);
 
             return editor;
         }
@@ -497,10 +498,9 @@ document.addEventListener('alpine:init', () => {
             let el = wrapper.querySelector('.quill-option-target') || wrapper.querySelector('.ql-container');
             if (!el) return;
 
+            // Masukkan HTML ke DOM sebelum boot Quill
             el.outerHTML = `<div class="quill-option-target">${initialHtml || ''}</div>`;
             el = wrapper.querySelector('.quill-option-target');
-
-            window.katex = katex;
 
             const q = new Quill(el, {
                 theme: 'snow',
@@ -519,8 +519,8 @@ document.addEventListener('alpine:init', () => {
             optionEditors[key] = q;
             setupPasteHandler(q);
 
-            // --- JALANKAN PEMINDAI BASE64 DI SINI ---
-            setTimeout(() => scanAndUploadBase64Images(q), 500);
+            // FIX REFERNCE ERROR: Panggil fungsi yang benar
+            setTimeout(() => scanAndUploadImages(q), 500);
         }
 
         // =========================================================
@@ -581,7 +581,6 @@ document.addEventListener('alpine:init', () => {
 
             initEditors() {
                 setTimeout(() => {
-                    // 1. Editor Narasi
                     myEditor = createEditor(
                         'editorNarasi',
                         'Ketik narasi pertanyaan di sini...',
@@ -589,7 +588,6 @@ document.addEventListener('alpine:init', () => {
                         html => { this.form.content = html; }
                     );
 
-                    // 2. Editor Penjelasan
                     explanationEditor = createEditor(
                         'editorPenjelasan',
                         'Ketik pembahasan soal di sini (kosongkan jika tidak ada)...',
@@ -597,12 +595,10 @@ document.addEventListener('alpine:init', () => {
                         html => { this.form.explanation = html; }
                     );
 
-                    // 3. Editor Opsi Jawaban
                     this.initAllOptionEditors();
                 }, 100);
             },
 
-            // Alias agar tidak break jika ada pemanggilan lama
             initNarasiEditor() { this.initEditors(); },
 
             initAllOptionEditors() {
@@ -693,7 +689,7 @@ document.addEventListener('alpine:init', () => {
 
                 const toB64 = str => str ? btoa(unescape(encodeURIComponent(str))) : null;
 
-                let payload      = JSON.parse(JSON.stringify(this.form));
+                let payload         = JSON.parse(JSON.stringify(this.form));
                 payload.content     = toB64(payload.content);
                 payload.explanation = toB64(payload.explanation) ?? null;
                 payload.options     = payload.options.map(opt => {
