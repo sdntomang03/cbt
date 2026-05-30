@@ -134,14 +134,6 @@
                 </div>
 
                 <div class="mt-4 grid grid-cols-2 gap-3 relative z-10">
-                    <a href="{{ route('public.exams.detail', $exam->slug) }}"
-                        aria-label="Lihat detail dan kerjakan ujian {{ $exam->title }}"
-                        title="Lihat detail ujian {{ $exam->title }}"
-                        class="w-full bg-slate-900 hover:bg-indigo-600 text-white font-bold py-3.5 px-4 rounded-xl text-sm text-center transition-all flex items-center justify-center gap-2 shadow-md group">
-                        Detail
-                        <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
-                    </a>
-
                     <a href="{{ route('public.exams.ranking', $exam) }}"
                         aria-label="Lihat klasemen/ranking ujian {{ $exam->title }}"
                         title="Lihat ranking ujian {{ $exam->title }}"
@@ -149,6 +141,16 @@
                         <i class="fas fa-trophy group-hover:scale-110 transition-transform"></i>
                         Ranking
                     </a>
+                    <a href="{{ route('public.exams.detail', $exam->slug) }}"
+                        aria-label="Lihat detail dan kerjakan ujian {{ $exam->title }}"
+                        title="Lihat detail ujian {{ $exam->title }}"
+                        class="w-full bg-slate-900 hover:bg-indigo-600 text-white font-bold py-3.5 px-4 rounded-xl text-sm text-center transition-all flex items-center justify-center gap-2 shadow-md group">
+                        Kerjakan <i
+                            class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+
+                    </a>
+
+
                 </div>
             </article>
             @endforeach
