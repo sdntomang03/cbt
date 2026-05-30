@@ -450,11 +450,13 @@ document.addEventListener('alpine:init', () => {
                             const val = btn.getAttribute('data-val');
                             const cursor = range ? range.index : quill.getLength();
 
-                            // Masukkan sebagai elemen Formula Quill (bukan teks biasa)
-                            quill.insertEmbed(cursor, 'formula', val);
+                            // Masukkan sebagai teks biasa yang diapit tanda dolar
+const latexText = '$' + val + '$ ';
+quill.insertText(cursor, latexText);
 
-                            // Pindahkan kursor ke setelah rumus yang baru dimasukkan
-                            quill.setSelection(cursor + 1);
+// Pindahkan kursor tepat ke dalam rumus agar mudah langsung diedit
+// (Mundur sedikit dari ujung string agar kursor berada di dekat huruf x/y)
+quill.setSelection(cursor + latexText.length - 2);
                             Swal.close();
                         });
                     });
