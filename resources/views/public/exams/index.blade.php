@@ -1,12 +1,11 @@
 <x-public-layout>
     {{-- MENYUNTIKKAN TITLE & META SEO --}}
-    @section('title', 'Daftar Ujian - CBT Pro')
+    @section('title', 'Daftar Simulasi Tryout TKA SD')
 
     @push('meta')
-    <meta name="description" content="Daftar simulasi ujian dan Try Out yang dapat diikuti secara online di CBT Pro.">
-    <meta property="og:title" content="Daftar Ujian - CBT Pro">
-    <meta property="og:description"
-        content="Daftar simulasi ujian dan Try Out yang dapat diikuti secara online di CBT Pro.">
+    <meta name="description" content="Daftar simulasi tryout TKA SD kelas 6 online secara gratis">
+    <meta property="og:title" content="Daftar Simulasi Tryout TKA SD">
+    <meta property="og:description" content="Daftar simulasi tryout TKA SD kelas 6 online secara gratis">
     <meta property="og:url" content="{{ url()->current() }}">
     <link rel="canonical" href="{{ url()->current() }}">
     @endpush
@@ -18,7 +17,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
             <span
                 class="inline-block px-4 py-1.5 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-black tracking-widest uppercase mb-4 border border-indigo-400/30">
-                <i class="fas fa-list-ul mr-1"></i> Ujian Publik
+                <i class="fas fa-list-ul mr-1"></i> Simulasi TKA SD
             </span>
             <h1 class="text-4xl md:text-5xl font-black text-white tracking-tight mb-4">
                 Daftar Try Out & Simulasi
@@ -33,33 +32,16 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-20 pb-20">
 
         {{-- ========================================== --}}
-        {{-- BAGIAN FILTER (BERTINGKAT) --}}
+        {{-- BAGIAN FILTER (MATA PELAJARAN SAJA) --}}
         {{-- ========================================== --}}
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-8">
             <form action="{{ route('public.exams.index') }}" method="GET" id="filterForm"
                 class="flex flex-col md:flex-row gap-4 items-end">
 
-                {{-- 1. Filter Kelas / Level --}}
+                {{-- 1. Filter Mata Pelajaran --}}
                 <div class="flex-1 w-full">
-                    <label for="level" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                        <i class="fas fa-chalkboard-teacher mr-1"></i> Pilih Kelas
-                    </label>
-                    <select name="level" id="level" onchange="document.getElementById('filterForm').submit()"
-                        class="w-full border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-slate-50 cursor-pointer">
-                        <option value="">-- Semua Kelas --</option>
-                        @foreach($levels as $lvl)
-                        <option value="{{ $lvl->id }}" {{ request('level')==$lvl->id ? 'selected' : '' }}>
-                            {{ $lvl->name }}
-                        </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                {{-- 2. Filter Mata Pelajaran (Muncul HANYA jika Kelas sudah dipilih) --}}
-                @if(request('level'))
-                <div class="flex-1 w-full animate-fade-in-up">
                     <label for="subject" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                        <i class="fas fa-book mr-1"></i> Mata Pelajaran
+                        <i class="fas fa-book mr-1"></i> Pilih Mata Pelajaran
                     </label>
                     <select name="subject" id="subject" onchange="document.getElementById('filterForm').submit()"
                         class="w-full border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-slate-50 cursor-pointer">
@@ -71,14 +53,13 @@
                         @endforeach
                     </select>
                 </div>
-                @endif
 
-                {{-- 3. Tombol Reset (Muncul jika ada filter yang aktif) --}}
-                @if(request('level') || request('subject'))
+                {{-- 2. Tombol Reset (Muncul HANYA jika filter subject aktif) --}}
+                @if(request('subject'))
                 <div>
                     <a href="{{ route('public.exams.index') }}"
                         class="bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold py-2.5 px-5 rounded-xl text-sm transition-colors flex items-center justify-center h-[42px] border border-rose-200"
-                        title="Reset Semua Filter">
+                        title="Reset Filter">
                         <i class="fas fa-sync-alt mr-2"></i> Reset
                     </a>
                 </div>
@@ -111,7 +92,6 @@
             @foreach($publicExams as $exam)
             <article
                 class="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col h-full relative overflow-hidden group">
-                {{-- ... (Isi card ujian Anda tetap sama seperti sebelumnya) ... --}}
                 <div class="flex items-start justify-between mb-5 relative z-10">
                     <div
                         class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-2xl">
@@ -178,11 +158,65 @@
         {{-- LINK PAGINATION SERVER SIDE --}}
         {{-- ========================================== --}}
         <div class="mt-12">
-            {{-- withQueryString() sangat penting agar saat pindah page, filter tidak hilang --}}
             {{ $publicExams->withQueryString()->links() }}
         </div>
         {{-- ========================================== --}}
 
         @endif
+
+        {{-- ========================================== --}}
+        {{-- ARTIKEL SEO: SIMULASI TRYOUT TKA SD --}}
+        {{-- ========================================== --}}
+        <article class="mt-20 bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8 sm:p-12 overflow-hidden">
+            <div class="max-w-4xl mx-auto">
+                <header class="mb-8">
+                    <h2 class="text-3xl font-black text-slate-800 mb-4 tracking-tight">
+                        Mengapa Simulasi Tryout TKA SD Sangat Penting?
+                    </h2>
+                    <div class="w-20 h-1.5 bg-indigo-500 rounded-full"></div>
+                </header>
+
+                <div class="space-y-6 text-slate-600 leading-relaxed">
+                    <p>
+                        Menghadapi <strong>Tes Kemampuan Akademik (TKA)</strong> seringkali menjadi momen yang
+                        menegangkan bagi siswa Sekolah Dasar (SD), terutama bagi mereka yang berada di kelas 6. TKA
+                        bukan sekadar ujian biasa; tes ini dirancang untuk mengukur tingkat pemahaman, logika, dan
+                        literasi akademik siswa secara mendalam sebagai bekal menuju jenjang pendidikan selanjutnya.
+                    </p>
+                    <p>
+                        Untuk membantu siswa mempersiapkan diri secara optimal, CBT Pro menghadirkan <strong>Simulasi
+                            Tryout TKA SD Online</strong> secara gratis. Melalui platform ini, siswa dapat merasakan
+                        pengalaman ujian yang sesungguhnya dengan format <em>Computer Based Test</em> (CBT) yang kini
+                        menjadi standar evaluasi pendidikan modern.
+                    </p>
+
+                    <h3 class="text-xl font-bold text-slate-800 mt-8 mb-3">Manfaat Mengikuti Simulasi Tryout di CBT Pro
+                    </h3>
+                    <ul class="list-disc ml-5 space-y-3 marker:text-indigo-500">
+                        <li><strong>Adaptasi Teknologi CBT:</strong> Siswa menjadi lebih terbiasa dan tidak gagap
+                            teknologi saat menghadapi antarmuka ujian berbasis komputer yang sebenarnya.</li>
+                        <li><strong>Manajemen Waktu:</strong> Fitur <em>timer</em> yang berjalan *real-time* melatih
+                            siswa untuk mengalokasikan waktu dengan bijak pada setiap butir soal.</li>
+                        <li><strong>Evaluasi Instan:</strong> Setelah menyelesaikan tryout, sistem akan langsung
+                            menampilkan skor dan hasil evaluasi, memungkinkan siswa mengetahui area mana yang perlu
+                            ditingkatkan.</li>
+                        <li><strong>Mengurangi Kecemasan:</strong> Pengalaman simulasi yang berulang-ulang terbukti
+                            secara psikologis mampu menurunkan tingkat stres dan kepanikan anak saat hari ujian tiba.
+                        </li>
+                    </ul>
+
+                    <div class="bg-indigo-50 border-l-4 border-indigo-500 p-5 rounded-r-xl mt-8">
+                        <p class="text-indigo-900 font-medium m-0">
+                            <i class="fas fa-lightbulb text-indigo-500 mr-2"></i> <strong>Tips Lulus:</strong> Pastikan
+                            koneksi internet Anda stabil sebelum menekan tombol mulai, siapkan alat tulis untuk
+                            coret-coretan berhitung, dan bacalah setiap soal literasi dengan cermat dan tenang. Selamat
+                            belajar dan semoga sukses!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </article>
+        {{-- ========================================== --}}
+
     </div>
 </x-public-layout>

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Exam;
-use App\Models\Level;
 use App\Models\PublicExamResult;
 use App\Models\Question;
 use App\Models\Subject;
@@ -15,42 +14,32 @@ class PublicExamController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Ambil Level/Kelas yang HANYA memiliki ujian publik
-        $levels = Level::whereHas('exams', function ($query) {
-            $query->where('is_public', true);
+        // 1. Ambil Mata Pelajaran yang HANYA memiliki ujian publik dengan tipe 'TKA'
+        $subjects = Subject::whereHas('exams', function ($query) {
+            $query->where('is_public', true)
+                ->whereHas('examType', function ($q) {
+                    $q->where('name', 'TKA');
+                });
         })->orderBy('name', 'asc')->get();
 
-        // 2. Siapkan variabel subjects kosong secara default
-        $subjects = collect();
-
-        // 3. Jika user SUDAH memilih Level, baru cari Mata Pelajaran terkait
-        if ($request->filled('level')) {
-            $subjects = Subject::whereHas('exams', function ($query) use ($request) {
-                // Pastikan mapel ini ada ujian publiknya dan sesuai dengan level yang dipilih
-                $query->where('is_public', true)
-                    ->where('level_id', $request->level);
-            })->orderBy('name', 'asc')->get();
-        }
-
-        // 4. Query utama untuk mengambil data ujian
+        // 2. Query utama untuk mengambil data ujian
         $publicExams = Exam::query()
             ->where('is_public', true)
-                    // Memfilter berdasarkan relasi ExamType yang namanya 'TKA'
+            // Memfilter berdasarkan relasi ExamType yang namanya 'TKA'
             ->whereHas('examType', function ($query) {
-                $query->where('name', 'TKA'); // Sesuaikan huruf besar/kecil dengan yang ada di database Anda
+                $query->where('name', 'TKA');
             })
-                    // Tambahkan 'examType' agar tidak terjadi N+1 Query Problem
+            // Tambahkan 'examType' agar tidak terjadi N+1 Query Problem
             ->with(['subject', 'level', 'examType'])
-            ->when($request->filled('level'), function ($query) use ($request) {
-                $query->where('level_id', $request->level);
-            })
+            // Filter berdasarkan subject yang dipilih dari URL
             ->when($request->filled('subject'), function ($query) use ($request) {
                 $query->where('subject_id', $request->subject);
             })
             ->latest()
             ->paginate(9);
 
-        return view('public.exams.index', compact('publicExams', 'levels', 'subjects'));
+        // Hapus 'levels' dari compact karena sudah tidak digunakan
+        return view('public.exams.index', compact('publicExams', 'subjects'));
     }
 
     public function restart(Exam $exam)
