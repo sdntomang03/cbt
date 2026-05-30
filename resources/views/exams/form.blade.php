@@ -422,6 +422,7 @@ if (window.Quill && window.QuillResize) {
                             image() { this.imageHandler(); },
                             // Panggil fungsi global dengan melempar object quill saat ini
                             latexTemplate() { openLatexPicker(this.quill); },
+                            editHtml() { toggleHtmlEdit(this.quill); },
                         }
                     }
                 }
