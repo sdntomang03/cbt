@@ -116,14 +116,7 @@
                     &copy; {{ date('Y') }} SDN Tomang 03. All rights reserved.
                 </p>
 
-                <div class="flex gap-5">
-                    <a href="#" class="text-slate-300 hover:text-indigo-600 transition-colors"><i
-                            class="fab fa-twitter text-xl"></i></a>
-                    <a href="#" class="text-slate-300 hover:text-indigo-600 transition-colors"><i
-                            class="fab fa-instagram text-xl"></i></a>
-                    <a href="#" class="text-slate-300 hover:text-indigo-600 transition-colors"><i
-                            class="fab fa-github text-xl"></i></a>
-                </div>
+
             </div>
         </div>
     </footer>
