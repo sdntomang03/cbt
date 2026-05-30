@@ -319,37 +319,43 @@ class SoalController extends Controller
 
     public function uploadImage(Request $request)
     {
-        $request->validate([
-            'image' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
-        ]);
+        // 1. JIKA YANG MASUK ADALAH FILE FISIK ATAU BASE64
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('soal_images', 'public');
 
-        $file = $request->file('image');
-        $filename = 'questions/'.uniqid().'.webp';
-        $path = storage_path('app/public/'.$filename);
-
-        // 1. Ambil konten file
-        $fileContent = file_get_contents($file->getRealPath());
-
-        // 2. Buat resource gambar dari string
-        $img = @imagecreatefromstring($fileContent);
-
-        if (! $img) {
-            return response()->json(['error' => 'Gagal memproses gambar'], 422);
+            return response()->json(['url' => asset('storage/'.$path)]);
         }
 
-        // 3. Pastikan folder tujuan ada
-        if (! file_exists(dirname($path))) {
-            mkdir(dirname($path), 0755, true);
+        // 2. JIKA YANG MASUK ADALAH URL DARI WEBSITE LAIN (BYPASS CORS)
+        if ($request->filled('image_url')) {
+            try {
+                // Server Laravel menyamar sebagai Browser (User-Agent) untuk mendownload gambar
+                $response = Http::withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                ])->get($request->image_url);
+
+                if ($response->successful()) {
+                    // Ambil ekstensi gambar
+                    $contentType = $response->header('Content-Type');
+                    $ext = 'png';
+                    if ($contentType) {
+                        $extParts = explode('/', $contentType);
+                        if (isset($extParts[1])) {
+                            $ext = explode(';', $extParts[1])[0]; // contoh: memecah "png;charset=UTF-8"
+                        }
+                    }
+
+                    // Simpan gambar ke server kita
+                    $filename = 'soal_images/'.Str::random(20).'.'.$ext;
+                    Storage::disk('public')->put($filename, $response->body());
+
+                    return response()->json(['url' => asset('storage/'.$filename)]);
+                }
+            } catch (\Exception $e) {
+                return response()->json(['error' => 'Gagal mendownload gambar eksternal'], 500);
+            }
         }
 
-        // 4. Konversi & Simpan ke WebP
-        // 80 adalah kualitas (0-100)
-        if (imagewebp($img, $path, 80)) {
-            imagedestroy($img);
-
-            return response()->json(['url' => asset('storage/'.$filename)]);
-        }
-
-        return response()->json(['error' => 'Gagal menyimpan gambar ke server'], 500);
+        return response()->json(['error' => 'Tidak ada gambar yang diunggah'], 400);
     }
 }

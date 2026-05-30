@@ -198,34 +198,25 @@ document.addEventListener('alpine:init', () => {
         }
 
        // =========================================================
-        // PEMINDAI OTOMATIS: Membersihkan Base64 / HTTP Eksternal
+        // PEMINDAI OTOMATIS: Membersihkan Base64 & Download Eksternal
         // =========================================================
         function scanAndUploadImages(quill) {
-            // Cari semua elemen gambar langsung dari dalam editor
             const images = quill.root.querySelectorAll('img');
 
             images.forEach(img => {
                 const src = img.getAttribute('src');
 
-                // Lewati jika tidak ada sumber, atau gambar sedang dalam antrean proses
                 if (!src || img.dataset.uploading) return;
-
-                // Lewati jika gambar sudah berasal dari server/domain kita sendiri
+                // Abaikan gambar yang sudah aman di server kita sendiri
                 if (src.includes(window.location.hostname)) return;
 
-                // Tangkap Base64 (Word/Web) ATAU Link gambar dari web lain
-                if (src.startsWith('data:image') || src.startsWith('http')) {
-
-                    img.dataset.uploading = 'true'; // Tandai agar tidak diupload berulang kali
+                // 1. TANGANI BASE64 (Misal dari Microsoft Word)
+                if (src.startsWith('data:image')) {
+                    img.dataset.uploading = 'true';
                     img.style.opacity = '0.4';
-                    img.title = 'Sedang mengunggah ke server...';
 
-                    // Tarik gambar dan jadikan File
                     fetch(src)
-                        .then(res => {
-                            if (!res.ok) throw new Error('Gagal mengunduh gambar');
-                            return res.blob();
-                        })
+                        .then(res => res.blob())
                         .then(blob => {
                             const ext = blob.type.split('/')[1] || 'png';
                             const file = new File([blob], `auto-upload.${ext}`, { type: blob.type });
@@ -233,29 +224,47 @@ document.addEventListener('alpine:init', () => {
                             const formData = new FormData();
                             formData.append('image', file);
 
-                            // Unggah ke server lokal kita
                             return axios.post('{{ route("admin.soal.upload-image") }}', formData, {
                                 headers: { 'Content-Type': 'multipart/form-data' },
                             });
                         })
                         .then(response => {
                             if (response.data.url) {
-                                img.setAttribute('src', response.data.url); // Timpa URL Base64 dengan URL Server
+                                img.setAttribute('src', response.data.url);
                                 img.style.opacity = '1';
-                                img.removeAttribute('title');
                                 delete img.dataset.uploading;
-
-                                // Simpan perubahan ke Alpine.js
                                 quill.emitter.emit('text-change');
                             }
                         })
-                        .catch(err => {
-                            // Jika terblokir sistem keamanan web asal (CORS), biarkan pakai URL aslinya
+                        .catch(err => console.error("Gagal base64:", err));
+                }
+
+                // 2. TANGANI URL DARI WEBSITE LAIN (Lempar ke Server Laravel)
+                else if (src.startsWith('http')) {
+                    img.dataset.uploading = 'true';
+                    img.style.opacity = '0.4';
+                    img.title = 'Server sedang menarik gambar...';
+
+                    // Kita tidak pakai FormData, tapi kirim URL-nya sebagai JSON
+                    axios.post('{{ route("admin.soal.upload-image") }}', {
+                        image_url: src
+                    })
+                    .then(response => {
+                        if (response.data.url) {
+                            img.setAttribute('src', response.data.url); // Timpa URL asli dengan URL Server
                             img.style.opacity = '1';
                             img.removeAttribute('title');
                             delete img.dataset.uploading;
-                            console.warn("Gambar tidak bisa diupload otomatis:", err);
-                        });
+                            quill.emitter.emit('text-change');
+                        }
+                    })
+                    .catch(err => {
+                        // Jika server gagal mendownload (misal situs asal dilindungi bot-protection)
+                        img.style.opacity = '1';
+                        img.removeAttribute('title');
+                        delete img.dataset.uploading;
+                        console.warn("Server gagal menarik gambar eksternal:", err);
+                    });
                 }
             });
         }
@@ -296,7 +305,7 @@ document.addEventListener('alpine:init', () => {
             }, true);
         }
 
-        
+
         // =========================================================
         // HANDLER TOMBOL IMAGE
         // =========================================================
