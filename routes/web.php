@@ -228,7 +228,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:teacher|admin'
     Route::post('/upload-image', [SoalController::class, 'uploadImage'])->name('soal.upload-image');
 });
 
-Route::group(['prefix' => 'latihan', 'as' => 'public.exams.'], function () {
+Route::group(['prefix' => 'tryout', 'as' => 'public.exams.'], function () {
     Route::get('/', [PublicExamController::class, 'index'])->name('index');
     Route::get('/{exam}', [PublicExamController::class, 'show'])->name('show'); // Menampilkan/Menjalankan Ujian
     Route::post('/{exam}/answers', [PublicExamController::class, 'storeAnswer'])->name('store_answer');
