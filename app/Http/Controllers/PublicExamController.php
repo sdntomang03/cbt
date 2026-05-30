@@ -3,25 +3,49 @@
 namespace App\Http\Controllers;
 
 use App\Models\Exam;
+use App\Models\Level;
 use App\Models\PublicExamResult;
 use App\Models\Question;
+use App\Models\Subject;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class PublicExamController extends Controller
 {
-    /**
-     * Menampilkan daftar ujian yang terbuka untuk publik
-     */
-    public function index()
+    public function index(Request $request)
     {
-        $publicExams = Exam::where('is_public', true)
-            ->withCount('questions')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        // 1. Ambil Level/Kelas yang HANYA memiliki ujian publik
+        $levels = Level::whereHas('exams', function ($query) {
+            $query->where('is_public', true);
+        })->orderBy('name', 'asc')->get();
 
-        return view('public.exams.index', compact('publicExams'));
+        // 2. Siapkan variabel subjects kosong secara default
+        $subjects = collect();
+
+        // 3. Jika user SUDAH memilih Level, baru cari Mata Pelajaran terkait
+        if ($request->filled('level')) {
+            $subjects = Subject::whereHas('exams', function ($query) use ($request) {
+                // Pastikan mapel ini ada ujian publiknya dan sesuai dengan level yang dipilih
+                $query->where('is_public', true)
+                    ->where('level_id', $request->level);
+            })->orderBy('name', 'asc')->get();
+        }
+
+        // 4. Query utama untuk mengambil data ujian
+        $publicExams = Exam::query()
+            ->where('is_public', true)
+            ->with(['subject', 'level'])
+            ->when($request->filled('level'), function ($query) use ($request) {
+                $query->where('level_id', $request->level);
+            })
+            ->when($request->filled('subject'), function ($query) use ($request) {
+                $query->where('subject_id', $request->subject);
+            })
+            ->latest()
+            ->paginate(9);
+
+        return view('public.exams.index', compact('publicExams', 'levels', 'subjects'));
     }
 
     public function restart(Exam $exam)
@@ -379,5 +403,16 @@ class PublicExamController extends Controller
         }
 
         return view('public.exams.ranking', compact('exam', 'results', 'userResult'));
+    }
+
+    public function detail($slug)
+    {
+        // Cari ujian yang public berdasarkan slug
+        $exam = Exam::where('slug', $slug)
+            ->where('is_public', true)
+            ->withCount('questions')
+            ->firstOrFail();
+
+        return view('public.exams.detail', compact('exam'));
     }
 }

@@ -11,6 +11,7 @@ use App\Models\School;
 use App\Models\Subject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
@@ -53,7 +54,6 @@ class ExamController extends Controller
 
     public function store(Request $request)
     {
-        // 1. Validasi tetap di luar agar fungsi bawaan Laravel (menampilkan pesan error form) tetap berjalan
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'exam_type_id' => 'required|exists:exam_types,id',
@@ -62,28 +62,71 @@ class ExamController extends Controller
             'level_id' => 'required|exists:levels,id',
             'subject_id' => 'required|exists:subjects,id',
             'max_tolerances' => 'nullable|integer|min:1',
+
+            // VALIDASI SEO & PUBLIKASI
+            'description' => 'nullable|string',
+            'meta_description' => 'nullable|string|max:160',
+            'meta_keywords' => 'nullable|string|max:255',
+            'content' => 'nullable|string',
+            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
-        // 2. Mulai tangkap potensi error saat memproses dan menyimpan data
         try {
             $validated['slug'] = Str::slug($request->title).'-'.Str::random(5);
             $validated['teacher_id'] = Auth::id();
             $validated['school_id'] = Auth::user()->school_id;
+
+            // Tangkap Data Boolean (Checkbox)
             $validated['random_question'] = $request->has('random_question');
             $validated['random_answer'] = $request->has('random_answer');
             $validated['show_explanation'] = $request->has('show_explanation');
             $validated['require_token'] = $request->has('require_token');
             $validated['enable_violation'] = $request->has('enable_violation');
+            $validated['is_public'] = $request->has('is_public');
 
-            // Jika toleransi kosong, atur default 3
             $validated['max_tolerances'] = $request->max_tolerances ?? 3;
+
+            // =========================================================
+            // PROSES UPLOAD THUMBNAIL & KONVERSI KE WEBP
+            // =========================================================
+            if ($request->hasFile('thumbnail')) {
+                $file = $request->file('thumbnail');
+
+                // Cek apakah file yang diupload sudah berekstensi WebP
+                if ($file->getClientOriginalExtension() === 'webp') {
+                    // Jika sudah WebP, simpan secara normal
+                    $validated['thumbnail'] = $file->store('exam_thumbnails', 'public');
+                } else {
+                    // Konversi gambar ke WebP secara Native menggunakan GD PHP
+                    $image = imagecreatefromstring(file_get_contents($file->getRealPath()));
+
+                    // Pertahankan background transparan (untuk PNG)
+                    imagepalettetotruecolor($image);
+                    imagealphablending($image, false);
+                    imagesavealpha($image, true);
+
+                    // Generate nama file acak
+                    $filename = 'exam_thumbnails/'.Str::random(40).'.webp';
+
+                    // Tangkap output gambar ke dalam memori
+                    ob_start();
+                    imagewebp($image, null, 80); // Kualitas 80 dari 100
+                    $imageContent = ob_get_clean();
+
+                    // Bersihkan memori RAM
+                    imagedestroy($image);
+
+                    // Simpan file WebP
+                    Storage::disk('public')->put($filename, $imageContent);
+                    $validated['thumbnail'] = $filename;
+                }
+            }
+
             Exam::create($validated);
 
-            return redirect()->back()->with('success', 'Ujian berhasil dibuat!');
+            return redirect()->route('admin.exams.index')->with('success', 'Ujian berhasil dibuat!');
 
         } catch (\Exception $e) {
-            // 3. Jika gagal, tangkap pesan error aslinya dan kembalikan ke halaman sebelumnya
-            // withInput() digunakan agar isian form yang sudah diketik tidak hilang
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Gagal menyimpan ujian: '.$e->getMessage());
@@ -94,12 +137,19 @@ class ExamController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'exam_type_id' => 'required|exists:exam_types,id', // Sesuai model
+            'exam_type_id' => 'required|exists:exam_types,id',
             'duration_minutes' => 'required|integer|min:1',
             'status' => ['required', Rule::enum(ExamStatus::class)],
             'level_id' => 'required|exists:levels,id',
             'subject_id' => 'required|exists:subjects,id',
             'max_tolerances' => 'nullable|integer|min:1',
+
+            // VALIDASI SEO & PUBLIKASI
+            'description' => 'nullable|string',
+            'meta_description' => 'nullable|string|max:160',
+            'meta_keywords' => 'nullable|string|max:255',
+            'content' => 'nullable|string',
+            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         try {
@@ -112,21 +162,67 @@ class ExamController extends Controller
             $validated['show_explanation'] = $request->has('show_explanation');
             $validated['require_token'] = $request->has('require_token');
             $validated['enable_violation'] = $request->has('enable_violation');
+            $validated['is_public'] = $request->has('is_public');
             $validated['max_tolerances'] = $request->max_tolerances ?? 3;
+
+            // =========================================================
+            // PROSES UPLOAD THUMBNAIL & KONVERSI KE WEBP
+            // =========================================================
+            if ($request->hasFile('thumbnail')) {
+                // 1. Hapus gambar lama jika ada
+                if ($exam->thumbnail) {
+                    Storage::disk('public')->delete($exam->thumbnail);
+                }
+
+                $file = $request->file('thumbnail');
+
+                // 2. Cek apakah file yang diupload sudah berekstensi WebP
+                if ($file->getClientOriginalExtension() === 'webp') {
+                    // Jika sudah WebP, langsung simpan secara normal
+                    $validated['thumbnail'] = $file->store('exam_thumbnails', 'public');
+                } else {
+                    // 3. Konversi gambar ke WebP secara Native menggunakan GD PHP
+                    $image = imagecreatefromstring(file_get_contents($file->getRealPath()));
+
+                    // Pertahankan background transparan (untuk PNG)
+                    imagepalettetotruecolor($image);
+                    imagealphablending($image, false);
+                    imagesavealpha($image, true);
+
+                    // Generate nama file acak
+                    $filename = 'exam_thumbnails/'.Str::random(40).'.webp';
+
+                    // Tangkap output gambar ke dalam memori
+                    ob_start();
+                    imagewebp($image, null, 80); // Angka 80 adalah tingkat Kualitas (0-100)
+                    $imageContent = ob_get_clean();
+
+                    // Bersihkan memori RAM
+                    imagedestroy($image);
+
+                    // Simpan file WebP menggunakan Storage Laravel
+                    Storage::disk('public')->put($filename, $imageContent);
+                    $validated['thumbnail'] = $filename;
+                }
+            }
 
             $exam->update($validated);
 
-            return redirect()->back()->with('success', 'Ujian diperbarui!');
+            return redirect()->route('admin.exams.index')->with('success', 'Ujian berhasil diperbarui!');
         } catch (\Exception $e) {
             return redirect()->back()->withInput()->with('error', 'Gagal memperbarui ujian: '.$e->getMessage());
         }
     }
 
-    // Hapus Ujian
     public function destroy(Exam $exam)
     {
         if ($exam->teacher_id !== Auth::id()) {
             abort(403);
+        }
+
+        // Hapus file gambar thumbnail fisik dari storage jika ada
+        if ($exam->thumbnail) {
+            Storage::disk('public')->delete($exam->thumbnail);
         }
 
         $exam->delete();
@@ -173,5 +269,33 @@ class ExamController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Tipe Ujian baru berhasil ditambahkan!');
+    }
+
+    /**
+     * Menampilkan Halaman Form Buat Ujian
+     */
+    public function create()
+    {
+        $schoolId = Auth::user()->school_id;
+        $examTypes = ExamType::where('school_id', $schoolId)->get();
+        $levels = Level::where('school_id', $schoolId)->get();
+        $subjects = Subject::where('school_id', $schoolId)->get();
+
+        return view('exams.form', compact('examTypes', 'levels', 'subjects'));
+    }
+
+    /**
+     * Menampilkan Halaman Form Edit Ujian
+     */
+    public function edit(Exam $exam)
+    {
+        abort_if($exam->teacher_id !== Auth::id() && ! Auth::user()->hasRole('admin'), 403);
+
+        $schoolId = Auth::user()->school_id;
+        $examTypes = ExamType::where('school_id', $schoolId)->get();
+        $levels = Level::where('school_id', $schoolId)->get();
+        $subjects = Subject::where('school_id', $schoolId)->get();
+
+        return view('exams.form', compact('exam', 'examTypes', 'levels', 'subjects'));
     }
 }

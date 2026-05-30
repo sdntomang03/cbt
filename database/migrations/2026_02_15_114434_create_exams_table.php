@@ -40,6 +40,11 @@ return new class extends Migration
             $table->boolean('show_explanation')->default(false);
             $table->enum('status', ['draft', 'published', 'closed'])->default('draft');
             $table->boolean('is_public')->default(false);
+            $table->text('description')->nullable();
+            $table->longText('content')->nullable();
+            $table->string('meta_description', 160)->nullable();
+            $table->string('meta_keywords', 255)->nullable();
+            $table->string('thumbnail')->nullable();
             $table->timestamps();
         });
     }

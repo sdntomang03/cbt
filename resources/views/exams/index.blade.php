@@ -1,5 +1,47 @@
 <x-app-layout>
-    {{-- Area Navigasi Header --}}
+    @push('styles')
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <style>
+        /* Kostumisasi Quill agar menyatu dengan desain Tailwind Modern Anda */
+        .ql-toolbar.ql-snow {
+            border: none !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+            background-color: #f8fafc;
+            padding: 12px;
+            font-family: 'Nunito', sans-serif;
+            border-top-left-radius: 1rem;
+            border-top-right-radius: 1rem;
+        }
+
+        .ql-container.ql-snow {
+            border: none !important;
+            font-family: 'Nunito', sans-serif;
+            font-size: 14px;
+            border-bottom-left-radius: 1rem;
+            border-bottom-right-radius: 1rem;
+        }
+
+        .ql-editor {
+            min-height: 200px;
+            padding: 1rem;
+        }
+
+        .ql-editor:focus {
+            outline: none;
+        }
+
+        /* Custom Scrollbar untuk Table/Tabs */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+    @endpush
+
     <x-slot name="header">
         <div class="flex justify-between items-end w-full px-4 sm:px-6 lg:px-8">
             <div>
@@ -7,17 +49,16 @@
                 <p class="text-[10px] text-slate-400 mt-2 font-black uppercase tracking-widest">Kelola Bank Soal & Sesi
                     Ujian</p>
             </div>
-
-            <button @click="$store.examModule.newExam()"
+            <a href="{{ route('admin.exams.create') }}"
                 class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl hover:bg-indigo-700 text-sm font-black shadow-lg shadow-indigo-200 transition-all flex items-center gap-2 active:scale-95">
                 <i class="fas fa-plus"></i> <span>Ujian Baru</span>
-            </button>
+            </a>
         </div>
     </x-slot>
 
     <div class="py-8 px-4 sm:px-6 lg:px-8 w-full">
 
-        {{-- Navigasi Jenis Ujian (Tabs) & Tombol Tipe Baru --}}
+        {{-- Tabs Tipe Ujian --}}
         <div class="flex items-center gap-3 mb-8 overflow-x-auto pb-2 custom-scrollbar">
             @foreach($examTypes as $type)
             <a href="{{ route('admin.exams.index', ['exam_type_id' => $type->id]) }}"
@@ -26,15 +67,13 @@
                 {{ $type->name }}
             </a>
             @endforeach
-
-            {{-- TOMBOL TIPE BARU --}}
             <button @click="$store.examModule.newType()"
                 class="px-5 py-2.5 rounded-xl border-2 border-dashed border-slate-300 text-slate-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all text-sm font-black shrink-0 flex items-center gap-2">
                 <i class="fas fa-plus-circle"></i> Tipe Baru
             </button>
         </div>
 
-        {{-- Alert Notifikasi --}}
+        {{-- Alerts --}}
         @if(session('success'))
         <div
             class="alert-box mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl font-bold flex items-center justify-between shadow-sm">
@@ -45,7 +84,6 @@
         </div>
         @endif
 
-        {{-- PERBAIKAN: Alert Notifikasi Error (Dari Try-Catch) --}}
         @if(session('error'))
         <div
             class="alert-box mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl font-bold flex items-center justify-between shadow-sm">
@@ -56,20 +94,17 @@
         </div>
         @endif
 
-        {{-- PERBAIKAN: Alert Notifikasi Validasi (Jika input ditolak) --}}
         @if($errors->any())
         <div
             class="alert-box mb-6 p-4 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl text-sm font-bold shadow-sm">
             <div class="flex items-center gap-2 mb-2"><i class="fas fa-info-circle text-lg"></i> Gagal menyimpan data:
             </div>
-            <ul class="list-disc list-inside ml-2">
-                @foreach($errors->all() as $error)
-                <li>{{ $error }}</li>
-                @endforeach
+            <ul class="list-disc list-inside ml-2">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach
             </ul>
         </div>
         @endif
-        {{-- Tabel Data Ujian --}}
+
+        {{-- Tabel --}}
         <div class="bg-white shadow-sm sm:rounded-[2rem] border border-slate-100 overflow-hidden">
             <div class="p-6 border-b border-slate-50 bg-slate-50/30">
                 <h3 class="font-black text-slate-700 text-sm uppercase tracking-wider">
@@ -77,7 +112,6 @@
                         $activeTypeId)->first()?->name ?? 'Pilih Kategori' }}</span>
                 </h3>
             </div>
-
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse whitespace-nowrap">
                     <thead>
@@ -93,25 +127,27 @@
                         @forelse ($exams as $exam)
                         <tr class="hover:bg-slate-50/50 transition-colors">
                             <td class="px-6 py-4">
-                                <div class="font-black text-slate-800 text-base">{{ $exam->title }}</div>
+                                <div class="flex items-center gap-2">
+                                    <div class="font-black text-slate-800 text-base">{{ $exam->title }}</div>
+                                    @if($exam->is_public)
+                                    <span
+                                        class="text-[9px] bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded-full font-black uppercase">
+                                        <i class="fas fa-globe mr-0.5"></i> Publik
+                                    </span>
+                                    @endif
+                                </div>
                                 <div
                                     class="text-[10px] text-slate-400 font-mono mt-0.5 tracking-tight uppercase italic">
                                     {{ $exam->slug }}</div>
-
-                                {{-- Menampilkan Badges Level dan Subject di Tabel --}}
                                 <div class="mt-2 text-[10px] flex items-center gap-2 flex-wrap">
-                                    <span class="text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md">
-                                        <i class="fas fa-question-circle"></i> {{ $exam->questions_count }} Soal
-                                    </span>
-                                    <span class="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
-                                        <i class="fas fa-layer-group"></i> {{ $exam->level->name ?? 'Umum' }}
-                                    </span>
-                                    <span class="text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">
-                                        <i class="fas fa-book"></i> {{ $exam->subject->name ?? 'Umum' }}
-                                    </span>
-                                    <span class="text-slate-400 ml-1">
-                                        <i class="fas fa-user-edit"></i> {{ $exam->teacher->name ?? 'Guru' }}
-                                    </span>
+                                    <span class="text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md"><i
+                                            class="fas fa-question-circle"></i> {{ $exam->questions_count }} Soal</span>
+                                    <span class="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md"><i
+                                            class="fas fa-layer-group"></i> {{ $exam->level->name ?? 'Umum' }}</span>
+                                    <span class="text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md"><i
+                                            class="fas fa-book"></i> {{ $exam->subject->name ?? 'Umum' }}</span>
+                                    <span class="text-slate-400 ml-1"><i class="fas fa-user-edit"></i> {{
+                                        $exam->teacher->name ?? 'Guru' }}</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-center text-slate-600">
@@ -132,14 +168,14 @@
                                         <i class="fas fa-plus-square"></i>
                                     </a>
                                     @endcan
-
-                                    <button @click="$store.examModule.editExam({{ $exam->toJson() }})"
+                                    <a href="{{ route('admin.exams.edit', $exam) }}"
                                         class="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-500 hover:text-white transition"
-                                        title="Edit Pengaturan Ujian">
+                                        title="Edit">
                                         <i class="fas fa-edit"></i>
-                                    </button>
+                                    </a>
                                     <a href="{{ route('admin.analysis.index', $exam) }}"
-                                        class="bg-purple-50 text-purple-600 border border-purple-100 hover:bg-purple-600 hover:text-white px-4 py-2 rounded-xl text-xs font-black shadow-sm transition-all flex items-center gap-2 active:scale-95 inline-flex">
+                                        class="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-600 hover:text-white transition"
+                                        title="Analisis">
                                         <i class="fas fa-chart-pie"></i>
                                     </a>
                                     <form action="{{ route('admin.exams.destroy', $exam) }}" method="POST"
@@ -147,11 +183,10 @@
                                         @csrf @method('DELETE')
                                         <button type="submit"
                                             class="p-2 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition"
-                                            title="Hapus Ujian">
+                                            title="Hapus">
                                             <i class="fas fa-trash-alt"></i>
                                         </button>
                                     </form>
-
                                 </div>
                             </td>
                         </tr>
@@ -172,85 +207,99 @@
 
     {{-- MODAL CRUD UJIAN --}}
     <div x-data x-show="$store.examModule.openModal" class="fixed inset-0 z-[100] overflow-y-auto" x-cloak x-transition>
-        <div class="flex items-center justify-center min-h-screen p-4 text-center">
-            <div @click="$store.examModule.openModal = false"
-                class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"></div>
+        <div class="flex items-center justify-center min-h-screen p-4 relative">
+            <div @click="$store.examModule.openModal = false" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm">
+            </div>
 
             <div
-                class="inline-block bg-white rounded-[2.5rem] overflow-hidden shadow-2xl transform transition-all w-full max-w-xl z-[110] border border-slate-100 text-left align-middle">
-                <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                    <h3 class="text-xl font-black text-slate-800"
-                        x-text="$store.examModule.isEdit ? 'Update Konfigurasi Ujian' : 'Buat Ujian Baru'"></h3>
+                class="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl z-[110] border border-slate-100 text-left my-8">
+
+                {{-- Header Modal --}}
+                <div
+                    class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-[2.5rem]">
+                    <div>
+                        <h3 class="text-xl font-black text-slate-800"
+                            x-text="$store.examModule.isEdit ? 'Update Konfigurasi Ujian' : 'Buat Ujian Baru'"></h3>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Isi informasi
+                            ujian dengan lengkap</p>
+                    </div>
                     <button type="button" @click="$store.examModule.openModal = false"
-                        class="text-slate-300 hover:text-rose-500 transition">
+                        class="text-slate-300 hover:text-rose-500 transition w-9 h-9 rounded-xl hover:bg-rose-50 flex items-center justify-center">
                         <i class="fas fa-times text-xl"></i>
                     </button>
                 </div>
 
-                <form :action="$store.examModule.actionUrl" method="POST" class="p-8 space-y-6">
+                <form :action="$store.examModule.actionUrl" method="POST" enctype="multipart/form-data"
+                    class="divide-y divide-slate-100 max-h-[75vh] overflow-y-auto custom-scrollbar">
                     @csrf
                     <template x-if="$store.examModule.isEdit"><input type="hidden" name="_method"
                             value="PUT"></template>
-
                     <input type="hidden" name="exam_type_id" x-model="$store.examModule.formData.exam_type_id">
 
-                    <div>
-                        <label
-                            class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Judul
-                            Ujian</label>
-                        <input type="text" name="title" x-model="$store.examModule.formData.title" required
-                            class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 font-bold text-slate-700 py-3.5 px-4 shadow-sm">
-                    </div>
+                    {{-- SECTION 1: Informasi Dasar --}}
+                    <div class="p-8 space-y-5">
+                        <h4
+                            class="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            <span
+                                class="w-5 h-5 bg-indigo-600 text-white rounded-md flex items-center justify-center text-[9px]">1</span>
+                            Informasi Dasar
+                        </h4>
 
-                    {{-- TAMBAHAN: Dropdown Level & Mata Pelajaran --}}
-                    <div class="grid grid-cols-2 gap-6">
                         <div>
                             <label
-                                class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Tingkat
-                                / Kelas</label>
-                            <select name="level_id" x-model="$store.examModule.formData.level_id" required
-                                class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 font-bold text-slate-700 py-3.5 px-4 shadow-sm bg-slate-50 text-sm">
-                                <option value="">-- Pilih Level --</option>
-                                @foreach($levels as $level)
-                                <option value="{{ $level->id }}">{{ $level->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label
-                                class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Mata
-                                Pelajaran</label>
-                            <select name="subject_id" x-model="$store.examModule.formData.subject_id" required
-                                class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 font-bold text-slate-700 py-3.5 px-4 shadow-sm bg-slate-50 text-sm">
-                                <option value="">-- Pilih Mapel --</option>
-                                @foreach($subjects as $subject)
-                                <option value="{{ $subject->id }}">{{ $subject->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-6">
-                        <div>
-                            <label
-                                class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Jenis
-                                (Kategori)</label>
-                            <input type="text" disabled
-                                value="{{ $examTypes->where('id', $activeTypeId)->first()?->name }}"
-                                class="w-full rounded-2xl border-slate-100 bg-slate-50 text-slate-400 font-bold py-3.5 px-4 text-sm">
-                        </div>
-                        <div>
-                            <label
-                                class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Durasi
-                                (Menit)</label>
-                            <input type="number" name="duration_minutes"
-                                x-model="$store.examModule.formData.duration_minutes" required
-                                class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 font-bold text-slate-700 py-3.5 px-4 shadow-sm">
+                                class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Judul
+                                Ujian</label>
+                            <input type="text" name="title" x-model="$store.examModule.formData.title" required
+                                class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 font-bold text-slate-700 py-3.5 px-4 shadow-sm"
+                                placeholder="Contoh: Ujian Matematika Pecahan Kelas 4">
                         </div>
 
-                    </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label
+                                    class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Tingkat
+                                    / Kelas</label>
+                                <select name="level_id" x-model="$store.examModule.formData.level_id" required
+                                    class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 font-bold text-slate-700 py-3.5 px-4 shadow-sm bg-slate-50 text-sm">
+                                    <option value="">-- Pilih Level --</option>
+                                    @foreach($levels as $level)
+                                    <option value="{{ $level->id }}">{{ $level->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Mata
+                                    Pelajaran</label>
+                                <select name="subject_id" x-model="$store.examModule.formData.subject_id" required
+                                    class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 font-bold text-slate-700 py-3.5 px-4 shadow-sm bg-slate-50 text-sm">
+                                    <option value="">-- Pilih Mapel --</option>
+                                    @foreach($subjects as $subject)
+                                    <option value="{{ $subject->id }}">{{ $subject->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
 
-                    <div class="grid grid-cols-2 gap-6 items-center">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label
+                                    class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Jenis
+                                    (Kategori)</label>
+                                <input type="text" disabled
+                                    value="{{ $examTypes->where('id', $activeTypeId)->first()?->name }}"
+                                    class="w-full rounded-2xl border-slate-100 bg-slate-50 text-slate-400 font-bold py-3.5 px-4 text-sm">
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Durasi
+                                    (Menit)</label>
+                                <input type="number" name="duration_minutes"
+                                    x-model="$store.examModule.formData.duration_minutes" required
+                                    class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 font-bold text-slate-700 py-3.5 px-4 shadow-sm">
+                            </div>
+                        </div>
+
                         <div>
                             <label
                                 class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Status
@@ -262,79 +311,218 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="flex flex-col gap-2 pt-2">
-                            <label class="flex items-center gap-2 cursor-pointer group">
+                    </div>
+
+                    {{-- SECTION 2: Pengaturan Ujian --}}
+                    <div class="p-8 space-y-5">
+                        <h4
+                            class="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            <span
+                                class="w-5 h-5 bg-indigo-600 text-white rounded-md flex items-center justify-center text-[9px]">2</span>
+                            Pengaturan Ujian
+                        </h4>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <label
+                                class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer group hover:bg-indigo-50 transition border border-slate-200 hover:border-indigo-200">
                                 <input type="checkbox" name="random_question"
                                     :checked="$store.examModule.formData.random_question"
                                     @change="$store.examModule.formData.random_question = $event.target.checked"
-                                    class="rounded text-indigo-600 border-slate-300 w-5 h-5">
+                                    class="rounded text-indigo-600 border-slate-300 w-4 h-4">
                                 <span
                                     class="text-[10px] font-black text-slate-500 uppercase group-hover:text-indigo-600 transition">Acak
                                     Soal</span>
                             </label>
-                            <label class="flex items-center gap-2 cursor-pointer group">
+                            <label
+                                class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer group hover:bg-indigo-50 transition border border-slate-200 hover:border-indigo-200">
                                 <input type="checkbox" name="random_answer"
                                     :checked="$store.examModule.formData.random_answer"
                                     @change="$store.examModule.formData.random_answer = $event.target.checked"
-                                    class="rounded text-indigo-600 border-slate-300 w-5 h-5">
+                                    class="rounded text-indigo-600 border-slate-300 w-4 h-4">
                                 <span
                                     class="text-[10px] font-black text-slate-500 uppercase group-hover:text-indigo-600 transition">Acak
                                     Jawaban</span>
                             </label>
-                            <label class="flex items-center gap-2 cursor-pointer group">
+                            <label
+                                class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer group hover:bg-indigo-50 transition border border-slate-200 hover:border-indigo-200">
                                 <input type="checkbox" name="show_explanation"
                                     :checked="$store.examModule.formData.show_explanation"
                                     @change="$store.examModule.formData.show_explanation = $event.target.checked"
-                                    class="rounded text-indigo-600 border-slate-300 w-5 h-5">
+                                    class="rounded text-indigo-600 border-slate-300 w-4 h-4">
                                 <span
                                     class="text-[10px] font-black text-slate-500 uppercase group-hover:text-indigo-600 transition">Tampilkan
                                     Pembahasan</span>
                             </label>
-
+                            <label
+                                class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer group hover:bg-indigo-50 transition border border-slate-200 hover:border-indigo-200">
+                                <input type="checkbox" name="require_token"
+                                    :checked="$store.examModule.formData.require_token"
+                                    @change="$store.examModule.formData.require_token = $event.target.checked"
+                                    class="rounded text-indigo-600 border-slate-300 w-4 h-4">
+                                <span
+                                    class="text-[10px] font-black text-slate-500 uppercase group-hover:text-indigo-600 transition">Wajib
+                                    Token</span>
+                            </label>
                         </div>
-                        <div class="col-span-2 pt-4 border-t border-slate-100">
-                            <h4 class="text-xs font-black text-slate-800 uppercase mb-3">Pengaturan Keamanan & Sesi</h4>
-                            <div class="grid grid-cols-2 gap-4">
 
-                                <label class="flex items-center gap-2 cursor-pointer group">
-                                    <input type="checkbox" name="require_token"
-                                        :checked="$store.examModule.formData.require_token"
-                                        @change="$store.examModule.formData.require_token = $event.target.checked"
-                                        class="rounded text-indigo-600 border-slate-300 w-5 h-5">
-                                    <span
-                                        class="text-[10px] font-black text-slate-500 uppercase group-hover:text-indigo-600 transition">Wajib
-                                        Pakai Token</span>
+                        {{-- Sensor Pelanggaran --}}
+                        <div class="p-4 bg-rose-50 rounded-xl border border-rose-100">
+                            <div class="flex items-center justify-between">
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <input type="checkbox" name="enable_violation"
+                                        :checked="$store.examModule.formData.enable_violation"
+                                        @change="$store.examModule.formData.enable_violation = $event.target.checked"
+                                        class="rounded text-rose-500 border-slate-300 w-4 h-4">
+                                    <span class="text-[10px] font-black text-rose-600 uppercase">Sensor
+                                        Pelanggaran</span>
                                 </label>
-
-                                <div class="flex items-center gap-4">
-                                    <label class="flex items-center gap-2 cursor-pointer group">
-                                        <input type="checkbox" name="enable_violation"
-                                            :checked="$store.examModule.formData.enable_violation"
-                                            @change="$store.examModule.formData.enable_violation = $event.target.checked"
-                                            class="rounded text-rose-500 border-slate-300 w-5 h-5">
-                                        <span
-                                            class="text-[10px] font-black text-slate-500 uppercase group-hover:text-rose-600 transition">Sensor
-                                            Pelanggaran</span>
-                                    </label>
-
-                                    <div x-show="$store.examModule.formData.enable_violation" x-transition
-                                        class="flex items-center gap-2">
-                                        <span class="text-[10px] font-bold text-slate-400">Maks. Pindah Tab:</span>
-                                        <input type="number" name="max_tolerances"
-                                            x-model="$store.examModule.formData.max_tolerances"
-                                            class="w-16 rounded-lg border-slate-200 py-1 px-2 text-xs text-center font-bold">
-                                    </div>
+                                <div x-show="$store.examModule.formData.enable_violation" x-transition
+                                    class="flex items-center gap-2">
+                                    <span class="text-[10px] font-bold text-rose-400">Maks. Tab:</span>
+                                    <input type="number" name="max_tolerances"
+                                        x-model="$store.examModule.formData.max_tolerances"
+                                        class="w-16 rounded-lg border-rose-200 py-1.5 px-2 text-xs text-center font-black text-rose-600 bg-white">
                                 </div>
-
                             </div>
                         </div>
                     </div>
 
-                    <div class="pt-8 flex justify-end gap-4 border-t border-slate-50">
+                    {{-- SECTION 3: Publikasi Publik & SEO --}}
+                    <div class="p-8 space-y-5">
+                        <h4
+                            class="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            <span
+                                class="w-5 h-5 bg-indigo-600 text-white rounded-md flex items-center justify-center text-[9px]">3</span>
+                            Publikasi Publik & SEO
+                        </h4>
+
+                        {{-- Toggle is_public --}}
+                        <label
+                            class="flex items-center justify-between p-4 bg-emerald-50 rounded-xl border border-emerald-200 cursor-pointer group hover:bg-emerald-100 transition">
+                            <div>
+                                <div class="text-sm font-black text-emerald-700">Tampilkan di Halaman Publik</div>
+                                <div class="text-[10px] text-emerald-500 mt-0.5">Ujian dapat diakses & dikerjakan oleh
+                                    siapa saja</div>
+                            </div>
+                            <div class="relative">
+                                <input type="checkbox" name="is_public" :checked="$store.examModule.formData.is_public"
+                                    @change="$store.examModule.formData.is_public = $event.target.checked"
+                                    class="sr-only">
+                                <div class="w-12 h-6 rounded-full transition-colors duration-200 ease-in-out"
+                                    :class="$store.examModule.formData.is_public ? 'bg-emerald-500' : 'bg-slate-200'">
+                                    <div class="w-5 h-5 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out mt-0.5"
+                                        :class="$store.examModule.formData.is_public ? 'translate-x-6 ml-0.5' : 'translate-x-0.5'">
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
+
+                        {{-- SEO Fields: hanya tampil jika is_public = true --}}
+                        <div x-show="$store.examModule.formData.is_public" x-transition class="space-y-4">
+
+                            {{-- Info --}}
+                            <div class="flex items-start gap-2 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+                                <i class="fas fa-info-circle text-indigo-500 mt-0.5 text-sm"></i>
+                                <p class="text-[10px] text-indigo-600 font-bold leading-relaxed">
+                                    Lengkapi informasi SEO agar ujian mudah ditemukan di mesin pencari seperti Google.
+                                    Field ini akan tampil di landing page ujian.
+                                </p>
+                            </div>
+
+                            {{-- Deskripsi Singkat --}}
+                            <div>
+                                <label
+                                    class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Deskripsi
+                                    Singkat</label>
+                                <textarea name="description" x-model="$store.examModule.formData.description" rows="2"
+                                    placeholder="Deskripsi singkat yang tampil di kartu ujian..."
+                                    class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 font-medium text-slate-700 py-3 px-4 shadow-sm text-sm resize-none"></textarea>
+                            </div>
+
+                            {{-- Meta Description --}}
+                            <div>
+                                <label
+                                    class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">
+                                    Meta Description <span class="normal-case text-slate-300 ml-1 font-medium">(maks.
+                                        160 karakter · tampil di Google)</span>
+                                </label>
+                                <textarea name="meta_description" x-model="$store.examModule.formData.meta_description"
+                                    rows="2" maxlength="160" placeholder="Deskripsi untuk hasil pencarian Google..."
+                                    class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 font-medium text-slate-700 py-3 px-4 shadow-sm text-sm resize-none"></textarea>
+                                <div class="flex justify-between items-center mt-1 px-1">
+                                    <span class="text-[10px] text-slate-300">Idealnya 120–160 karakter</span>
+                                    <span class="text-[10px] font-bold"
+                                        :class="($store.examModule.formData.meta_description || '').length > 140 ? 'text-amber-500' : 'text-slate-300'"
+                                        x-text="($store.examModule.formData.meta_description || '').length + ' / 160'"></span>
+                                </div>
+                            </div>
+
+                            {{-- Meta Keywords --}}
+                            <div>
+                                <label
+                                    class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Meta
+                                    Keywords</label>
+                                <input type="text" name="meta_keywords"
+                                    x-model="$store.examModule.formData.meta_keywords"
+                                    placeholder="ujian online, matematika, pecahan, kelas 4"
+                                    class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 font-medium text-slate-700 py-3 px-4 shadow-sm text-sm">
+                                <p class="text-[10px] text-slate-300 mt-1 px-1">Pisahkan dengan koma</p>
+                            </div>
+
+                            {{-- Thumbnail --}}
+                            <div>
+                                <label
+                                    class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">
+                                    Thumbnail / OG Image <span
+                                        class="normal-case text-slate-300 ml-1 font-medium">(tampil saat share
+                                        sosmed)</span>
+                                </label>
+                                <input type="file" name="thumbnail" accept="image/*"
+                                    class="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 transition cursor-pointer">
+                                <p class="text-[10px] text-slate-300 mt-1 px-1">Rekomendasi: 1200×630px, maks. 2MB (Akan
+                                    otomatis diconvert ke WebP)</p>
+                                <template x-if="$store.examModule.formData.thumbnail">
+                                    <div class="mt-2 relative inline-block">
+                                        <img :src="'/storage/' + $store.examModule.formData.thumbnail"
+                                            class="h-24 rounded-xl object-cover border border-slate-200 shadow-sm">
+                                        <span
+                                            class="absolute top-1 right-1 bg-black/50 text-white text-[9px] px-1.5 py-0.5 rounded font-bold">Saat
+                                            ini</span>
+                                    </div>
+                                </template>
+                            </div>
+
+                            {{-- KONTEN ARTIKEL (QUILL EDITOR) --}}
+                            <div x-data="quillEditorComponent()">
+                                <label
+                                    class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">
+                                    Konten Halaman Ujian <span
+                                        class="normal-case text-slate-300 ml-1 font-medium">(materi, panduan,
+                                        tips)</span>
+                                </label>
+                                <div
+                                    class="border border-slate-200 rounded-2xl overflow-hidden focus-within:ring focus-within:ring-indigo-200 focus-within:border-indigo-500 transition-all bg-white">
+                                    <div x-ref="editor" class="w-full text-slate-700 text-sm"></div>
+                                </div>
+                                <input type="hidden" name="content" :value="$store.examModule.formData.content">
+                                <p class="text-[10px] text-slate-400 mt-2 px-1 font-bold">
+                                    <i class="fas fa-magic text-indigo-400 mr-1"></i> Mendukung Upload dan Paste
+                                    (Ctrl+V) gambar secara langsung.
+                                </p>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    {{-- Footer Modal --}}
+                    <div
+                        class="px-8 py-5 bg-slate-50/50 rounded-b-[2.5rem] flex justify-end gap-4 sticky bottom-0 border-t border-slate-100">
                         <button type="button" @click="$store.examModule.openModal = false"
-                            class="px-6 py-3 text-slate-400 font-black rounded-2xl hover:bg-slate-50 transition">Batal</button>
+                            class="px-6 py-3 text-slate-400 font-black rounded-2xl hover:bg-slate-100 transition">Batal</button>
                         <button type="submit"
-                            class="px-10 py-3 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all active:scale-95">Simpan</button>
+                            class="px-10 py-3 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all active:scale-95 flex items-center gap-2">
+                            <i class="fas fa-save"></i> Simpan
+                        </button>
                     </div>
                 </form>
             </div>
@@ -344,20 +532,19 @@
     {{-- MODAL TAMBAH TIPE UJIAN --}}
     <div x-data x-show="$store.examModule.openTypeModal" class="fixed inset-0 z-[100] overflow-y-auto" x-cloak
         x-transition>
-        <div class="flex items-center justify-center min-h-screen p-4 text-center">
+        <div class="flex items-center justify-center min-h-screen p-4">
             <div @click="$store.examModule.openTypeModal = false"
-                class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"></div>
-
+                class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
             <div
-                class="inline-block bg-white rounded-[2.5rem] overflow-hidden shadow-2xl transform transition-all w-full max-w-md z-[110] border border-slate-100 text-left align-middle">
-                <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                class="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md z-[110] border border-slate-100 text-left">
+                <div
+                    class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-[2.5rem]">
                     <h3 class="text-xl font-black text-slate-800">Tambah Tipe Ujian</h3>
                     <button type="button" @click="$store.examModule.openTypeModal = false"
                         class="text-slate-300 hover:text-rose-500 transition">
                         <i class="fas fa-times text-xl"></i>
                     </button>
                 </div>
-
                 <form action="{{ route('admin.exam-types.store') }}" method="POST" class="p-8">
                     @csrf
                     <div>
@@ -368,7 +555,6 @@
                             placeholder="Contoh: Ulangan Harian"
                             class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 font-bold text-slate-700 py-3.5 px-4 shadow-sm">
                     </div>
-
                     <div class="pt-8 flex justify-end gap-3 mt-2">
                         <button type="button" @click="$store.examModule.openTypeModal = false"
                             class="px-6 py-3 text-slate-400 font-black rounded-2xl hover:bg-slate-50 transition">Batal</button>
@@ -381,79 +567,152 @@
         </div>
     </div>
 
-    {{-- SCRIPT ALPINE GLOBAL STORE --}}
     @push('scripts')
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
     <script>
         document.addEventListener('alpine:init', () => {
+
+            // 1. STORE MODAL UJIAN
             Alpine.store('examModule', {
-                // State Modal Ujian Utama
                 openModal: false,
                 isEdit: false,
                 actionUrl: '',
                 formData: {
-                    title: '',
-                    exam_type_id: '{{ $activeTypeId }}',
-                    level_id: '',
-                    subject_id: '',
-                    duration_minutes: 60,
-                    status: 'draft',
-                    random_question: false,
-                    show_explanation: false,
-                    random_answer: false,
-                    require_token: true,
-                    enable_violation: true,
-                    max_tolerances: 3
+                    title: '', exam_type_id: '{{ $activeTypeId }}', level_id: '', subject_id: '',
+                    duration_minutes: 60, status: 'draft', random_question: false, show_explanation: false,
+                    random_answer: false, require_token: true, enable_violation: true, max_tolerances: 3,
+                    is_public: false, description: '', meta_description: '', meta_keywords: '', thumbnail: '', content: '',
                 },
+
                 newExam() {
                     this.isEdit = false;
-                    this.actionUrl = '{{ route('admin.exams.store') }}';
+                    this.actionUrl = '{{ route("admin.exams.store") }}';
                     this.formData = {
-                        title: '',
-                        exam_type_id: '{{ $activeTypeId }}',
-                        level_id: '',
-                        subject_id: '',
-                        duration_minutes: 60,
-                        status: 'draft',
-                        random_question: false,
-                        show_explanation: false,
-                        random_answer: false,
-                        require_token: true,
-                        enable_violation: true,
-                        max_tolerances: 3
-                    };
-                    this.openModal = true;
-                },
-                editExam(exam) {
-                    this.isEdit = true;
-                    this.actionUrl = `/admin/exams/${exam.hashid}`;
-                    this.formData = {
-                        title: exam.title,
-                        exam_type_id: exam.exam_type_id,
-                        level_id: exam.level_id || '',
-                        subject_id: exam.subject_id || '',
-                        duration_minutes: exam.duration_minutes,
-                        status: exam.status,
-                        random_question: !!exam.random_question,
-                        show_explanation: !!exam.show_explanation,
-                        // PERBAIKAN: Hapus kata .Alpine di sini
-                        random_answer: !!exam.random_answer,
-                        require_token: !!exam.require_token,
-                        enable_violation: !!exam.enable_violation,
-                        max_tolerances: exam.max_tolerances || 3,
+                        title: '', exam_type_id: '{{ $activeTypeId }}', level_id: '', subject_id: '',
+                        duration_minutes: 60, status: 'draft', random_question: false, show_explanation: false,
+                        random_answer: false, require_token: true, enable_violation: true, max_tolerances: 3,
+                        is_public: false, description: '', meta_description: '', meta_keywords: '', thumbnail: '', content: '',
                     };
                     this.openModal = true;
                 },
 
-                // State Modal Tipe Ujian
-                openTypeModal: false,
-                typeFormData: {
-                    name: ''
+                editExam(exam) {
+                    this.isEdit = true;
+                    this.actionUrl = `/admin/exams/${exam.hashid}`;
+                    this.formData = {
+                        title: exam.title, exam_type_id: exam.exam_type_id, level_id: exam.level_id || '', subject_id: exam.subject_id || '',
+                        duration_minutes: exam.duration_minutes, status: exam.status, random_question: !!exam.random_question,
+                        show_explanation: !!exam.show_explanation, random_answer: !!exam.random_answer, require_token: !!exam.require_token,
+                        enable_violation: !!exam.enable_violation, max_tolerances: exam.max_tolerances || 3, is_public: !!exam.is_public,
+                        description: exam.description || '', meta_description: exam.meta_description || '', meta_keywords: exam.meta_keywords || '',
+                        thumbnail: exam.thumbnail || '', content: exam.content || '',
+                    };
+                    this.openModal = true;
                 },
+
+                openTypeModal: false,
+                typeFormData: { name: '' },
                 newType() {
                     this.typeFormData.name = '';
                     this.openTypeModal = true;
                 }
             });
+
+            // 2. KOMPONEN QUILL EDITOR
+            Alpine.data('quillEditorComponent', () => ({
+                quill: null,
+                init() {
+                    this.quill = new Quill(this.$refs.editor, {
+                        theme: 'snow',
+                        placeholder: 'Tulis panduan pengerjaan, materi pendukung, atau tata tertib di sini...',
+                        modules: {
+                            toolbar: {
+                                container: [
+                                    [{ 'header': [1, 2, 3, false] }],
+                                    ['bold', 'italic', 'underline', 'strike'],
+                                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                    ['link', 'image', 'video'],
+                                    ['clean']
+                                ],
+                                handlers: {
+                                    image: this.imageHandler.bind(this)
+                                }
+                            }
+                        }
+                    });
+
+                    // Sinkronisasi data saat edit
+                    this.quill.root.innerHTML = this.$store.examModule.formData.content || '';
+
+                    this.quill.on('text-change', () => {
+                        let html = this.quill.root.innerHTML;
+                        if (html === '<p><br></p>') html = '';
+                        this.$store.examModule.formData.content = html;
+                    });
+
+                    this.$watch('$store.examModule.formData.content', (value) => {
+                        if (value !== this.quill.root.innerHTML) {
+                            this.quill.root.innerHTML = value || '';
+                        }
+                    });
+
+                    this.quill.root.addEventListener('paste', (e) => {
+                        if (e.clipboardData && e.clipboardData.items) {
+                            const items = e.clipboardData.items;
+                            for (let i = 0; i < items.length; i++) {
+                                if (items[i].type.indexOf('image') !== -1) {
+                                    e.preventDefault();
+                                    const file = items[i].getAsFile();
+                                    this.uploadToServer(file);
+                                }
+                            }
+                        }
+                    });
+                },
+
+                imageHandler() {
+                    const input = document.createElement('input');
+                    input.setAttribute('type', 'file');
+                    input.setAttribute('accept', 'image/*');
+                    input.click();
+
+                    input.onchange = async () => {
+                        const file = input.files[0];
+                        if (file) {
+                            this.uploadToServer(file);
+                        }
+                    };
+                },
+
+                async uploadToServer(file) {
+                    const formData = new FormData();
+
+                    // UBAH 'image' MENJADI NAMA PARAMETER REQUEST MILIK CONTROLLER UPLOAD ANDA
+                    formData.append('image', file);
+
+                    const range = this.quill.getSelection(true);
+                    this.quill.insertText(range.index, ' ⏳ Mengunggah gambar...', 'user');
+
+                    try {
+                        // UBAH '/admin/upload-image' MENJADI ROUTE UPLOAD GAMBAR SOAL ANDA!
+                        const response = await axios.post('/admin/upload-image', formData, {
+                            headers: { 'Content-Type': 'multipart/form-data' }
+                        });
+
+                        const url = response.data.url;
+
+                        this.quill.deleteText(range.index, 23);
+                        this.quill.insertEmbed(range.index, 'image', url);
+                        this.quill.setSelection(range.index + 1);
+                    } catch (error) {
+                        console.error('Upload error', error);
+                        this.quill.deleteText(range.index, 23);
+                        alert('Gagal mengunggah gambar. Pastikan ukuran file sesuai dan koneksi stabil.');
+                    }
+                }
+            }));
         });
     </script>
     @endpush

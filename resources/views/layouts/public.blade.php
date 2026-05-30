@@ -6,7 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'CBT Pro') }}</title>
+    {{-- 1. Buat Title Dinamis (Jika tidak diisi dari view, default ke 'CBT Pro') --}}
+    <title>@yield('title', config('app.name', 'CBT Pro'))</title>
+
+    {{-- 2. Sediakan ruang kosong untuk menampung tag Meta dari View --}}
+    @stack('meta')
 
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=nunito:400,500,600,700,800,900&display=swap" rel="stylesheet" />
@@ -19,7 +23,6 @@
             font-family: 'Nunito', sans-serif;
         }
 
-        /* [x-cloak] mencegah kedipan UI Alpine.js saat halaman dimuat */
         [x-cloak] {
             display: none !important;
         }
