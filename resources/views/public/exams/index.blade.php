@@ -203,6 +203,11 @@
                         <li><strong>Mengurangi Kecemasan:</strong> Pengalaman simulasi yang berulang-ulang terbukti
                             secara psikologis mampu menurunkan tingkat stres dan kepanikan anak saat hari ujian tiba.
                         </li>
+                        <li><strong>Ranking Nasional:</strong> Siswa yang telah melaksanakan tryout dapat melihat
+                            peringkatnya secara nasional, memberikan motivasi tambahan untuk
+                            belajar lebih giat dan bersaing secara sehat dengan teman-teman sebayanya di seluruh
+                            Indonesia.
+                        </li>
                     </ul>
 
                     <div class="bg-indigo-50 border-l-4 border-indigo-500 p-5 rounded-r-xl mt-8">
