@@ -339,12 +339,29 @@
                 </label>
 
                 <div x-show="isPublic" class="space-y-5 pt-4">
+
+                    {{-- 1. Deskripsi Singkat untuk Card Detail --}}
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-2">Deskripsi Singkat</label>
+                        <label class="block text-xs font-bold text-slate-700 mb-2">
+                            Deskripsi Singkat <span class="text-slate-400 font-normal">(Tampil di Card/Katalog)</span>
+                        </label>
                         <textarea name="description" rows="2"
-                            class="w-full rounded-xl border-slate-200 focus:ring-indigo-500 text-slate-700 py-3 px-4 resize-none">{{ old('description', $exam->description ?? '') }}</textarea>
+                            class="w-full rounded-xl border-slate-200 focus:ring-indigo-500 text-slate-700 py-3 px-4 resize-none"
+                            placeholder="Tuliskan penjelasan singkat tentang ujian ini...">{{ old('description', $exam->description ?? '') }}</textarea>
                     </div>
 
+                    {{-- 2. Meta Description untuk SEO --}}
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-2">
+                            Meta Description <span class="text-slate-400 font-normal">(Opsional - Untuk SEO
+                                Google)</span>
+                        </label>
+                        <textarea name="meta_description" rows="2"
+                            class="w-full rounded-xl border-slate-200 focus:ring-indigo-500 text-slate-700 py-3 px-4 resize-none"
+                            placeholder="Deskripsi untuk hasil pencarian mesin telusur (maks. 160 karakter)">{{ old('meta_description', $exam->meta_description ?? '') }}</textarea>
+                    </div>
+
+                    {{-- 3. Grid untuk Meta Keywords & Thumbnail --}}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="block text-xs font-bold text-slate-700 mb-2">
@@ -370,7 +387,7 @@
                         </div>
                     </div>
 
-                    {{-- ══ QUILL EDITOR (X-DATA KHUSUS) ══ --}}
+                    {{-- 4. QUILL EDITOR (X-DATA KHUSUS) --}}
                     <div x-data="examEditor()">
                         <label class="block text-xs font-bold text-slate-700 mb-2">
                             Artikel Landing Page (Materi / Info)
