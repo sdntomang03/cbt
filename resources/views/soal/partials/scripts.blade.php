@@ -79,8 +79,25 @@
         transition: color 0.2s;
     }
 
+    .ql-mathTemplate::after {
+        font-family: 'Nunito', sans-serif;
+        font-weight: 900;
+        font-size: 15px;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        transition: color 0.2s;
+    }
+
     .ql-customSymbol::after {
         content: "Ω";
+    }
+
+    .ql-mathTemplate::after {
+        content: "fx";
+        font-style: italic;
     }
 
     .ql-editHtml::after {
@@ -91,6 +108,10 @@
     .ql-customSymbol:hover::after,
     .ql-editHtml:hover::after,
     .ql-editHtml.ql-active::after {
+        color: #4f46e5;
+    }
+
+    .ql-mathTemplate:hover::after {
         color: #4f46e5;
     }
 
@@ -379,6 +400,68 @@ document.addEventListener('alpine:init', () => {
             });
         }
 
+        function openMathTemplatePicker(quill) {
+            const range = quill.getSelection(true);
+
+            // Daftar template LaTeX yang sering digunakan
+            const templates = [
+                { label: 'Pecahan', val: '\\frac{x}{y}' },
+                { label: 'Akar Kuadrat', val: '\\sqrt{x}' },
+                { label: 'Akar Pangkat', val: '\\sqrt[n]{x}' },
+                { label: 'Pangkat', val: 'x^{y}' },
+                { label: 'Indeks Bawah', val: 'x_{y}' },
+                { label: 'Integral', val: '\\int_{a}^{b}' },
+                { label: 'Limit', val: '\\lim_{x \\to \\infty}' },
+                { label: 'Matriks 2x2', val: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}' }
+            ];
+
+            let html = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px">';
+            templates.forEach(t => {
+                // Render pratinjau rumus menggunakan KaTeX ke dalam string HTML
+                let renderedPreview = '';
+                try {
+                    renderedPreview = window.katex.renderToString(t.val, { throwOnError: false });
+                } catch (e) {
+                    renderedPreview = t.val;
+                }
+
+                html += `<button class="math-btn" data-val="${t.val}"
+                    style="padding:12px 8px;background:#f8fafc;border:1px solid #e2e8f0;
+                           border-radius:8px;cursor:pointer;display:flex;flex-direction:column;
+                           align-items:center;gap:8px;transition:0.2s;">
+                           <span style="font-size:16px;">${renderedPreview}</span>
+                           <span style="font-size:11px;color:#64748b;font-weight:700;">${t.label}</span>
+                    </button>`;
+            });
+            html += '</div>';
+
+            Swal.fire({
+                title: '<span style="font-size:16px;font-weight:900;color:#1e293b">Pilih Template LaTeX</span>',
+                html,
+                showConfirmButton: false,
+                showCloseButton: true,
+                didOpen: () => {
+                    // Beri efek hover visual pada tombol
+                    document.querySelectorAll('.math-btn').forEach(btn => {
+                        btn.addEventListener('mouseenter', () => btn.style.borderColor = '#4f46e5');
+                        btn.addEventListener('mouseleave', () => btn.style.borderColor = '#e2e8f0');
+
+                        btn.addEventListener('click', () => {
+                            const val = btn.getAttribute('data-val');
+                            const cursor = range ? range.index : quill.getLength();
+
+                            // Masukkan sebagai elemen Formula Quill (bukan teks biasa)
+                            quill.insertEmbed(cursor, 'formula', val);
+
+                            // Pindahkan kursor ke setelah rumus yang baru dimasukkan
+                            quill.setSelection(cursor + 1);
+                            Swal.close();
+                        });
+                    });
+                }
+            });
+        }
+
         // =========================================================
         // FITUR TOGGLE MODE HTML (</>)
         // =========================================================
@@ -422,12 +505,13 @@ document.addEventListener('alpine:init', () => {
                 container: [
                     ['bold', 'italic', 'underline'],
                     [{ script: 'sub' }, { script: 'super' }],
-                    ['image', 'formula', 'customSymbol', 'editHtml'],
+                    ['image', 'formula', 'mathTemplate', 'customSymbol', 'editHtml'],
                 ],
                 handlers: {
                     image()        { imageHandler(this.quill); },
                     customSymbol() { openSymbolPicker(this.quill); },
                     editHtml()     { toggleHtmlEdit(this.quill); },
+                    mathTemplate() { openMathTemplatePicker(this.quill); }
                 }
             };
         }
@@ -444,13 +528,14 @@ document.addEventListener('alpine:init', () => {
                     [{ list: 'ordered' }, { list: 'bullet' }],
                     [{ align: [] }],
                     ['blockquote'],
-                    ['link', 'image', 'video', 'formula', 'customSymbol', 'editHtml'],
+                  ['link', 'image', 'video', 'formula', 'mathTemplate', 'customSymbol', 'editHtml'],
                     ['clean'],
                 ],
                 handlers: {
                     image()        { imageHandler(this.quill); },
                     customSymbol() { openSymbolPicker(this.quill); },
                     editHtml()     { toggleHtmlEdit(this.quill); },
+                    mathTemplate() { openMathTemplatePicker(this.quill); }
                 }
             };
         }
