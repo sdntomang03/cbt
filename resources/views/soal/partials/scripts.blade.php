@@ -199,49 +199,68 @@ document.addEventListener('alpine:init', () => {
         }
 
         // =========================================================
-        // HANDLER PASTE GAMBAR - Override clipboard Quill
-        // =========================================================
-        // =========================================================
         // HANDLER PASTE GAMBAR & TEKS - Hybrid Clipboard Quill
         // =========================================================
         function setupPasteHandler(quill) {
 
-            // Mencegah Quill mengubah gambar base64 ke dalam Delta secara langsung
+            // Mencegah Quill menyisipkan gambar base64 atau URL luar secara langsung
             quill.clipboard.addMatcher('IMG', function (node, delta) {
-                // Jika gambar dari URL luar (bukan base64/file lokal), biarkan lewat
-                if (node.src && !node.src.startsWith('data:')) {
-                    return delta;
-                }
+                const src = node.src;
+                if (!src) return new quill.constructor.import('delta')();
 
-                // Jika gambar adalah Base64 (biasanya hasil copy dari Word/Web langsung),
-                // ubah menjadi file blob dan unggah ke server diam-diam.
-                if (node.src && node.src.startsWith('data:image')) {
-                    fetch(node.src)
-                        .then(res => res.blob())
-                        .then(blob => {
-                            const file = new File([blob], "pasted-image.png", { type: blob.type });
+                // Proses asinkron untuk mendownload gambar secara paksa
+                const processImage = async () => {
+                    try {
+                        let blob;
+                        let filename = 'pasted-image.png';
+
+                        if (src.startsWith('data:image')) {
+                            // 1. Tangani Base64 (Gambar yang menempel langsung di HTML)
+                            const res = await fetch(src);
+                            blob = await res.blob();
+                        } else if (src.startsWith('http')) {
+                            // 2. Tangani URL Web Lain (Download ke server kita)
+                            const res = await fetch(src);
+                            if (!res.ok) throw new Error('Gagal mengambil gambar dari sumber asal');
+                            blob = await res.blob();
+
+                            // Coba dapatkan ekstensi asli gambar
+                            const ext = blob.type.split('/')[1] || 'png';
+                            filename = `external-image.${ext}`;
+                        }
+
+                        // Jika berhasil menjadi file, jalankan fungsi upload ke server Anda
+                        if (blob) {
+                            const file = new File([blob], filename, { type: blob.type });
                             uploadImageToServer(file, quill);
-                        });
+                        }
 
-                    // Kembalikan delta kosong agar base64 tidak tercetak di editor
-                    return new quill.constructor.import('delta')();
-                }
+                    } catch (error) {
+                        console.warn("Gagal mendownload gambar eksternal (CORS Terblokir). Menyisipkan URL aslinya.", error);
+                        // Fallback: Jika web sumber melarang gambar didownload paksa (CORS),
+                        // terpaksa kita gunakan URL aslinya agar gambar tetap muncul.
+                        const cursor = quill.getSelection()?.index || quill.getLength();
+                        quill.insertEmbed(cursor, 'image', src);
+                    }
+                };
 
+                processImage();
+
+                // Kembalikan delta kosong agar Quill tidak nge-paste otomatis.
+                // Fungsi uploadImageToServer yang akan menyisipkan gambarnya nanti saat upload selesai.
                 return new quill.constructor.import('delta')();
             });
 
-            // Handle khusus untuk copy-paste File murni (Screenshot / Snipping Tool)
+            // Handle khusus untuk copy-paste File murni (Screenshot / Snipping Tool / PrtSc)
             quill.root.addEventListener('paste', function (e) {
                 const clipboardData = e.clipboardData || window.clipboardData;
                 if (!clipboardData) return;
 
-                // Cek apakah ada file murni yang di-paste (BUKAN HTML/TEKS)
                 const items = Array.from(clipboardData.items);
                 const isHtmlPaste = items.some(item => item.type === 'text/html');
                 const imageItem = items.find(item => item.type.startsWith('image/'));
 
-                // Jika clipboard HANYA berisi gambar (tanpa HTML/Teks pengiring),
-                // tangkap dan upload secara manual.
+                // Jika clipboard HANYA berisi gambar murni tanpa teks/HTML
                 if (imageItem && !isHtmlPaste) {
                     e.stopPropagation();
                     e.preventDefault();
@@ -254,7 +273,6 @@ document.addEventListener('alpine:init', () => {
                 // Jika isHtmlPaste bernilai TRUE, biarkan Quill memprosesnya lewat addMatcher('IMG') di atas.
             }, true);
         }
-
         // =========================================================
         // HANDLER TOMBOL IMAGE
         // =========================================================
