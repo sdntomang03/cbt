@@ -199,20 +199,29 @@
                 dilengkapi modul literasi dan numerasi dasar untuk memperkuat pondasi anak.
             </p>
 
-            <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                @auth
-                <a href="{{ url('/dashboard') }}"
-                    class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-xl shadow-indigo-200 flex items-center justify-center gap-3 transition transform hover:-translate-y-1">
-                    Buka Dashboard <i class="fas fa-arrow-right"></i>
-                </a>
-                @else
+            <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 mt-8">
+                {{-- TOMBOL UTAMA: Try Out TKA (Selalu muncul untuk Auth & Guest) --}}
                 <a href="{{ route('public.exams.index') }}"
-                    class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-xl shadow-indigo-200 flex items-center justify-center gap-3 transition transform hover:-translate-y-1">
-                    Try Out TKA<i class="fas fa-play"></i>
+                    class="group w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 flex items-center justify-center gap-3 transition-all duration-300 transform hover:-translate-y-1">
+                    Try Out TKA
+                    <i class="fas fa-play text-sm transition-transform duration-300 group-hover:scale-125"></i>
                 </a>
+
+                @auth
+                {{-- TOMBOL SEKUNDER (AUTH): Muncul HANYA jika sudah login --}}
+                <a href="{{ url('/dashboard') }}"
+                    class="group w-full sm:w-auto px-8 py-4 rounded-2xl bg-white text-slate-700 hover:text-indigo-700 border-2 border-slate-200 hover:border-indigo-200 hover:bg-indigo-50 font-bold flex items-center justify-center gap-3 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/50">
+                    Buka Dashboard
+                    <i class="fas fa-arrow-right transition-transform duration-300 group-hover:translate-x-1.5"></i>
+                </a>
+
+                @else
+                {{-- TOMBOL SEKUNDER (GUEST): Muncul HANYA jika belum login --}}
                 <a href="{{ route('register') }}"
-                    class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white text-slate-700 border-2 border-slate-200 hover:border-slate-300 font-bold flex items-center justify-center gap-3 transition">
-                    Daftar Sekarang <i class="fas fa-chevron-down"></i>
+                    class="group w-full sm:w-auto px-8 py-4 rounded-2xl bg-white text-slate-700 hover:text-indigo-700 border-2 border-slate-200 hover:border-indigo-200 hover:bg-indigo-50 font-bold flex items-center justify-center gap-3 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/50">
+                    Daftar Sekarang
+                    <i
+                        class="fas fa-user-plus text-slate-400 group-hover:text-indigo-500 transition-colors duration-300"></i>
                 </a>
                 @endauth
             </div>

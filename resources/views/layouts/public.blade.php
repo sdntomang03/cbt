@@ -52,7 +52,7 @@
                 <div class="hidden sm:flex sm:items-center sm:gap-8">
                     <a href="/" class="text-sm font-bold text-slate-500 hover:text-indigo-600 transition">Beranda</a>
                     <a href="{{ route('public.exams.index') }}"
-                        class="text-sm font-black text-indigo-600 border-b-2 border-indigo-600 py-7">Tryout Publik</a>
+                        class="text-sm font-black text-indigo-600 border-b-2 border-indigo-600 py-7">Tryout</a>
 
                     @auth
                     <a href="{{ route('dashboard') }}"
@@ -113,7 +113,7 @@
                 </div>
 
                 <p class="text-sm font-bold text-slate-400 text-center">
-                    &copy; {{ date('Y') }} {{ config('app.name', 'CBT Modern') }}. All rights reserved.
+                    &copy; {{ date('Y') }} SDN Tomang 03. All rights reserved.
                 </p>
 
                 <div class="flex gap-5">

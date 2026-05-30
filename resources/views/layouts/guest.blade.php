@@ -51,10 +51,13 @@
     </style>
 </head>
 
-<body
-    class="text-slate-800 antialiased bg-slate-50 min-h-screen relative overflow-hidden flex items-center justify-center selection:bg-indigo-500 selection:text-white">
+{{-- 1. Body diubah menjadi flex-col agar konten bisa memanjang ke bawah --}}
 
-    <div class="fixed inset-0 w-full h-full pointer-events-none z-0">
+<body
+    class="text-slate-800 antialiased bg-slate-50 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+
+    {{-- 2. Elemen background animasi dipisah dan diberi overflow-hidden di sini, bukan di body --}}
+    <div class="fixed inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
         <div
             class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob">
         </div>
@@ -66,13 +69,14 @@
         </div>
     </div>
 
-    <div class="relative z-10 w-full flex flex-col sm:justify-center items-center pt-6 sm:pt-0 px-4">
+    {{-- 3. Konten Utama menggunakan flex-grow agar mendorong footer ke paling bawah --}}
+    <main class="relative z-10 flex-grow w-full flex flex-col sm:justify-center items-center py-12 px-4">
 
+        {{-- Logo --}}
         <div class="mb-8 transform transition hover:scale-105 duration-300">
             <a href="/" class="flex flex-col items-center gap-3">
                 <div
                     class="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-200">
-                    {{-- Menggunakan icon FontAwesome atau Logo bawaan --}}
                     <i class="fas fa-graduation-cap text-3xl"></i>
                 </div>
                 <span class="font-black text-3xl tracking-tight text-slate-800">
@@ -81,23 +85,27 @@
             </a>
         </div>
 
+        {{-- Box Form --}}
         <div
-            class="w-full sm:max-w-md px-8 py-10 bg-white/80 backdrop-blur-xl shadow-2xl shadow-indigo-500/10 border border-white rounded-[2.5rem] overflow-hidden relative">
-
+            class="w-full sm:max-w-md px-8 py-10 bg-white/80 backdrop-blur-xl shadow-2xl shadow-indigo-500/10 border border-white rounded-[2.5rem] relative">
             <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500">
             </div>
 
             <div class="relative z-10">
                 {{ $slot }}
             </div>
-
         </div>
+    </main>
 
-        <p class="mt-8 text-sm font-bold text-slate-400">
-            &copy; {{ date('Y') }} {{ config('app.name', 'CBT Modern') }}. All rights reserved.
-        </p>
+    {{-- 4. Footer yang terpisah dan selalu berada di bawah --}}
+    <footer class="relative z-10 w-full py-6 mt-auto border-t border-slate-200/50 bg-slate-50/50 backdrop-blur-sm">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-sm font-bold text-slate-500">
+                &copy; {{ date('Y') }} SDN Tomang 03. Hak Cipta Dilindungi.
+            </p>
+        </div>
+    </footer>
 
-    </div>
 </body>
 
 </html>
