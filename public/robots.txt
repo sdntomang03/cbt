@@ -1,2 +1,7 @@
 User-agent: *
-Disallow:
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /api/
+Allow: /
+
+Sitemap: https://cbt.sdntomang03.sch.id/sitemap.xml
