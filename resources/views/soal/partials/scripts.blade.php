@@ -202,65 +202,82 @@ document.addEventListener('alpine:init', () => {
         // =========================================================
         function setupPasteHandler(quill) {
 
-            // Mencegah Quill menyisipkan gambar base64 atau URL luar secara langsung
+            // 1. Tangani tag <img> dari hasil Paste HTML (Website / MS Word)
             quill.clipboard.addMatcher('IMG', function (node, delta) {
                 const src = node.src;
-                if (!src) return new quill.constructor.import('delta')();
+                if (!src) return delta;
 
-                // Proses asinkron untuk mendownload gambar secara paksa
-                const processImage = async () => {
-                    try {
-                        let blob;
-                        let filename = 'pasted-image.png';
+                // Abaikan jika gambar sudah berasal dari server kita sendiri
+                if (src.includes(window.location.hostname)) return delta;
 
-                        if (src.startsWith('data:image')) {
-                            // 1. Tangani Base64 (Gambar yang menempel langsung di HTML)
-                            const res = await fetch(src);
-                            blob = await res.blob();
-                        } else if (src.startsWith('http')) {
-                            // 2. Tangani URL Web Lain (Download ke server kita)
-                            const res = await fetch(src);
-                            if (!res.ok) throw new Error('Gagal mengambil gambar dari sumber asal');
-                            blob = await res.blob();
+                // Jika gambar adalah Base64 (Word/Excel) atau URL HTTP eksternal
+                if (src.startsWith('data:image') || src.startsWith('http')) {
 
-                            // Coba dapatkan ekstensi asli gambar
-                            const ext = blob.type.split('/')[1] || 'png';
-                            filename = `external-image.${ext}`;
-                        }
+                    // Biarkan Quill menaruh teks & gambar di posisi yang tepat terlebih dahulu.
+                    // Kemudian kita proses gambarnya secara diam-diam.
+                    setTimeout(() => {
+                        // Cari gambar secara aman untuk menghindari error pada String Base64 yang sangat panjang
+                        const imgElements = Array.from(quill.root.querySelectorAll('img')).filter(img => img.src === src);
 
-                        // Jika berhasil menjadi file, jalankan fungsi upload ke server Anda
-                        if (blob) {
-                            const file = new File([blob], filename, { type: blob.type });
-                            uploadImageToServer(file, quill);
-                        }
+                        imgElements.forEach(img => {
+                            img.style.opacity = '0.4'; // Beri efek transparan saat sedang diupload
+                            img.title = 'Sedang mengunggah ke server...';
 
-                    } catch (error) {
-                        console.warn("Gagal mendownload gambar eksternal (CORS Terblokir). Menyisipkan URL aslinya.", error);
-                        // Fallback: Jika web sumber melarang gambar didownload paksa (CORS),
-                        // terpaksa kita gunakan URL aslinya agar gambar tetap muncul.
-                        const cursor = quill.getSelection()?.index || quill.getLength();
-                        quill.insertEmbed(cursor, 'image', src);
-                    }
-                };
+                            fetch(src)
+                                .then(res => {
+                                    if (!res.ok) throw new Error('Download gagal');
+                                    return res.blob();
+                                })
+                                .then(blob => {
+                                    // Ambil ekstensi atau jadikan .png
+                                    const ext = blob.type.split('/')[1] || 'png';
+                                    const file = new File([blob], `pasted-image.${ext}`, { type: blob.type });
 
-                processImage();
+                                    const formData = new FormData();
+                                    formData.append('image', file);
 
-                // Kembalikan delta kosong agar Quill tidak nge-paste otomatis.
-                // Fungsi uploadImageToServer yang akan menyisipkan gambarnya nanti saat upload selesai.
-                return new quill.constructor.import('delta')();
+                                    // Unggah ke server lokal aplikasi CBT kita
+                                    axios.post('{{ route("admin.soal.upload-image") }}', formData, {
+                                        headers: { 'Content-Type': 'multipart/form-data' },
+                                    })
+                                    .then(response => {
+                                        if (response.data.url) {
+                                            img.src = response.data.url; // Timpa URL asli dengan URL Server kita
+                                            img.style.opacity = '1';
+                                            img.removeAttribute('title');
+                                        }
+                                    })
+                                    .catch(err => {
+                                        img.style.opacity = '1';
+                                        console.error('Upload gambar paste gagal:', err);
+                                    });
+                                })
+                                .catch(err => {
+                                    // JIKA DIBLOKIR CORS: Situs web asal melarang gambar didownload paksa.
+                                    // Kita kembalikan opacity-nya dan biarkan menggunakan URL asli eksternal tersebut.
+                                    img.style.opacity = '1';
+                                    img.removeAttribute('title');
+                                    console.warn('CORS terblokir: Biarkan pakai URL asli', err);
+                                });
+                        });
+                    }, 100);
+                }
+
+                // PENTING: Kembalikan delta asli agar teks & layout utuh bersatu
+                return delta;
             });
 
-            // Handle khusus untuk copy-paste File murni (Screenshot / Snipping Tool / PrtSc)
+            // 2. Tangani file murni dari Clipboard (Snipping Tool / Print Screen)
             quill.root.addEventListener('paste', function (e) {
                 const clipboardData = e.clipboardData || window.clipboardData;
                 if (!clipboardData) return;
 
                 const items = Array.from(clipboardData.items);
-                const isHtmlPaste = items.some(item => item.type === 'text/html');
+                const hasText = items.some(item => item.type === 'text/plain' || item.type === 'text/html');
                 const imageItem = items.find(item => item.type.startsWith('image/'));
 
-                // Jika clipboard HANYA berisi gambar murni tanpa teks/HTML
-                if (imageItem && !isHtmlPaste) {
+                // Jika clipboard HANYA berisi file gambar (tanpa teks pengiring), berarti ini hasil Screenshot murni
+                if (imageItem && !hasText) {
                     e.stopPropagation();
                     e.preventDefault();
 
@@ -269,9 +286,10 @@ document.addEventListener('alpine:init', () => {
                         uploadImageToServer(file, quill);
                     }
                 }
-                // Jika isHtmlPaste bernilai TRUE, biarkan Quill memprosesnya lewat addMatcher('IMG') di atas.
+                // CATATAN: Jika 'hasText' bernilai true, biarkan lewat karena akan diatasi oleh addMatcher('IMG') di atas.
             }, true);
         }
+
         // =========================================================
         // HANDLER TOMBOL IMAGE
         // =========================================================
