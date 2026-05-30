@@ -162,7 +162,7 @@
                         <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
                     </a>
 
-                    <a href="{{ route('public.exams.ranking', $exam->slug) }}"
+                    <a href="{{ route('public.exams.ranking', $exam->id) }}"
                         aria-label="Lihat klasemen/ranking ujian {{ $exam->title }}"
                         title="Lihat ranking ujian {{ $exam->title }}"
                         class="w-full bg-amber-50 hover:bg-amber-500 text-amber-600 hover:text-white border border-amber-200 hover:border-amber-500 font-bold py-3.5 px-4 rounded-xl text-sm text-center transition-all flex items-center justify-center gap-2 shadow-sm group">
