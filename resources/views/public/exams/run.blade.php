@@ -289,7 +289,8 @@
         <h1 class="text-4xl font-black mb-4 uppercase tracking-wider">UJIAN TERKUNCI</h1>
         <p class="text-slate-300 max-w-xl text-lg mb-10 leading-relaxed">Anda telah melanggar aturan keamanan sebanyak
             <strong>{{ $config['max_tolerances'] ?? 3 }} kali</strong>.<br>Sistem telah mengunci akses ujian Anda secara
-            otomatis.</p>
+            otomatis.
+        </p>
         <div class="flex gap-4">
             <button onclick="location.reload()"
                 class="px-8 py-3.5 rounded-xl font-bold bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg transition hover:scale-105"><i
@@ -345,7 +346,8 @@
 
     <div x-data x-show="$store.examState.isLocked" x-cloak class="overlay-base bg-slate-900 z-[10000] p-10 text-white">
         <div class="bg-rose-600 w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-2xl animate-pulse">
-            <i class="fas fa-lock text-4xl"></i></div>
+            <i class="fas fa-lock text-4xl"></i>
+        </div>
         <h1 class="text-4xl font-black mb-4 uppercase tracking-wider">UJIAN TERKUNCI</h1>
         <p class="text-slate-300 max-w-xl text-lg mb-10 leading-relaxed">Anda baru saja melanggar aturan keamanan ke-{{
             $config['max_tolerances'] ?? 3 }} kalinya.<br>Akses telah ditutup.</p>
@@ -894,27 +896,116 @@
 
             // ── Lightbox & Mobile Nav ──
             (function () {
-                let scale = 1, minScale = 0.5, maxScale = 5, tx = 0, ty = 0, isDragging = false, lx = 0, ly = 0, lastPinch = null;
-                const gi = () => document.getElementById('lightbox-img');
-                const gw = () => document.getElementById('lightbox-img-wrap');
-                const apply = () => { const img = gi(); if (img) img.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`; };
-                const reset = () => { scale=1; tx=0; ty=0; apply(); };
-                window.openLightbox = src => { const lb=document.getElementById('lightbox'),img=gi(); if(!lb||!img) return; reset(); img.src=src; lb.classList.add('open'); document.addEventListener('keydown',lbKey); };
-                window.hideLightbox = () => { const lb=document.getElementById('lightbox'),img=gi(); if(!lb||!img) return; lb.classList.remove('open'); img.src=''; reset(); document.removeEventListener('keydown',lbKey); };
-                window.closeLightbox = e => { if(e.target===document.getElementById('lightbox')) hideLightbox(); };
-                window.zoomLightbox = d => { if(d===0){reset();return;} scale=Math.min(maxScale,Math.max(minScale,scale+d)); apply(); };
-                function lbKey(e) { if(e.key==='Escape') hideLightbox(); if(e.key==='+'||e.key==='=') zoomLightbox(0.3); if(e.key==='-') zoomLightbox(-0.3); if(e.key==='0') zoomLightbox(0); }
+    let scale = 1, minScale = 0.5, maxScale = 5, tx = 0, ty = 0;
+    let isDragging = false, lx = 0, ly = 0, lastPinch = null;
 
-                document.addEventListener('DOMContentLoaded', () => {
-                    const wrap=gw(), img=gi(), vp=document.getElementById('question-viewport');
-                    if(vp) vp.addEventListener('click',e=>{ if(e.target.tagName==='IMG') openLightbox(e.target.src); });
-                    if(!wrap||!img) return;
-                    wrap.addEventListener('wheel',e=>{ e.preventDefault(); scale=Math.min(maxScale,Math.max(minScale,scale+(e.deltaY<0?.2:-.2))); apply(); },{passive:false});
-                    wrap.addEventListener('mousedown',e=>{ if(e.button!==0) return; isDragging=true; lx=e.clientX; ly=e.clientY; wrap.classList.add('grabbing'); });
-                    document.addEventListener('mousemove',e=>{ if(!isDragging) return; tx+=e.clientX-lx; ty+=e.clientY-ly; lx=e.clientX; ly=e.clientY; apply(); });
-                    document.addEventListener('mouseup',()=>{ isDragging=false; wrap.classList.remove('grabbing'); });
-                });
-            })();
+    const gi   = () => document.getElementById('lightbox-img');
+    const gw   = () => document.getElementById('lightbox-img-wrap');
+    const apply = () => { const img = gi(); if (img) img.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`; };
+    const reset = () => { scale = 1; tx = 0; ty = 0; apply(); };
+
+    window.openLightbox = src => {
+        const lb = document.getElementById('lightbox'), img = gi();
+        if (!lb || !img) return;
+        reset(); img.src = src; lb.classList.add('open');
+        document.addEventListener('keydown', lbKey);
+    };
+    window.hideLightbox = () => {
+        const lb = document.getElementById('lightbox'), img = gi();
+        if (!lb || !img) return;
+        lb.classList.remove('open'); img.src = ''; reset();
+        document.removeEventListener('keydown', lbKey);
+    };
+    window.closeLightbox = e => { if (e.target === document.getElementById('lightbox')) hideLightbox(); };
+    window.zoomLightbox  = d => { if (d === 0) { reset(); return; } scale = Math.min(maxScale, Math.max(minScale, scale + d)); apply(); };
+
+    function lbKey(e) {
+        if (e.key === 'Escape') hideLightbox();
+        if (e.key === '+' || e.key === '=') zoomLightbox(0.3);
+        if (e.key === '-') zoomLightbox(-0.3);
+        if (e.key === '0') zoomLightbox(0);
+    }
+
+    function pinchDist(touches) {
+        const dx = touches[0].clientX - touches[1].clientX;
+        const dy = touches[0].clientY - touches[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const wrap = gw(), img = gi();
+        const vp   = document.getElementById('question-viewport');
+
+        if (vp) vp.addEventListener('click', e => { if (e.target.tagName === 'IMG') openLightbox(e.target.src); });
+        if (!wrap || !img) return;
+
+        // ── Mouse ──
+        wrap.addEventListener('wheel', e => {
+            e.preventDefault();
+            scale = Math.min(maxScale, Math.max(minScale, scale + (e.deltaY < 0 ? 0.2 : -0.2)));
+            apply();
+        }, { passive: false });
+
+        wrap.addEventListener('mousedown', e => {
+            if (e.button !== 0) return;
+            isDragging = true; lx = e.clientX; ly = e.clientY;
+            wrap.classList.add('grabbing');
+        });
+        document.addEventListener('mousemove', e => {
+            if (!isDragging) return;
+            tx += e.clientX - lx; ty += e.clientY - ly;
+            lx = e.clientX; ly = e.clientY; apply();
+        });
+        document.addEventListener('mouseup', () => { isDragging = false; wrap.classList.remove('grabbing'); });
+
+        // ── Touch: drag & pinch-to-zoom ──
+        wrap.addEventListener('touchstart', e => {
+            if (e.touches.length === 1) {
+                // Drag
+                isDragging = true;
+                lx = e.touches[0].clientX;
+                ly = e.touches[0].clientY;
+            } else if (e.touches.length === 2) {
+                // Pinch
+                isDragging = false;
+                lastPinch  = pinchDist(e.touches);
+            }
+        }, { passive: true });
+
+        wrap.addEventListener('touchmove', e => {
+            e.preventDefault(); // Cegah scroll halaman saat di lightbox
+
+            if (e.touches.length === 1 && isDragging) {
+                // Drag
+                tx += e.touches[0].clientX - lx;
+                ty += e.touches[0].clientY - ly;
+                lx  = e.touches[0].clientX;
+                ly  = e.touches[0].clientY;
+                apply();
+            } else if (e.touches.length === 2 && lastPinch !== null) {
+                // Pinch zoom
+                const newDist = pinchDist(e.touches);
+                const delta   = (newDist - lastPinch) * 0.01;
+                scale         = Math.min(maxScale, Math.max(minScale, scale + delta));
+                lastPinch     = newDist;
+                apply();
+            }
+        }, { passive: false });
+
+        wrap.addEventListener('touchend', e => {
+            if (e.touches.length === 0) {
+                isDragging = false;
+                lastPinch  = null;
+            } else if (e.touches.length === 1) {
+                // Kembali ke drag setelah lepas satu jari
+                lastPinch  = null;
+                isDragging = true;
+                lx = e.touches[0].clientX;
+                ly = e.touches[0].clientY;
+            }
+        }, { passive: true });
+    });
+})();
 
             function toggleMobileNav() {
                 const overlay = document.getElementById('mobile-nav-overlay'), panel = document.getElementById('mobile-nav-panel');
