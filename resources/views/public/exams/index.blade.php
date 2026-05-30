@@ -1,6 +1,16 @@
 <x-guest-layout>
     <style>
-        /* MENGAMBIL ALIH LEBAR LAYOUT KHUSUS UNTUK HALAMAN INI */
+        /* MENGAMBIL ALIH LAYOUT UTAMA AGAR BISA DI-SCROLL */
+        body {
+            overflow-y: auto !important;
+            /* Memaksa scrollbar muncul jika konten panjang */
+            align-items: flex-start !important;
+            /* Mencegah bagian atas terpotong saat layar penuh */
+            padding-top: 3rem !important;
+            padding-bottom: 3rem !important;
+        }
+
+        /* MENGAMBIL ALIH LEBAR KOTAK KACA */
         @media (min-width: 640px) {
             .sm\:max-w-md {
                 max-width: 72rem !important;
