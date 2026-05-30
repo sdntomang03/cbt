@@ -135,7 +135,7 @@
                 </div>
 
                 <div class="flex md:hidden items-center">
-                    <button @click="mobileMenuOpen = !mobileMenuOpen"
+                    <button @click="mobileMenuOpen = !mobileMenuOpen" aria-label="Buka atau tutup menu navigasi"
                         class="text-slate-600 hover:text-indigo-600 focus:outline-none p-2">
                         <i class="fas fa-bars text-2xl" x-show="!mobileMenuOpen"></i>
                         <i class="fas fa-times text-2xl" x-show="mobileMenuOpen" x-cloak></i>

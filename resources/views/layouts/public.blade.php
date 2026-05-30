@@ -50,7 +50,7 @@
             <div class="flex justify-between h-20">
 
                 <div class="flex items-center">
-                    <a href="/" class="flex items-center gap-3 group">
+                    <a href="/" aria-label="Beranda CBT Pro" class="flex items-center gap-3 group">
                         <div
                             class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-200 group-hover:scale-105 transition-transform duration-300">
                             <i class="fas fa-graduation-cap text-2xl"></i>
@@ -80,7 +80,7 @@
                 </div>
 
                 <div class="-mr-2 flex items-center sm:hidden">
-                    <button @click="mobileMenuOpen = !mobileMenuOpen"
+                    <button @click="mobileMenuOpen = !mobileMenuOpen" aria-label="Buka atau tutup menu navigasi"
                         class="inline-flex items-center justify-center p-3 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition focus:outline-none">
                         <i class="fas fa-bars text-2xl" x-show="!mobileMenuOpen"></i>
                         <i class="fas fa-times text-2xl" x-show="mobileMenuOpen" x-cloak></i>
@@ -124,8 +124,8 @@
                     <span class="font-black text-lg tracking-tight text-slate-800">CBTPro</span>
                 </div>
 
-                <p class="text-sm font-bold text-slate-400 text-center">
-                    &copy; {{ date('Y') }} SDN Tomang 03. All rights reserved.
+                <p class="text-sm font-bold text-slate-500 text-center">
+                    &copy; 2026 SDN Tomang 03. All rights reserved.
                 </p>
 
 
