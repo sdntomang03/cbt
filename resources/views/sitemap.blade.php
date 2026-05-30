@@ -9,7 +9,7 @@
     </url>
 
     <url>
-        <loc>{{ url('/public/exams') }}</loc>
+        <loc>{{ url('tryout') }}</loc>
         <lastmod>{{ now()->tz('UTC')->toAtomString() }}</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.9</priority>
@@ -17,7 +17,7 @@
 
     @foreach($publicExams as $exam)
     <url>
-        <loc>{{ url('/public/exams/detail/' . $exam->slug) }}</loc>
+        <loc>{{ url('tryout/detail/' . $exam->slug) }}</loc>
         <lastmod>{{ $exam->updated_at->tz('UTC')->toAtomString() }}</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
