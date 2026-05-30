@@ -18,6 +18,7 @@ use App\Http\Controllers\ProctorController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicExamController;
 use App\Http\Controllers\QuestionAjaxController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SoalController;
 use App\Http\Controllers\Student\MathExamController as StudentMathExamController;
 use App\Http\Controllers\Student\StudentExamController;
@@ -243,4 +244,6 @@ Route::group(['prefix' => 'public/exams', 'as' => 'public.exams.'], function () 
         ->name('ranking');
     Route::get('/detail/{slug}', [PublicExamController::class, 'detail'])->name('detail');
 });
+
+Route::get('/sitemap.xml', [SitemapController::class, 'index']);
 require __DIR__.'/auth.php';
