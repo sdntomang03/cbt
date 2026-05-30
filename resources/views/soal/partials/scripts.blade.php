@@ -197,124 +197,84 @@ document.addEventListener('alpine:init', () => {
             .finally(() => loader.remove());
         }
 
+       // =========================================================
+        // PEMINDAI OTOMATIS: Membersihkan Base64 / HTTP Eksternal
         // =========================================================
-        // PEMINDAI OTOMATIS: Bersihkan Base64 yang sudah terlanjur masuk
-        // =========================================================
-        function scanAndUploadBase64Images(quill) {
-            // Cari semua tag gambar di dalam editor
+        function scanAndUploadImages(quill) {
+            // Cari semua elemen gambar langsung dari dalam editor
             const images = quill.root.querySelectorAll('img');
 
             images.forEach(img => {
-                const src = img.src;
+                const src = img.getAttribute('src');
 
-                // Jika gambar tersebut berupa Base64
-                if (src && src.startsWith('data:image')) {
+                // Lewati jika tidak ada sumber, atau gambar sedang dalam antrean proses
+                if (!src || img.dataset.uploading) return;
+
+                // Lewati jika gambar sudah berasal dari server/domain kita sendiri
+                if (src.includes(window.location.hostname)) return;
+
+                // Tangkap Base64 (Word/Web) ATAU Link gambar dari web lain
+                if (src.startsWith('data:image') || src.startsWith('http')) {
+
+                    img.dataset.uploading = 'true'; // Tandai agar tidak diupload berulang kali
                     img.style.opacity = '0.4';
-                    img.title = 'Sedang membersihkan & mengunggah...';
+                    img.title = 'Sedang mengunggah ke server...';
 
+                    // Tarik gambar dan jadikan File
                     fetch(src)
-                        .then(res => res.blob())
+                        .then(res => {
+                            if (!res.ok) throw new Error('Gagal mengunduh gambar');
+                            return res.blob();
+                        })
                         .then(blob => {
                             const ext = blob.type.split('/')[1] || 'png';
-                            const file = new File([blob], `cleaned-image.${ext}`, { type: blob.type });
+                            const file = new File([blob], `auto-upload.${ext}`, { type: blob.type });
 
                             const formData = new FormData();
                             formData.append('image', file);
 
-                            // Unggah ke server
-                            axios.post('{{ route("admin.soal.upload-image") }}', formData, {
+                            // Unggah ke server lokal kita
+                            return axios.post('{{ route("admin.soal.upload-image") }}', formData, {
                                 headers: { 'Content-Type': 'multipart/form-data' },
-                            })
-                            .then(response => {
-                                if (response.data.url) {
-                                    // Ganti Base64 yang panjang dengan URL server lokal
-                                    img.src = response.data.url;
-                                    img.style.opacity = '1';
-                                    img.removeAttribute('title');
-
-                                    // Beri tahu Quill & Alpine bahwa konten telah diperbarui
-                                    quill.emitter.emit('text-change');
-                                }
-                            })
-                            .catch(err => {
-                                img.style.opacity = '1';
-                                console.error('Gagal membersihkan gambar base64:', err);
                             });
+                        })
+                        .then(response => {
+                            if (response.data.url) {
+                                img.setAttribute('src', response.data.url); // Timpa URL Base64 dengan URL Server
+                                img.style.opacity = '1';
+                                img.removeAttribute('title');
+                                delete img.dataset.uploading;
+
+                                // Simpan perubahan ke Alpine.js
+                                quill.emitter.emit('text-change');
+                            }
+                        })
+                        .catch(err => {
+                            // Jika terblokir sistem keamanan web asal (CORS), biarkan pakai URL aslinya
+                            img.style.opacity = '1';
+                            img.removeAttribute('title');
+                            delete img.dataset.uploading;
+                            console.warn("Gambar tidak bisa diupload otomatis:", err);
                         });
                 }
             });
         }
+
         // =========================================================
-        // HANDLER PASTE GAMBAR & TEKS - Hybrid Clipboard Quill
+        // HANDLER CLIPBOARD (COPY-PASTE)
         // =========================================================
         function setupPasteHandler(quill) {
 
-            // 1. Tangani tag <img> dari hasil Paste HTML (Website / MS Word)
-            quill.clipboard.addMatcher('IMG', function (node, delta) {
-                const src = node.src;
-                if (!src) return delta;
-
-                // Abaikan jika gambar sudah berasal dari server kita sendiri
-                if (src.includes(window.location.hostname)) return delta;
-
-                // Jika gambar adalah Base64 (Word/Excel) atau URL HTTP eksternal
-                if (src.startsWith('data:image') || src.startsWith('http')) {
-
-                    // Biarkan Quill menaruh teks & gambar di posisi yang tepat terlebih dahulu.
-                    // Kemudian kita proses gambarnya secara diam-diam.
-                    setTimeout(() => {
-                        // Cari gambar secara aman untuk menghindari error pada String Base64 yang sangat panjang
-                        const imgElements = Array.from(quill.root.querySelectorAll('img')).filter(img => img.src === src);
-
-                        imgElements.forEach(img => {
-                            img.style.opacity = '0.4'; // Beri efek transparan saat sedang diupload
-                            img.title = 'Sedang mengunggah ke server...';
-
-                            fetch(src)
-                                .then(res => {
-                                    if (!res.ok) throw new Error('Download gagal');
-                                    return res.blob();
-                                })
-                                .then(blob => {
-                                    // Ambil ekstensi atau jadikan .png
-                                    const ext = blob.type.split('/')[1] || 'png';
-                                    const file = new File([blob], `pasted-image.${ext}`, { type: blob.type });
-
-                                    const formData = new FormData();
-                                    formData.append('image', file);
-
-                                    // Unggah ke server lokal aplikasi CBT kita
-                                    axios.post('{{ route("admin.soal.upload-image") }}', formData, {
-                                        headers: { 'Content-Type': 'multipart/form-data' },
-                                    })
-                                    .then(response => {
-                                        if (response.data.url) {
-                                            img.src = response.data.url; // Timpa URL asli dengan URL Server kita
-                                            img.style.opacity = '1';
-                                            img.removeAttribute('title');
-                                        }
-                                    })
-                                    .catch(err => {
-                                        img.style.opacity = '1';
-                                        console.error('Upload gambar paste gagal:', err);
-                                    });
-                                })
-                                .catch(err => {
-                                    // JIKA DIBLOKIR CORS: Situs web asal melarang gambar didownload paksa.
-                                    // Kita kembalikan opacity-nya dan biarkan menggunakan URL asli eksternal tersebut.
-                                    img.style.opacity = '1';
-                                    img.removeAttribute('title');
-                                    console.warn('CORS terblokir: Biarkan pakai URL asli', err);
-                                });
-                        });
-                    }, 100);
+            // 1. PANTAU MS WORD & WEBSITE: Setiap kali ada perubahan isi editor (termasuk paste Teks + Gambar)
+            quill.on('text-change', function(delta, oldDelta, source) {
+                // Pastikan perubahan dilakukan oleh manusia (user), bukan sistem
+                if (source === 'user') {
+                    // Jeda 200ms agar Quill punya waktu meletakkan HTML MS Word dengan rapi
+                    setTimeout(() => scanAndUploadImages(quill), 200);
                 }
-
-                // PENTING: Kembalikan delta asli agar teks & layout utuh bersatu
-                return delta;
             });
 
-            // 2. Tangani file murni dari Clipboard (Snipping Tool / Print Screen)
+            // 2. PANTAU SNIPPING TOOL: Handle khusus untuk copy-paste File murni (Screenshot)
             quill.root.addEventListener('paste', function (e) {
                 const clipboardData = e.clipboardData || window.clipboardData;
                 if (!clipboardData) return;
@@ -323,7 +283,7 @@ document.addEventListener('alpine:init', () => {
                 const hasText = items.some(item => item.type === 'text/plain' || item.type === 'text/html');
                 const imageItem = items.find(item => item.type.startsWith('image/'));
 
-                // Jika clipboard HANYA berisi file gambar (tanpa teks pengiring), berarti ini hasil Screenshot murni
+                // Jika clipboard HANYA berisi file gambar (tanpa HTML MS Word), eksekusi manual
                 if (imageItem && !hasText) {
                     e.stopPropagation();
                     e.preventDefault();
@@ -333,10 +293,10 @@ document.addEventListener('alpine:init', () => {
                         uploadImageToServer(file, quill);
                     }
                 }
-                // CATATAN: Jika 'hasText' bernilai true, biarkan lewat karena akan diatasi oleh addMatcher('IMG') di atas.
             }, true);
         }
 
+        
         // =========================================================
         // HANDLER TOMBOL IMAGE
         // =========================================================
