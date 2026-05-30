@@ -28,8 +28,13 @@
             </div>
 
             <a href="{{ route('public.exams.index') }}"
-                class="inline-block bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3.5 px-8 rounded-xl transition-all">Kembali
-                ke Katalog</a>
+                class="inline-block bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3.5 px-8 rounded-xl transition-all">
+                Kembali ke Katalog
+            </a>
+            <a href="{{ route('public.exams.ranking', $exam) }}"
+                class="inline-block bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 px-8 rounded-xl transition-all">
+                <i class="fas fa-trophy mr-2"></i> Lihat Ranking Nasional
+            </a>
         </div>
     </div>
 </x-public-layout>

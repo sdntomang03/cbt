@@ -239,5 +239,7 @@ Route::group(['prefix' => 'public/exams', 'as' => 'public.exams.'], function () 
 
     Route::post('/{exam}/restart', [PublicExamController::class, 'restart'])->name('restart');
     Route::get('/{exam}/result', [PublicExamController::class, 'result'])->name('result');
+    Route::get('/{exam}/ranking', [PublicExamController::class, 'ranking'])
+        ->name('ranking');
 });
 require __DIR__.'/auth.php';

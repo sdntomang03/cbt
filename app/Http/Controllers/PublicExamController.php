@@ -356,4 +356,28 @@ class PublicExamController extends Controller
 
         return redirect()->route('public.exams.show', $exam);
     }
+
+    public function ranking(Exam $exam)
+    {
+        abort_if(! $exam->is_public, 403);
+
+        $results = PublicExamResult::where('exam_id', $exam->id)
+            ->orderBy('score', 'desc')
+            ->orderBy('duration_seconds', 'asc') // tie-breaker: waktu lebih cepat = lebih tinggi
+            ->orderBy('created_at', 'asc')
+            ->get()
+            ->map(function ($item, $index) {
+                $item->rank = $index + 1;
+
+                return $item;
+            });
+
+        $userResult = null;
+        $userData = session('public_user_'.$exam->id);
+        if ($userData) {
+            $userResult = $results->firstWhere('nama_peserta', $userData['nama_peserta']);
+        }
+
+        return view('public.exams.ranking', compact('exam', 'results', 'userResult'));
+    }
 }

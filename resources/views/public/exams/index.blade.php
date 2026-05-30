@@ -42,6 +42,11 @@
                         <i class="fas fa-chart-bar text-xs"></i> Hasil
                     </a>
 
+                    <a href="{{ route('public.exams.ranking', $exam) }}"
+                        class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 px-2 rounded-xl text-sm text-center transition-all flex items-center justify-center gap-1.5 shadow-md">
+                        <i class="fas fa-trophy text-xs"></i> Ranking
+                    </a>
+
                     <form action="{{ route('public.exams.restart', $exam) }}" method="POST" class="flex-1">
                         @csrf
                         <button type="submit"
