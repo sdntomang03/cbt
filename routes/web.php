@@ -227,11 +227,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:teacher|admin'
     Route::post('/upload-image', [SoalController::class, 'uploadImage'])->name('soal.upload-image');
 });
 
-Route::group(['prefix' => 'public/exam', 'as' => 'public.exam.'], function () {
+Route::group(['prefix' => 'public/exams', 'as' => 'public.exams.'], function () {
     Route::get('/', [PublicExamController::class, 'index'])->name('index');
-    Route::get('/{exam}', [PublicExamController::class, 'publicRun'])->name('run');
-    Route::post('/{exam}/save', [PublicExamController::class, 'publicSaveAnswer'])->name('save');
-    Route::post('/{exam}/violation', [PublicExamController::class, 'publicViolation'])->name('violation');
-    Route::post('/{exam}/finish', [PublicExamController::class, 'publicFinish'])->name('finish');
+    Route::get('/{exam}', [PublicExamController::class, 'show'])->name('show'); // Menampilkan/Menjalankan Ujian
+    Route::post('/{exam}/answers', [PublicExamController::class, 'storeAnswer'])->name('store_answer');
+    Route::post('/{exam}/violations', [PublicExamController::class, 'recordViolation'])->name('record_violation');
+    Route::post('/{exam}/finish', [PublicExamController::class, 'finish'])->name('finish');
+    Route::post('/{exam}/restart', [PublicExamController::class, 'restart'])->name('restart');
+    Route::get('/{exam}/result', [PublicExamController::class, 'result'])->name('result');
 });
 require __DIR__.'/auth.php';

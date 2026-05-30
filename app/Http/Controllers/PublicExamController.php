@@ -10,24 +10,45 @@ use Illuminate\Http\Request;
 class PublicExamController extends Controller
 {
     /**
-     * Menampilkan Halaman Ujian Publik
+     * Menampilkan daftar ujian yang terbuka untuk publik
      */
-    public function publicRun(Exam $exam)
+    public function index()
     {
-        // 1. BLOKIR JIKA UJIAN BUKAN UNTUK PUBLIK
-        abort_if(! $exam->is_public, 403, 'AKSES DITOLAK: Ujian ini hanya untuk siswa internal yang terdaftar.');
+        $publicExams = Exam::where('is_public', true)
+            ->withCount('questions')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        // 2. CEK TOKEN UJIAN (Jika fitur token diaktifkan)
+        return view('public.exams.index', compact('publicExams'));
+    }
+
+    public function restart(Exam $exam)
+    {
+        abort_if(! $exam->is_public, 403);
+
+        // Hapus memori ujian ini dari session browser
+        session()->forget('public_exam_state_'.$exam->id);
+
+        // Arahkan kembali ke halaman mulai ujian
+        return redirect()->route('public.exams.show', $exam);
+    }
+
+    /**
+     * Menjalankan antarmuka ujian publik
+     */
+    public function show(Exam $exam)
+    {
+        abort_if(! $exam->is_public, 403, 'AKSES DITOLAK: Ujian ini hanya untuk siswa internal.');
+
         if ($exam->require_token && ! session()->has('public_verified_exam_'.$exam->id)) {
-            // Asumsi Anda memiliki rute 'public.exam.verify' untuk memasukkan token
-            return redirect()->route('public.exam.verify', $exam->id)
-                ->with('error', 'Akses Ditolak! Silakan masukkan Token Ujian terlebih dahulu.');
+            return redirect()->route('public.exams.index')
+                ->with('error', 'Masukkan Token Ujian terlebih dahulu.');
         }
 
         $now = Carbon::now('Asia/Jakarta');
         $sessionKey = 'public_exam_state_'.$exam->id;
 
-        // 3. INISIALISASI STATE UJIAN DI SESSION (Khusus Guest)
+        // Inisialisasi State Session
         if (! session()->has($sessionKey)) {
             session()->put($sessionKey, [
                 'started_at' => $now->toDateTimeString(),
@@ -42,7 +63,7 @@ class PublicExamController extends Controller
 
         $state = session()->get($sessionKey);
 
-        // 4. RESPON UNTUK AJAX POLLING (Pengecekan berkala dari frontend)
+        // Polling Status Ujian (AJAX)
         if (request()->ajax()) {
             return response()->json([
                 'status' => $state['status'],
@@ -50,50 +71,46 @@ class PublicExamController extends Controller
             ]);
         }
 
-        // 5. BLOKIR JIKA TERKUNCI ATAU SELESAI
+        // Validasi Blokir & Selesai
         if ($state['is_locked']) {
             session()->forget('public_verified_exam_'.$exam->id);
 
-            return redirect()->route('welcome')->with('error', 'AKSES DITOLAK: Ujian Anda telah dikunci karena melanggar aturan keamanan layar.');
+            return redirect()->route('welcome')->with('error', 'Ujian Anda telah dikunci karena pelanggaran keamanan.');
         }
         if ($state['status'] === 'completed' || $state['finished_at'] !== null) {
-            session()->forget('public_verified_exam_'.$exam->id);
-
-            return redirect()->route('welcome')->with('info', 'Ujian ini telah ditutup atau sudah Anda kumpulkan.');
+            return redirect()->route('public.exams.result', $exam);
         }
 
-        // 6. PERHITUNGAN DEADLINE WAKTU GUEST
+        // Perhitungan Waktu
         $startTime = Carbon::parse($state['started_at'])->timezone('Asia/Jakarta');
         $duration = (int) $exam->duration_minutes;
-
-        // Batas waktu berdasarkan durasi personal guest
         $deadlinePersonal = $startTime->copy()->addMinutes($duration);
 
-        // Batas waktu berdasarkan jadwal tutup ujian (jika ada)
-        if ($exam->end_time) {
-            $deadlineSession = Carbon::parse($exam->end_time)->timezone('Asia/Jakarta');
-            $realDeadline = $deadlinePersonal->min($deadlineSession);
-        } else {
-            $realDeadline = $deadlinePersonal;
-        }
+        $realDeadline = $exam->end_time
+            ? $deadlinePersonal->min(Carbon::parse($exam->end_time)->timezone('Asia/Jakarta'))
+            : $deadlinePersonal;
 
         $timeLeftSeconds = $now->diffInSeconds($realDeadline, false);
 
-        // 7. TOLERANSI & PAKSA SELESAI
         if ($timeLeftSeconds <= 0 && $timeLeftSeconds > -60) {
-            $timeLeftSeconds = 60; // Beri waktu 60 detik untuk auto-submit
+            $timeLeftSeconds = 60;
         } elseif ($timeLeftSeconds <= -60) {
-            return $this->publicFinish($exam); // Paksa kumpulkan jika sudah sangat lewat
+            return $this->finish($exam);
         }
 
-        // 8. SIAPKAN DATA UNTUK VIEW
-        $questionIds = Question::where('exam_id', $exam->id)->pluck('id')->toArray();
+        // Ambil Data Soal Lengkap
+        $questions = Question::with(['options', 'matches'])
+            ->where('exam_id', $exam->id)
+            ->get()
+            ->keyBy('id');
 
-        // Objek tiruan (mock) agar Alpine.js tidak error mencari properti pivot
-        $pivotMock = new \stdClass;
-        $pivotMock->status = $state['status'];
-        $pivotMock->is_locked = $state['is_locked'];
-        $pivotMock->violation_count = $state['violation_count'];
+        $questionIds = $questions->keys()->toArray();
+
+        $pivotMock = (object) [
+            'status' => $state['status'],
+            'is_locked' => $state['is_locked'],
+            'violation_count' => $state['violation_count'],
+        ];
 
         $config = [
             'random_question' => $exam->random_question ?? false,
@@ -104,6 +121,7 @@ class PublicExamController extends Controller
 
         return view('public.exams.run', [
             'exam' => $exam,
+            'questions' => $questions,
             'questionIds' => $questionIds,
             'config' => $config,
             'timeLeftSeconds' => (int) $timeLeftSeconds,
@@ -114,48 +132,42 @@ class PublicExamController extends Controller
     }
 
     /**
-     * Menyimpan Jawaban Ujian Publik (Via AJAX)
+     * Menyimpan jawaban (AJAX)
      */
-    public function publicSaveAnswer(Request $request, Exam $exam)
+    public function storeAnswer(Request $request, Exam $exam)
     {
         abort_if(! $exam->is_public, 403);
-
         $sessionKey = 'public_exam_state_'.$exam->id;
         $state = session()->get($sessionKey);
 
         if ($state && ! $state['is_locked'] && $state['status'] === 'ongoing') {
             $qId = $request->question_id;
 
-            // Simpan atau perbarui jawaban
             if ($request->has('answer')) {
                 $state['answers'][$qId] = $request->answer;
             }
 
-            // Simpan status ragu-ragu (flags)
             $isDoubtful = filter_var($request->is_doubtful, FILTER_VALIDATE_BOOLEAN);
             if ($isDoubtful && ! in_array($qId, $state['flags'])) {
                 $state['flags'][] = $qId;
             } elseif (! $isDoubtful && in_array($qId, $state['flags'])) {
-                $state['flags'] = array_diff($state['flags'], [$qId]);
-                $state['flags'] = array_values($state['flags']); // Re-index array
+                $state['flags'] = array_values(array_diff($state['flags'], [$qId]));
             }
 
-            // Kembalikan ke session
             session()->put($sessionKey, $state);
 
             return response()->json(['success' => true]);
         }
 
-        return response()->json(['error' => 'Sesi tidak valid atau ujian terkunci'], 403);
+        return response()->json(['error' => 'Sesi tidak valid'], 403);
     }
 
     /**
-     * Mencatat Pelanggaran Publik (Via AJAX)
+     * Mencatat pelanggaran layar (AJAX)
      */
-    public function publicViolation(Request $request, Exam $exam)
+    public function recordViolation(Request $request, Exam $exam)
     {
         abort_if(! $exam->is_public, 403);
-
         $sessionKey = 'public_exam_state_'.$exam->id;
         $state = session()->get($sessionKey);
 
@@ -163,7 +175,6 @@ class PublicExamController extends Controller
             $state['violation_count'] += 1;
             $max = $exam->max_tolerances ?? 3;
 
-            // Kunci ujian jika melampaui batas
             if ($state['violation_count'] >= $max) {
                 $state['is_locked'] = true;
             }
@@ -177,44 +188,68 @@ class PublicExamController extends Controller
             ]);
         }
 
-        return response()->json(['error' => 'Sesi tidak valid'], 400);
+        return response()->json(['error' => 'Gagal mencatat pelanggaran'], 400);
     }
 
     /**
-     * Menyelesaikan dan Mengumpulkan Ujian Publik
+     * Memproses penyelesaian ujian
      */
-    public function publicFinish(Exam $exam)
+    public function finish(Exam $exam)
     {
         abort_if(! $exam->is_public, 403);
-
         $sessionKey = 'public_exam_state_'.$exam->id;
         $state = session()->get($sessionKey);
 
         if ($state && $state['status'] !== 'completed') {
             $state['status'] = 'completed';
             $state['finished_at'] = Carbon::now('Asia/Jakarta')->toDateTimeString();
-
-            // Simpan status selesai ke session
             session()->put($sessionKey, $state);
-
-            // Opsional: Hapus sesi autentikasi token jika ingin memaksa mereka minta token baru jika mencoba lagi
-            // session()->forget('public_verified_exam_' . $exam->id);
-
-            return redirect()->route('welcome')->with('success', 'Selamat! Ujian publik telah berhasil dikumpulkan.');
         }
 
-        return redirect()->route('welcome')->with('info', 'Ujian ini sudah diselesaikan sebelumnya.');
+        return redirect()->route('public.exams.result', $exam);
     }
 
-    public function index()
+    /**
+     * Menampilkan hasil/nilai ujian
+     */
+    public function result(Exam $exam)
     {
-        // Ambil semua ujian yang is_public = true, urutkan dari yang terbaru
-        // Gunakan withCount('questions') agar kita bisa menampilkan jumlah soalnya
-        $publicExams = Exam::where('is_public', true)
-            ->withCount('questions')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        abort_if(! $exam->is_public, 403);
+        $sessionKey = 'public_exam_state_'.$exam->id;
+        $state = session()->get($sessionKey);
 
-        return view('public.exams.index', compact('publicExams'));
+        if (! $state || $state['status'] !== 'completed') {
+            return redirect()->route('public.exams.index');
+        }
+
+        $questions = Question::where('exam_id', $exam->id)->with('options')->get();
+        $totalQuestions = $questions->count();
+        $correctCount = 0;
+        $wrongCount = 0;
+        $unansweredCount = 0;
+        $answers = $state['answers'] ?? [];
+
+        foreach ($questions as $q) {
+            if (! isset($answers[$q->id]) || $answers[$q->id] === '') {
+                $unansweredCount++;
+
+                continue;
+            }
+
+            $userAnswer = $answers[$q->id];
+            if (in_array($q->type, ['single_choice', 'true_false'])) {
+                $correctOption = $q->options->where('is_correct', 1)->first();
+                ($correctOption && $userAnswer == $correctOption->id) ? $correctCount++ : $wrongCount++;
+            } elseif ($q->type === 'complex_choice' && is_array($userAnswer)) {
+                $correctOptionIds = $q->options->where('is_correct', 1)->pluck('id')->toArray();
+                (count(array_diff($correctOptionIds, $userAnswer)) === 0 && count(array_diff($userAnswer, $correctOptionIds)) === 0) ? $correctCount++ : $wrongCount++;
+            } else {
+                $wrongCount++;
+            }
+        }
+
+        $score = $totalQuestions > 0 ? round(($correctCount / $totalQuestions) * 100) : 0;
+
+        return view('public.exams.result', compact('exam', 'score', 'correctCount', 'wrongCount', 'unansweredCount', 'totalQuestions'));
     }
 }
