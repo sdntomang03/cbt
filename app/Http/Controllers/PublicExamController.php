@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Exam;
+use App\Models\PublicExamResult;
 use App\Models\Question;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class PublicExamController extends Controller
 {
@@ -40,9 +42,9 @@ class PublicExamController extends Controller
     {
         abort_if(! $exam->is_public, 403, 'AKSES DITOLAK: Ujian ini hanya untuk siswa internal.');
 
-        if ($exam->require_token && ! session()->has('public_verified_exam_'.$exam->id)) {
-            return redirect()->route('public.exams.index')
-                ->with('error', 'Masukkan Token Ujian terlebih dahulu.');
+        if (! session()->has('public_user_'.$exam->id)) {
+            return redirect()->route('public.exams.verify', $exam)
+                ->with('error', 'Silakan isi data diri Anda terlebih dahulu.');
         }
 
         $now = Carbon::now('Asia/Jakarta');
@@ -199,11 +201,62 @@ class PublicExamController extends Controller
         abort_if(! $exam->is_public, 403);
         $sessionKey = 'public_exam_state_'.$exam->id;
         $state = session()->get($sessionKey);
+        $userData = session()->get('public_user_'.$exam->id);
 
         if ($state && $state['status'] !== 'completed') {
             $state['status'] = 'completed';
             $state['finished_at'] = Carbon::now('Asia/Jakarta')->toDateTimeString();
             session()->put($sessionKey, $state);
+
+            // ==========================================
+            // KALKULASI & SIMPAN KE DATABASE RANKING
+            // ==========================================
+            if ($userData) {
+                $questions = Question::where('exam_id', $exam->id)->with('options')->get();
+                $correctCount = 0;
+                $wrongCount = 0;
+                $unansweredCount = 0;
+                $answers = $state['answers'] ?? [];
+
+                foreach ($questions as $q) {
+                    if (! isset($answers[$q->id]) || $answers[$q->id] === '') {
+                        $unansweredCount++;
+
+                        continue;
+                    }
+
+                    $userAnswer = $answers[$q->id];
+                    if (in_array($q->type, ['single_choice', 'true_false'])) {
+                        $correctOption = $q->options->where('is_correct', 1)->first();
+                        ($correctOption && $userAnswer == $correctOption->id) ? $correctCount++ : $wrongCount++;
+                    } elseif ($q->type === 'complex_choice' && is_array($userAnswer)) {
+                        $correctOptionIds = $q->options->where('is_correct', 1)->pluck('id')->toArray();
+                        (count(array_diff($correctOptionIds, $userAnswer)) === 0 && count(array_diff($userAnswer, $correctOptionIds)) === 0) ? $correctCount++ : $wrongCount++;
+                    } else {
+                        $wrongCount++;
+                    }
+                }
+
+                $totalQuestions = $questions->count();
+                $score = $totalQuestions > 0 ? round(($correctCount / $totalQuestions) * 100) : 0;
+
+                // Waktu Pengerjaan
+                $startedAt = Carbon::parse($state['started_at']);
+                $finishedAt = Carbon::parse($state['finished_at']);
+                $durationSeconds = $finishedAt->diffInSeconds($startedAt);
+
+                // Masukkan ke Database!
+                PublicExamResult::create([
+                    'exam_id' => $exam->id,
+                    'nama_peserta' => $userData['nama_peserta'],
+                    'asal_sekolah' => $userData['asal_sekolah'],
+                    'score' => $score,
+                    'correct_count' => $correctCount,
+                    'wrong_count' => $wrongCount,
+                    'unanswered_count' => $unansweredCount,
+                    'duration_seconds' => $durationSeconds,
+                ]);
+            }
         }
 
         return redirect()->route('public.exams.result', $exam);
@@ -251,5 +304,56 @@ class PublicExamController extends Controller
         $score = $totalQuestions > 0 ? round(($correctCount / $totalQuestions) * 100) : 0;
 
         return view('public.exams.result', compact('exam', 'score', 'correctCount', 'wrongCount', 'unansweredCount', 'totalQuestions'));
+    }
+
+    /**
+     * Menampilkan Halaman Verifikasi
+     */
+    public function verify(Exam $exam)
+    {
+        abort_if(! $exam->is_public, 403);
+
+        if (session()->has('public_user_'.$exam->id)) {
+            return redirect()->route('public.exams.show', $exam);
+        }
+
+        // Generate token acak & simpan di session
+        $token = strtoupper(Str::random(6));
+        session()->put('exam_token_'.$exam->id, $token);
+
+        return view('public.exams.verify', compact('exam', 'token'));
+    }
+
+    public function processVerify(Request $request, Exam $exam)
+    {
+        abort_if(! $exam->is_public, 403);
+
+        $request->validate([
+            'nama_peserta' => 'required|string|max:100',
+            'asal_sekolah' => 'required|string|max:100',
+            'token' => 'required|string',
+        ]);
+
+        $correctToken = session('exam_token_'.$exam->id);
+
+        // Jika session expired / tidak ada
+        if (! $correctToken) {
+            return redirect()->route('public.exams.verify', $exam)
+                ->with('error', 'Sesi token habis, silakan muat ulang halaman.');
+        }
+
+        if (strtoupper($request->token) !== $correctToken) {
+            return back()->withInput()->with('error', 'Token yang Anda masukkan salah!');
+        }
+
+        // Hapus token dari session setelah berhasil
+        session()->forget('exam_token_'.$exam->id);
+
+        session()->put('public_user_'.$exam->id, [
+            'nama_peserta' => $request->nama_peserta,
+            'asal_sekolah' => $request->asal_sekolah,
+        ]);
+
+        return redirect()->route('public.exams.show', $exam);
     }
 }

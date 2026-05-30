@@ -233,6 +233,10 @@ Route::group(['prefix' => 'public/exams', 'as' => 'public.exams.'], function () 
     Route::post('/{exam}/answers', [PublicExamController::class, 'storeAnswer'])->name('store_answer');
     Route::post('/{exam}/violations', [PublicExamController::class, 'recordViolation'])->name('record_violation');
     Route::post('/{exam}/finish', [PublicExamController::class, 'finish'])->name('finish');
+
+    Route::get('/{exam}/verify', [PublicExamController::class, 'verify'])->name('verify');
+    Route::post('/{exam}/verify', [PublicExamController::class, 'processVerify'])->name('process_verify');
+
     Route::post('/{exam}/restart', [PublicExamController::class, 'restart'])->name('restart');
     Route::get('/{exam}/result', [PublicExamController::class, 'result'])->name('result');
 });
