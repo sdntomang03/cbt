@@ -15,6 +15,9 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Intervention\Image\Drivers\Imagick\Driver;
+use Intervention\Image\Encoders\WebpEncoder;
+use Intervention\Image\ImageManager;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -323,17 +326,17 @@ class SoalController extends Controller
 
     public function uploadImage(Request $request)
     {
+        $manager = ImageManager::usingDriver(Driver::class);
+
         // 1. FILE FISIK (Misal: dari Snipping Tool / Upload Manual)
         if ($request->hasFile('image')) {
-            $imageData = $request->file('image')->get();
-
             $filename = 'soal_images/'.Str::random(20).'.webp';
 
-            $webp = ImageManager::usingDriver(Driver::class)
-                ->read($imageData)
-                ->toWebp(quality: 85);
+            $encoded = $manager
+                ->read($request->file('image')->getPathname())
+                ->encode(new WebpEncoder(quality: 85));
 
-            Storage::disk('public')->put($filename, (string) $webp);
+            Storage::disk('public')->put($filename, (string) $encoded);
 
             return response()->json(['url' => asset('storage/'.$filename)]);
         }
@@ -348,21 +351,27 @@ class SoalController extends Controller
                     ->get($request->image_url);
 
                 if ($response->successful()) {
+                    $body = $response->body();
+
+                    if (empty($body)) {
+                        return response()->json(['error' => 'Gambar kosong dari sumber'], 400);
+                    }
+
                     $filename = 'soal_images/'.Str::random(20).'.webp';
 
-                    $webp = ImageManager::usingDriver(Driver::class)
-                        ->read($response->body())
-                        ->toWebp(quality: 85);
+                    $encoded = $manager
+                        ->read($body)
+                        ->encode(new WebpEncoder(quality: 85));
 
-                    Storage::disk('public')->put($filename, (string) $webp);
+                    Storage::disk('public')->put($filename, (string) $encoded);
 
                     return response()->json(['url' => asset('storage/'.$filename)]);
                 }
 
-                return response()->json(['error' => 'Web sumber menolak akses ditarik (Status: '.$response->status().')'], 400);
+                return response()->json(['error' => 'Web sumber menolak akses (Status: '.$response->status().')'], 400);
 
             } catch (Exception $e) {
-                return response()->json(['error' => 'Server gagal mendownload: '.$e->getMessage()], 500);
+                return response()->json(['error' => 'Server gagal memproses: '.$e->getMessage()], 500);
             }
         }
 
