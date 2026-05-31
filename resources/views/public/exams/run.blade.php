@@ -640,7 +640,7 @@
         <form id="finish-form" action="{{ route('public.exams.finish', $exam) }}" method="POST" style="display:none;">
             @csrf</form>
     </div>
-
+    <script src="path/to/chartjs/dist/chart.umd.min.js"></script>
     <script>
         window.isExitingExam = false;
             window.isSystemPopup = false;
