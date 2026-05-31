@@ -325,15 +325,22 @@ class SoalController extends Controller
     {
         // 1. FILE FISIK (Misal: dari Snipping Tool / Upload Manual)
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('soal_images', 'public');
+            $imageData = $request->file('image')->get();
 
-            return response()->json(['url' => asset('storage/'.$path)]);
+            $filename = 'soal_images/'.Str::random(20).'.webp';
+
+            $webp = ImageManager::usingDriver(Driver::class)
+                ->read($imageData)
+                ->toWebp(quality: 85);
+
+            Storage::disk('public')->put($filename, (string) $webp);
+
+            return response()->json(['url' => asset('storage/'.$filename)]);
         }
 
         // 2. BYPASS URL EKSTERNAL (Dari Copy-Paste Website)
         if ($request->filled('image_url')) {
             try {
-                // Menggunakan withOptions(['verify' => false]) agar kebal dari error SSL Certificate
                 $response = Http::withOptions(['verify' => false])
                     ->withHeaders([
                         'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
@@ -341,20 +348,13 @@ class SoalController extends Controller
                     ->get($request->image_url);
 
                 if ($response->successful()) {
-                    $ext = 'png';
-                    $contentType = $response->header('Content-Type');
+                    $filename = 'soal_images/'.Str::random(20).'.webp';
 
-                    if ($contentType) {
-                        $parts = explode('/', $contentType);
-                        if (isset($parts[1])) {
-                            // Ambil hanya huruf ekstensi (misal png, jpg)
-                            $ext = preg_replace('/[^a-zA-Z0-9]/', '', explode(';', $parts[1])[0]);
-                        }
-                    }
+                    $webp = ImageManager::usingDriver(Driver::class)
+                        ->read($response->body())
+                        ->toWebp(quality: 85);
 
-                    // Simpan gambar ke server kita
-                    $filename = 'soal_images/'.Str::random(20).'.'.$ext;
-                    Storage::disk('public')->put($filename, $response->body());
+                    Storage::disk('public')->put($filename, (string) $webp);
 
                     return response()->json(['url' => asset('storage/'.$filename)]);
                 }
@@ -362,7 +362,6 @@ class SoalController extends Controller
                 return response()->json(['error' => 'Web sumber menolak akses ditarik (Status: '.$response->status().')'], 400);
 
             } catch (Exception $e) {
-                // Jika error, kembalikan pesan jelas, bukan blank 500
                 return response()->json(['error' => 'Server gagal mendownload: '.$e->getMessage()], 500);
             }
         }
