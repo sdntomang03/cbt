@@ -333,7 +333,7 @@ class SoalController extends Controller
             $filename = 'soal_images/'.Str::random(20).'.webp';
 
             $encoded = $manager
-                ->read($request->file('image')->getPathname())
+                ->decode($request->file('image')->getPathname())
                 ->encode(new WebpEncoder(quality: 85));
 
             Storage::disk('public')->put($filename, (string) $encoded);
@@ -360,7 +360,7 @@ class SoalController extends Controller
                     $filename = 'soal_images/'.Str::random(20).'.webp';
 
                     $encoded = $manager
-                        ->read($body)
+                        ->decode($body)
                         ->encode(new WebpEncoder(quality: 85));
 
                     Storage::disk('public')->put($filename, (string) $encoded);
