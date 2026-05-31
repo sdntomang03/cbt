@@ -1,4 +1,7 @@
 <x-cbt-layout>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
@@ -471,7 +474,8 @@
                                     <div
                                         class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
                                     </div>
-                                    <div class="prose prose-indigo prose-lg text-lg max-w-none text-slate-700 leading-relaxed no-select __se__katex_container"
+                                    <div id="content-injector"
+                                        class="prose prose-indigo prose-lg text-lg max-w-none text-slate-700 leading-relaxed no-select __se__katex_container"
                                         x-html="q.content"></div>
                                 </div>
 
@@ -640,264 +644,282 @@
         <form id="finish-form" action="{{ route('public.exams.finish', $exam) }}" method="POST" style="display:none;">
             @csrf</form>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+
     <script>
         window.isExitingExam = false;
-            window.isSystemPopup = false;
+        window.isSystemPopup = false;
 
-            document.addEventListener('alpine:init', () => {
+        document.addEventListener('alpine:init', () => {
 
-                // STORE PENGAMAN
-                Alpine.store('examState', {
-                    started: false, showWarning: false, isLocked: false,
-                    violationCount: 0, maxViolations: 3, enableViolation: true, isRequesting: false,
+            // STORE PENGAMAN
+            Alpine.store('examState', {
+                started: false, showWarning: false, isLocked: false,
+                violationCount: 0, maxViolations: 3, enableViolation: true, isRequesting: false,
 
-                    init() {
-                        if (window.initialExamState) {
-                            this.violationCount  = window.initialExamState.count;
-                            this.isLocked        = window.initialExamState.isLocked;
-                            this.enableViolation = window.initialExamState.config.enable_violation ?? true;
-                            this.maxViolations   = window.initialExamState.config.max_tolerances ?? 3;
-                        }
-                    },
-
-                    startSecureExam() {
-                        if (this.isLocked) return;
-                        const beginExam = () => { this.started = true; if (this.enableViolation) this.monitorFocus(); };
-                        const elem = document.documentElement;
-                        if (elem.requestFullscreen) { elem.requestFullscreen().then(() => beginExam()).catch(() => alert("Mohon izinkan akses Fullscreen untuk memulai.")); }
-                        else { beginExam(); }
-                    },
-
-                    monitorFocus() {
-                        document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && this.started && !this.isLocked) this.evaluateViolation(); });
-                        window.addEventListener('blur', () => { if (this.started && !this.isLocked) this.evaluateViolation(); });
-                        document.addEventListener('contextmenu', e => e.preventDefault());
-                        document.addEventListener('keydown', e => { if ((e.ctrlKey||e.metaKey) && ['c','v','u','i'].includes(e.key)) e.preventDefault(); });
-                    },
-
-                    evaluateViolation() {
-                        if (window.isExitingExam || window.isSystemPopup) return;
-                        setTimeout(() => { if (window.isExitingExam || window.isSystemPopup) return; this.triggerViolation(); }, 200);
-                    },
-
-                    triggerViolation() {
-                        if (this.showWarning || this.isLocked || this.isRequesting) return;
-                        this.isRequesting = true; this.violationCount++;
-                        if (this.violationCount >= this.maxViolations) { this.isLocked = true; this.started = false; this.showWarning = false; }
-                        else { this.showWarning = true; }
-
-                        axios.post('{{ route("public.exams.record_violation", $exam) }}')
-                            .then(res => {
-                                this.violationCount = res.data.violation_count;
-                                this.maxViolations  = res.data.max_tolerances;
-                                if (res.data.is_locked) { this.isLocked = true; this.started = false; this.showWarning = false; }
-                            })
-                            .catch(err => console.error(err))
-                            .finally(() => { this.isRequesting = false; });
-                    },
-
-                    resumeExam() {
-                        if (this.isLocked) return;
-                        window.isSystemPopup = true;
-                        const elem = document.documentElement;
-                        if (elem.requestFullscreen) { elem.requestFullscreen().then(() => setTimeout(() => window.isSystemPopup = false, 500)).catch(() => { window.isSystemPopup = false; }); }
-                        else { window.isSystemPopup = false; }
-                        this.showWarning = false;
+                init() {
+                    if (window.initialExamState) {
+                        this.violationCount  = window.initialExamState.count;
+                        this.isLocked        = window.initialExamState.isLocked;
+                        this.enableViolation = window.initialExamState.config.enable_violation ?? true;
+                        this.maxViolations   = window.initialExamState.config.max_tolerances ?? 3;
                     }
-                });
+                },
 
-                // RUNNER UJIAN
-                Alpine.data('examRunner', (questionIds, initialTime, existingAnswers, initialFlags, userId, config, hashedExamId, preloadedQuestions) => ({
-                    questionIds, hashedExamId, q: null, isLoading: true,
-                    cachedQuestions: preloadedQuestions || {},
-                    currentIndex: 0, timeLeft: parseInt(initialTime),
-                    answers: (Array.isArray(existingAnswers) && existingAnswers.length === 0) ? {} : existingAnswers,
-                    flags: initialFlags, matchState: { activePremise: null, activeTarget: null },
-                    lines: [], shuffledTargets: {}, config: config || {}, timerInterval: null, isSubmitting: false, zoomLevel: 1,
+                startSecureExam() {
+                    if (this.isLocked) return;
+                    const beginExam = () => { this.started = true; if (this.enableViolation) this.monitorFocus(); };
+                    const elem = document.documentElement;
+                    if (elem.requestFullscreen) { elem.requestFullscreen().then(() => beginExam()).catch(() => alert("Mohon izinkan akses Fullscreen untuk memulai.")); }
+                    else { beginExam(); }
+                },
 
-                    init() {
-                        if (this.config.random_question) { this.questionIds = this.shuffleArray([...this.questionIds], '_EXAM_' + this.hashedExamId); }
-                        this.$watch('$store.examState.started', (val) => {
-                            if (val) { this.startTimer(); this.fetchQuestion(this.currentIndex); window.addEventListener('resize', () => this.repositionLines()); }
-                        });
-                        window.onbeforeunload = () => { if (!window.isExitingExam) return "Ujian sedang berlangsung!"; };
-                        window._examRunner = this;
-                    },
+                monitorFocus() {
+                    document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && this.started && !this.isLocked) this.evaluateViolation(); });
+                    window.addEventListener('blur', () => { if (this.started && !this.isLocked) this.evaluateViolation(); });
+                    document.addEventListener('contextmenu', e => e.preventDefault());
+                    document.addEventListener('keydown', e => { if ((e.ctrlKey||e.metaKey) && ['c','v','u','i'].includes(e.key)) e.preventDefault(); });
+                },
 
-                    fetchQuestion(index) {
-                        this.isLoading = true; this.clearLines(); const qId = this.questionIds[index];
-                        if (this.cachedQuestions[qId]) {
-                            this.q = this.cachedQuestions[qId];
-                            if (this.config.random_answer && ['single_choice','complex_choice','true_false'].includes(this.q.type) && this.q.options && !this.q._isOptionsShuffled) {
-                                this.q.options = this.shuffleArray([...this.q.options], '_OPT_' + this.q.id);
-                                this.q._isOptionsShuffled = true;
-                            }
-                            this.finalizeRender();
-                        } else {
-                            Swal.fire('Error', 'Data soal hilang. Silakan refresh halaman.', 'error');
-                            this.isLoading = false;
-                        }
-                    },
+                evaluateViolation() {
+                    if (window.isExitingExam || window.isSystemPopup) return;
+                    setTimeout(() => { if (window.isExitingExam || window.isSystemPopup) return; this.triggerViolation(); }, 200);
+                },
 
-                    finalizeRender() {
-                        if (this.q && this.q.type === 'matching') this.prepareMatchingTargets(this.q);
-                        this.isLoading = false;
-                        this.$nextTick(() => { this.renderMath(); if (this.q && this.q.type === 'matching') this.drawLines(); });
-                    },
+                triggerViolation() {
+                    if (this.showWarning || this.isLocked || this.isRequesting) return;
+                    this.isRequesting = true; this.violationCount++;
+                    if (this.violationCount >= this.maxViolations) { this.isLocked = true; this.started = false; this.showWarning = false; }
+                    else { this.showWarning = true; }
 
-                    renderMath() {
-                        if (typeof window.katex !== 'undefined') {
-                            document.querySelectorAll('.__se__katex').forEach(el => {
-                                const exp = el.getAttribute('data-exp'); if (!exp) return;
-                                const decoded = exp.replace(/&gt;/g,'>').replace(/&lt;/g,'<').replace(/&amp;/g,'&').replace(/<br\s*\/?>/gi,'\n');
-                                try { window.katex.render(decoded, el, { throwOnError: false, displayMode: el.style.display === 'block' }); } catch(e) {}
-                            });
-                        }
-                        if (typeof renderMathInElement === 'function') {
-                            const area = document.getElementById('question-viewport');
-                            if (area) renderMathInElement(area, { delimiters: [{left:'$$',right:'$$',display:true}, {left:'$',right:'$',display:false}], throwOnError: false });
-                        }
-                    },
+                    axios.post('{{ route("public.exams.record_violation", $exam) }}')
+                        .then(res => {
+                            this.violationCount = res.data.violation_count;
+                            this.maxViolations  = res.data.max_tolerances;
+                            if (res.data.is_locked) { this.isLocked = true; this.started = false; this.showWarning = false; }
+                        })
+                        .catch(err => console.error(err))
+                        .finally(() => { this.isRequesting = false; });
+                },
 
-                    seededRandom(seed) { let t = seed += 0x6D2B79F5; t = Math.imul(t^t>>>15,t|1); t ^= t + Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; },
-                    shuffleArray(array, seedSuffix) {
-                        let m = array.length, t, i, seed = seedSuffix;
-                        while (m) { let r = this.seededRandom(seed + m); i = Math.floor(r * m--); t = array[m]; array[m] = array[i]; array[i] = t; }
-                        return array;
-                    },
-
-                    prepareMatchingTargets(q) {
-                        if (q.matches && !this.shuffledTargets[q.id]) {
-                            let targets = q.matches.map(m => ({ id: m.id, text: m.target_text }));
-                            targets = this.config.random_answer ? this.shuffleArray(targets, '_M_' + q.id) : targets;
-                            this.shuffledTargets[q.id] = targets;
-                        }
-                    },
-
-                    startTimer() {
-                        this.timerInterval = setInterval(() => {
-                            if (this.timeLeft > 0) {
-                                this.timeLeft--;
-                                if (this.timeLeft % 30 === 0) {
-                                    axios.get('{{ route("public.exams.show", $exam) }}', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                                        .then(res => { if (res.data.status === 'completed' || res.data.is_locked) this.triggerForceEnd(); });
-                                }
-                            } else {
-                                clearInterval(this.timerInterval); this.forceSubmit();
-                            }
-                        }, 1000);
-                    },
-
-                    triggerForceEnd() {
-                        if (window.isExitingExam) return;
-                        window.isExitingExam = true; window.isSystemPopup = true; clearInterval(this.timerInterval);
-                        Swal.fire({ title:'Akses Ditutup!', text:'Sesi ujian diakhiri.', icon:'warning', allowOutsideClick:false, showConfirmButton:false, timer:3000 })
-                            .then(() => window.location.reload());
-                    },
-
-                    formatTime(s) { return `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; },
-                    formatType(t) { return {'single_choice':'Pilihan Ganda','complex_choice':'Pilihan Kompleks','matching':'Menjodohkan','true_false':'Benar/Salah','essay':'Essay'}[t] || 'Soal'; },
-
-                    nextQuestion() { if (this.currentIndex < this.questionIds.length - 1) { this.currentIndex++; this.fetchQuestion(this.currentIndex); } },
-                    prevQuestion() { if (this.currentIndex > 0) { this.currentIndex--; this.fetchQuestion(this.currentIndex); } },
-                    gotoQuestion(index) { this.currentIndex = index; this.fetchQuestion(index); },
-
-                    hasAnswer(qId) { const a = this.answers[qId]; return a && (Array.isArray(a) ? a.length > 0 : (typeof a === 'object' ? Object.keys(a).length > 0 : a !== "")); },
-                    isOptionSelected(qId, optId) { return Array.isArray(this.answers[qId]) && this.answers[qId].includes(optId); },
-
-                    toggleMultipleAnswer(qId, optId) {
-                        if (!Array.isArray(this.answers[qId])) this.answers[qId] = [];
-                        const idx = this.answers[qId].indexOf(optId);
-                        if (idx === -1) this.answers[qId].push(optId); else this.answers[qId].splice(idx, 1);
-                        this.saveAnswer(qId, this.answers[qId]);
-                    },
-
-                    clickMatch(qId, id, type) {
-                        if (type === 'premise') this.matchState.activePremise = id; else this.matchState.activeTarget = id;
-                        if (this.matchState.activePremise && this.matchState.activeTarget) {
-                            if (typeof this.answers[qId] !== 'object' || Array.isArray(this.answers[qId])) this.answers[qId] = {};
-                            this.answers[qId][this.matchState.activePremise] = this.matchState.activeTarget;
-                            this.saveAnswer(qId, this.answers[qId]);
-                            this.matchState = { activePremise: null, activeTarget: null };
-                            this.clearLines(); this.$nextTick(() => this.drawLines());
-                        }
-                    },
-
-                    drawLines() {
-                        this.clearLines(); const q = this.q; if (!q || q.type !== 'matching' || !this.answers[q.id]) return;
-                        const colors = ['#4f46e5','#ec4899','#10b981','#f59e0b','#06b6d4']; let i = 0;
-                        Object.entries(this.answers[q.id]).forEach(([p, t]) => {
-                            const s = document.getElementById('premise-'+p), e = document.getElementById('target-'+t);
-                            if (s && e && s.offsetParent && e.offsetParent) { this.lines.push(new LeaderLine(s, e, { color: colors[i++%colors.length], size: 3, path: 'straight', startSocket: 'right', endSocket: 'left', endPlug: 'arrow3' })); }
-                        });
-                    },
-                    clearLines() { this.lines.forEach(l => l.remove()); this.lines = []; },
-                    repositionLines() { if (this.lines.length) window.requestAnimationFrame(() => this.lines.forEach(l => l.position())); },
-
-                    toggleFlag(qId) {
-                        const idx = this.flags.indexOf(qId);
-                        if (idx === -1) this.flags.push(qId); else this.flags.splice(idx, 1);
-                        axios.post('{{ route("public.exams.store_answer", $exam) }}', { question_id: qId, answer: this.answers[qId] ?? null, is_doubtful: this.flags.includes(qId) }).catch(e => console.error(e));
-                    },
-
-                    saveAnswer(qId, val) {
-                        if (window.isExitingExam) return;
-                        if (val !== undefined) this.answers[qId] = val;
-                        axios.post('{{ route("public.exams.store_answer", $exam) }}', { question_id: qId, answer: this.answers[qId] ?? null, is_doubtful: this.flags.includes(qId) }).catch(e => console.error(e));
-                    },
-
-                    finishExam() {
-                        if (this.isSubmitting) return;
-                        window.isSystemPopup = true;
-                        try { if (this.q && this.answers[this.q.id]) this.saveAnswer(this.q.id, this.answers[this.q.id]); } catch(e) {}
-
-                        Swal.fire({
-                            title: 'Kumpulkan Ujian?', icon: 'question', allowOutsideClick: false, allowEscapeKey: false,
-                            showCancelButton: true, confirmButtonText: 'Ya, Kumpulkan', cancelButtonText: 'Batal',
-                            confirmButtonColor: '#10b981', cancelButtonColor: '#94a3b8',
-                            html: `
-                                <p class="text-slate-500 text-sm mb-4">Pastikan semua jawaban terisi sebelum mengumpulkan.</p>
-                                <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:0.75rem;padding:1rem">
-                                    <label style="display:flex;align-items:flex-start;gap:0.75rem;cursor:pointer;text-align:left">
-                                        <input type="checkbox" id="swal-confirm-check" style="width:18px;height:18px;margin-top:2px;accent-color:#10b981;flex-shrink:0;cursor:pointer">
-                                        <span style="font-size:0.85rem;font-weight:600;color:#334155;line-height:1.5">Saya yakin ingin mengakhiri ujian dan mengumpulkan semua jawaban saya.</span>
-                                    </label>
-                                </div>
-                            `,
-                            didOpen: () => {
-                                const btn = Swal.getConfirmButton(), cb = document.getElementById('swal-confirm-check');
-                                btn.disabled = true; btn.style.opacity = '0.4'; btn.style.cursor = 'not-allowed';
-                                cb.addEventListener('change', function() { btn.disabled = !this.checked; btn.style.opacity = this.checked ? '1' : '0.4'; btn.style.cursor = this.checked ? 'pointer' : 'not-allowed'; });
-                            },
-                            preConfirm: () => {
-                                const cb = document.getElementById('swal-confirm-check');
-                                if (!cb || !cb.checked) { Swal.showValidationMessage('Centang kotak persetujuan terlebih dahulu.'); return false; }
-                                return true;
-                            }
-                        }).then(result => {
-                            if (result.isConfirmed) this.forceSubmit();
-                            else setTimeout(() => window.isSystemPopup = false, 200);
-                        });
-                    },
-
-                    forceSubmit() {
-                        this.isSubmitting = true;
-                        window.isExitingExam = true; window.isSystemPopup = true;
-                        this.clearLines(); clearInterval(this.timerInterval);
-                        window.onbeforeunload = null;
-                        const f = document.getElementById('finish-form');
-                        if (f) {
-                            Swal.fire({ title: 'Menyimpan Jawaban...', html: 'Mohon tunggu, jangan tutup halaman ini.', allowOutsideClick: false, allowEscapeKey: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
-                            f.submit();
-                        } else { alert('Error.'); }
-                    }
-                }));
+                resumeExam() {
+                    if (this.isLocked) return;
+                    window.isSystemPopup = true;
+                    const elem = document.documentElement;
+                    if (elem.requestFullscreen) { elem.requestFullscreen().then(() => setTimeout(() => window.isSystemPopup = false, 500)).catch(() => { window.isSystemPopup = false; }); }
+                    else { window.isSystemPopup = false; }
+                    this.showWarning = false;
+                }
             });
 
-            // ── Lightbox & Mobile Nav ──
-            (function () {
+            // RUNNER UJIAN
+            Alpine.data('examRunner', (questionIds, initialTime, existingAnswers, initialFlags, userId, config, hashedExamId, preloadedQuestions) => ({
+                questionIds, hashedExamId, q: null, isLoading: true,
+                cachedQuestions: preloadedQuestions || {},
+                currentIndex: 0, timeLeft: parseInt(initialTime),
+                answers: (Array.isArray(existingAnswers) && existingAnswers.length === 0) ? {} : existingAnswers,
+                flags: initialFlags, matchState: { activePremise: null, activeTarget: null },
+                lines: [], shuffledTargets: {}, config: config || {}, timerInterval: null, isSubmitting: false, zoomLevel: 1,
+
+                init() {
+                    if (this.config.random_question) { this.questionIds = this.shuffleArray([...this.questionIds], '_EXAM_' + this.hashedExamId); }
+                    this.$watch('$store.examState.started', (val) => {
+                        if (val) { this.startTimer(); this.fetchQuestion(this.currentIndex); window.addEventListener('resize', () => this.repositionLines()); }
+                    });
+                    window.onbeforeunload = () => { if (!window.isExitingExam) return "Ujian sedang berlangsung!"; };
+                    window._examRunner = this;
+                },
+
+                fetchQuestion(index) {
+                    this.isLoading = true; this.clearLines(); const qId = this.questionIds[index];
+                    if (this.cachedQuestions[qId]) {
+                        this.q = this.cachedQuestions[qId];
+                        if (this.config.random_answer && ['single_choice','complex_choice','true_false'].includes(this.q.type) && this.q.options && !this.q._isOptionsShuffled) {
+                            this.q.options = this.shuffleArray([...this.q.options], '_OPT_' + this.q.id);
+                            this.q._isOptionsShuffled = true;
+                        }
+                        this.finalizeRender();
+                    } else {
+                        Swal.fire('Error', 'Data soal hilang. Silakan refresh halaman.', 'error');
+                        this.isLoading = false;
+                    }
+                },
+
+                finalizeRender() {
+                    if (this.q && this.q.type === 'matching') this.prepareMatchingTargets(this.q);
+                    this.isLoading = false;
+                    this.$nextTick(() => {
+                        this.renderMath();
+                        if (this.q && this.q.type === 'matching') this.drawLines();
+                        // TAMBAHAN: Paksa browser mengeksekusi script diagram Chart.js yang diinjeksi
+                        this.executeInjectedScripts();
+                    });
+                },
+
+                // TAMBAHAN FUNGSI EKSEKUSI SCRIPT DINAMIS
+                executeInjectedScripts() {
+                    const container = document.getElementById('content-injector');
+                    if (!container) return;
+                    const scripts = container.querySelectorAll('script');
+                    scripts.forEach(oldScript => {
+                        if (oldScript.src) return; // Jangan load CDN berulang kali
+                        const newScript = document.createElement('script');
+                        Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                        newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                        oldScript.parentNode.replaceChild(newScript, oldScript);
+                    });
+                },
+
+                renderMath() {
+                    if (typeof window.katex !== 'undefined') {
+                        document.querySelectorAll('.__se__katex').forEach(el => {
+                            const exp = el.getAttribute('data-exp'); if (!exp) return;
+                            const decoded = exp.replace(/&gt;/g,'>').replace(/&lt;/g,'<').replace(/&amp;/g,'&').replace(/<br\s*\/?>/gi,'\n');
+                            try { window.katex.render(decoded, el, { throwOnError: false, displayMode: el.style.display === 'block' }); } catch(e) {}
+                        });
+                    }
+                    if (typeof renderMathInElement === 'function') {
+                        const area = document.getElementById('question-viewport');
+                        if (area) renderMathInElement(area, { delimiters: [{left:'$$',right:'$$',display:true}, {left:'$',right:'$',display:false}], throwOnError: false });
+                    }
+                },
+
+                seededRandom(seed) { let t = seed += 0x6D2B79F5; t = Math.imul(t^t>>>15,t|1); t ^= t + Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; },
+                shuffleArray(array, seedSuffix) {
+                    let m = array.length, t, i, seed = seedSuffix;
+                    while (m) { let r = this.seededRandom(seed + m); i = Math.floor(r * m--); t = array[m]; array[m] = array[i]; array[i] = t; }
+                    return array;
+                },
+
+                prepareMatchingTargets(q) {
+                    if (q.matches && !this.shuffledTargets[q.id]) {
+                        let targets = q.matches.map(m => ({ id: m.id, text: m.target_text }));
+                        targets = this.config.random_answer ? this.shuffleArray(targets, '_M_' + q.id) : targets;
+                        this.shuffledTargets[q.id] = targets;
+                    }
+                },
+
+                startTimer() {
+                    this.timerInterval = setInterval(() => {
+                        if (this.timeLeft > 0) {
+                            this.timeLeft--;
+                            if (this.timeLeft % 30 === 0) {
+                                axios.get('{{ route("public.exams.show", $exam) }}', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                                    .then(res => { if (res.data.status === 'completed' || res.data.is_locked) this.triggerForceEnd(); });
+                            }
+                        } else {
+                            clearInterval(this.timerInterval); this.forceSubmit();
+                        }
+                    }, 1000);
+                },
+
+                triggerForceEnd() {
+                    if (window.isExitingExam) return;
+                    window.isExitingExam = true; window.isSystemPopup = true; clearInterval(this.timerInterval);
+                    Swal.fire({ title:'Akses Ditutup!', text:'Sesi ujian diakhiri.', icon:'warning', allowOutsideClick:false, showConfirmButton:false, timer:3000 })
+                        .then(() => window.location.reload());
+                },
+
+                formatTime(s) { return `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; },
+                formatType(t) { return {'single_choice':'Pilihan Ganda','complex_choice':'Pilihan Kompleks','matching':'Menjodohkan','true_false':'Benar/Salah','essay':'Essay'}[t] || 'Soal'; },
+
+                nextQuestion() { if (this.currentIndex < this.questionIds.length - 1) { this.currentIndex++; this.fetchQuestion(this.currentIndex); } },
+                prevQuestion() { if (this.currentIndex > 0) { this.currentIndex--; this.fetchQuestion(this.currentIndex); } },
+                gotoQuestion(index) { this.currentIndex = index; this.fetchQuestion(index); },
+
+                hasAnswer(qId) { const a = this.answers[qId]; return a && (Array.isArray(a) ? a.length > 0 : (typeof a === 'object' ? Object.keys(a).length > 0 : a !== "")); },
+                isOptionSelected(qId, optId) { return Array.isArray(this.answers[qId]) && this.answers[qId].includes(optId); },
+
+                toggleMultipleAnswer(qId, optId) {
+                    if (!Array.isArray(this.answers[qId])) this.answers[qId] = [];
+                    const idx = this.answers[qId].indexOf(optId);
+                    if (idx === -1) this.answers[qId].push(optId); else this.answers[qId].splice(idx, 1);
+                    this.saveAnswer(qId, this.answers[qId]);
+                },
+
+                clickMatch(qId, id, type) {
+                    if (type === 'premise') this.matchState.activePremise = id; else this.matchState.activeTarget = id;
+                    if (this.matchState.activePremise && this.matchState.activeTarget) {
+                        if (typeof this.answers[qId] !== 'object' || Array.isArray(this.answers[qId])) this.answers[qId] = {};
+                        this.answers[qId][this.matchState.activePremise] = this.matchState.activeTarget;
+                        this.saveAnswer(qId, this.answers[qId]);
+                        this.matchState = { activePremise: null, activeTarget: null };
+                        this.clearLines(); this.$nextTick(() => this.drawLines());
+                    }
+                },
+
+                drawLines() {
+                    this.clearLines(); const q = this.q; if (!q || q.type !== 'matching' || !this.answers[q.id]) return;
+                    const colors = ['#4f46e5','#ec4899','#10b981','#f59e0b','#06b6d4']; let i = 0;
+                    Object.entries(this.answers[q.id]).forEach(([p, t]) => {
+                        const s = document.getElementById('premise-'+p), e = document.getElementById('target-'+t);
+                        if (s && e && s.offsetParent && e.offsetParent) { this.lines.push(new LeaderLine(s, e, { color: colors[i++%colors.length], size: 3, path: 'straight', startSocket: 'right', endSocket: 'left', endPlug: 'arrow3' })); }
+                    });
+                },
+                clearLines() { this.lines.forEach(l => l.remove()); this.lines = []; },
+                repositionLines() { if (this.lines.length) window.requestAnimationFrame(() => this.lines.forEach(l => l.position())); },
+
+                toggleFlag(qId) {
+                    const idx = this.flags.indexOf(qId);
+                    if (idx === -1) this.flags.push(qId); else this.flags.splice(idx, 1);
+                    axios.post('{{ route("public.exams.store_answer", $exam) }}', { question_id: qId, answer: this.answers[qId] ?? null, is_doubtful: this.flags.includes(qId) }).catch(e => console.error(e));
+                },
+
+                saveAnswer(qId, val) {
+                    if (window.isExitingExam) return;
+                    if (val !== undefined) this.answers[qId] = val;
+                    axios.post('{{ route("public.exams.store_answer", $exam) }}', { question_id: qId, answer: this.answers[qId] ?? null, is_doubtful: this.flags.includes(qId) }).catch(e => console.error(e));
+                },
+
+                finishExam() {
+                    if (this.isSubmitting) return;
+                    window.isSystemPopup = true;
+                    try { if (this.q && this.answers[this.q.id]) this.saveAnswer(this.q.id, this.answers[this.q.id]); } catch(e) {}
+
+                    Swal.fire({
+                        title: 'Kumpulkan Ujian?', icon: 'question', allowOutsideClick: false, allowEscapeKey: false,
+                        showCancelButton: true, confirmButtonText: 'Ya, Kumpulkan', cancelButtonText: 'Batal',
+                        confirmButtonColor: '#10b981', cancelButtonColor: '#94a3b8',
+                        html: `
+                            <p class="text-slate-500 text-sm mb-4">Pastikan semua jawaban terisi sebelum mengumpulkan.</p>
+                            <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:0.75rem;padding:1rem">
+                                <label style="display:flex;align-items:flex-start;gap:0.75rem;cursor:pointer;text-align:left">
+                                    <input type="checkbox" id="swal-confirm-check" style="width:18px;height:18px;margin-top:2px;accent-color:#10b981;flex-shrink:0;cursor:pointer">
+                                    <span style="font-size:0.85rem;font-weight:600;color:#334155;line-height:1.5">Saya yakin ingin mengakhiri ujian dan mengumpulkan semua jawaban saya.</span>
+                                </label>
+                            </div>
+                        `,
+                        didOpen: () => {
+                            const btn = Swal.getConfirmButton(), cb = document.getElementById('swal-confirm-check');
+                            btn.disabled = true; btn.style.opacity = '0.4'; btn.style.cursor = 'not-allowed';
+                            cb.addEventListener('change', function() { btn.disabled = !this.checked; btn.style.opacity = this.checked ? '1' : '0.4'; btn.style.cursor = this.checked ? 'pointer' : 'not-allowed'; });
+                        },
+                        preConfirm: () => {
+                            const cb = document.getElementById('swal-confirm-check');
+                            if (!cb || !cb.checked) { Swal.showValidationMessage('Centang kotak persetujuan terlebih dahulu.'); return false; }
+                            return true;
+                        }
+                    }).then(result => {
+                        if (result.isConfirmed) this.forceSubmit();
+                        else setTimeout(() => window.isSystemPopup = false, 200);
+                    });
+                },
+
+                forceSubmit() {
+                    this.isSubmitting = true;
+                    window.isExitingExam = true; window.isSystemPopup = true;
+                    this.clearLines(); clearInterval(this.timerInterval);
+                    window.onbeforeunload = null;
+                    const f = document.getElementById('finish-form');
+                    if (f) {
+                        Swal.fire({ title: 'Menyimpan Jawaban...', html: 'Mohon tunggu, jangan tutup halaman ini.', allowOutsideClick: false, allowEscapeKey: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
+                        f.submit();
+                    } else { alert('Error.'); }
+                }
+            }));
+        });
+
+        // ── Lightbox & Mobile Nav ──
+        (function () {
     let scale = 1, minScale = 0.5, maxScale = 5, tx = 0, ty = 0;
     let isDragging = false, lx = 0, ly = 0, lastPinch = null;
 
