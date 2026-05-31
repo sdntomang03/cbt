@@ -393,7 +393,9 @@
                     <h1
                         class="hidden lg:block font-black text-slate-800 text-xs tracking-widest uppercase leading-none">
                         {{ $exam->title }}</h1>
-                    <p class="font-bold text-slate-700 text-sm leading-none mt-0.5">Peserta Publik</p>
+                    <p class="font-bold text-slate-700 text-sm leading-none mt-0.5">
+                        {{ $userData['nama_peserta'] ?? 'Peserta Publik' }}
+                    </p>
                 </div>
             </div>
 

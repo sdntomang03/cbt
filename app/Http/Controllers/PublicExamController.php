@@ -138,6 +138,7 @@ class PublicExamController extends Controller
             'enable_violation' => $exam->enable_violation ?? true,
             'max_tolerances' => $exam->max_tolerances ?? 3,
         ];
+        $userData = session()->get('public_user_'.$exam->id);
 
         return view('public.exams.run', [
             'exam' => $exam,
@@ -148,6 +149,7 @@ class PublicExamController extends Controller
             'existingAnswers' => $state['answers'] ?? [],
             'flags' => $state['flags'] ?? [],
             'pivot' => $pivotMock,
+            'userData' => $userData,
         ]);
     }
 
