@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Intervention\Image\Drivers\Imagick\Driver;
+use Intervention\Image\ImageManager;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -323,46 +325,50 @@ class SoalController extends Controller
 
     public function uploadImage(Request $request)
     {
-        // 1. FILE FISIK (Misal: dari Snipping Tool / Upload Manual)
-        if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('soal_images', 'public');
+        // Inisialisasi ImageManager
+        $manager = ImageManager::usingDriver(Driver::class);
 
-            return response()->json(['url' => asset('storage/'.$path)]);
+        // 1. FILE FISIK (Upload Manual / Snipping Tool)
+        if ($request->hasFile('image')) {
+            $image = $manager->read($request->file('image'));
+
+            // Resize & Konversi ke WebP
+            $image->scale(width: 1024);
+
+            $filename = 'soal_images/'.Str::random(20).'.webp';
+
+            // Simpan hasil encode ke storage
+            Storage::disk('public')->put($filename, (string) $image->toWebp(quality: 70));
+
+            return response()->json(['url' => asset('storage/'.$filename)]);
         }
 
-        // 2. BYPASS URL EKSTERNAL (Dari Copy-Paste Website)
+        // 2. BYPASS URL EKSTERNAL (Copy-Paste Website)
         if ($request->filled('image_url')) {
             try {
-                // Menggunakan withOptions(['verify' => false]) agar kebal dari error SSL Certificate
                 $response = Http::withOptions(['verify' => false])
                     ->withHeaders([
-                        'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
-                    ])
-                    ->get($request->image_url);
+                        'User-Agent' => 'Mozilla/5.0',
+                    ])->get($request->image_url);
 
                 if ($response->successful()) {
-                    $ext = 'png';
-                    $contentType = $response->header('Content-Type');
+                    // Baca stream dari HTTP response
+                    $image = $manager->read($response->body());
 
-                    if ($contentType) {
-                        $parts = explode('/', $contentType);
-                        if (isset($parts[1])) {
-                            // Ambil hanya huruf ekstensi (misal png, jpg)
-                            $ext = preg_replace('/[^a-zA-Z0-9]/', '', explode(';', $parts[1])[0]);
-                        }
-                    }
+                    // Resize & Konversi ke WebP
+                    $image->scale(width: 1024);
 
-                    // Simpan gambar ke server kita
-                    $filename = 'soal_images/'.Str::random(20).'.'.$ext;
-                    Storage::disk('public')->put($filename, $response->body());
+                    $filename = 'soal_images/'.Str::random(20).'.webp';
+
+                    // Simpan hasil
+                    Storage::disk('public')->put($filename, (string) $image->toWebp(quality: 70));
 
                     return response()->json(['url' => asset('storage/'.$filename)]);
                 }
 
-                return response()->json(['error' => 'Web sumber menolak akses ditarik (Status: '.$response->status().')'], 400);
+                return response()->json(['error' => 'Gagal mengambil gambar dari URL'], 400);
 
             } catch (Exception $e) {
-                // Jika error, kembalikan pesan jelas, bukan blank 500
                 return response()->json(['error' => 'Server gagal mendownload: '.$e->getMessage()], 500);
             }
         }
