@@ -57,7 +57,6 @@
             border: 2px solid #e2e8f0;
             border-radius: 1rem;
             cursor: pointer;
-            font-weight: 700;
             transition: all 0.2s;
             position: relative;
             z-index: 10;
