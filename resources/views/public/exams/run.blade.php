@@ -374,7 +374,7 @@
         </button>
     </div>
 
-    <div class="fixed inset-0 flex flex-col h-screen bg-[#f1f5f9]" x-data='examRunner(
+    <div class="fixed inset-0 flex flex-col bg-[#f1f5f9]" x-data='examRunner(
                 @json($questionIds),
                 {{ $timeLeftSeconds }},
                 @json($existingAnswers),
