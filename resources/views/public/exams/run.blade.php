@@ -374,13 +374,16 @@
         </button>
     </div>
 
-    <div class="fixed inset-0 flex flex-col h-[100dvh] bg-[#f1f5f9] x-data='examRunner(
+    <div class="fixed inset-0 flex flex-col h-screen bg-[#f1f5f9]" x-data='examRunner(
                 @json($questionIds),
                 {{ $timeLeftSeconds }},
                 @json($existingAnswers),
                 @json($flags ?? []),
-                " guest_public", @json($config), "{{ $exam->hashid ?? $exam->id }}" , @json($questions) )'
-        x-show="$store.examState.started && !$store.examState.isLocked" x-cloak>
+                "guest_public",
+                @json($config),
+                "{{ $exam->hashid ?? $exam->id }}",
+                @json($questions)
+            )' x-show="$store.examState.started && !$store.examState.isLocked" x-cloak>
 
         <div
             class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-8 z-[100] shadow-sm select-none">
@@ -419,7 +422,7 @@
         </div>
 
         <div class="flex-1 flex overflow-hidden">
-            <div id="question-viewport" class="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-10 pb-10"
+            <div id="question-viewport" class="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-10 pb-28"
                 @scroll="repositionLines()">
                 <div class="max-w-4xl mx-auto min-h-[400px] relative">
 
