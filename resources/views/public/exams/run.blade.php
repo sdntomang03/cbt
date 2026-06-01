@@ -597,7 +597,7 @@
         </div>
 
         <div
-            class="h-16 bg-white/80 backdrop-blur border-t border-slate-100 flex items-center justify-between px-4 sm:px-8 z-[100] shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
+            class="fixed bottom-0 left-0 w-full lg:static h-16 bg-white/80 backdrop-blur border-t border-slate-100 flex items-center justify-between px-4 sm:px-8 z-[100] shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
             <button @click="prevQuestion()" :disabled="currentIndex === 0"
                 class="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200 transition-all">
                 <i class="fas fa-chevron-left text-xs"></i> <span class="hidden sm:inline">Sebelumnya</span>
