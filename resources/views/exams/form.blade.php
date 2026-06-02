@@ -323,18 +323,29 @@
 
                 <label
                     class="flex items-center justify-between p-5 bg-emerald-50/50 rounded-2xl border border-emerald-200 cursor-pointer hover:bg-emerald-50 transition">
+
                     <div>
                         <div class="text-base font-black text-emerald-700">Tampilkan di Katalog Publik</div>
                         <div class="text-xs text-emerald-600/70 mt-1">Ujian dapat diakses & dikerjakan oleh pengunjung
                             tanpa login.</div>
                     </div>
-                    <div class="relative">
-                        <input type="checkbox" name="is_public" x-model="isPublic" class="sr-only">
-                        <div class="w-14 h-7 rounded-full transition-colors duration-200 ease-in-out"
-                            :class="isPublic ? 'bg-emerald-500' : 'bg-slate-200'">
-                            <div class="w-5 h-5 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out mt-1"
-                                :class="isPublic ? 'translate-x-8 ml-0.5' : 'translate-x-1'"></div>
+
+                    <div class="flex items-center gap-4">
+
+                        <a href="{{ route('admin.live-preview') }}" target="_blank" @click.stop
+                            class="inline-flex items-center justify-center px-4 py-1.5 text-sm font-bold text-emerald-700 bg-white border border-emerald-300 rounded-lg shadow-sm hover:bg-emerald-100 transition-colors focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            Live Preview
+                        </a>
+
+                        <div class="relative">
+                            <input type="checkbox" name="is_public" x-model="isPublic" class="sr-only">
+                            <div class="w-14 h-7 rounded-full transition-colors duration-200 ease-in-out"
+                                :class="isPublic ? 'bg-emerald-500' : 'bg-slate-200'">
+                                <div class="w-5 h-5 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out mt-1"
+                                    :class="isPublic ? 'translate-x-8 ml-0.5' : 'translate-x-1'"></div>
+                            </div>
                         </div>
+
                     </div>
                 </label>
 

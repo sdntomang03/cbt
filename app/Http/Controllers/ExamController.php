@@ -298,4 +298,29 @@ class ExamController extends Controller
 
         return view('exams.form', compact('exam', 'examTypes', 'levels', 'subjects'));
     }
+
+    public function preview(Request $request)
+    {
+        // Buat model tiruan, tidak disimpan ke database
+        $exam = new Exam;
+
+        // Tangkap inputan dari form test
+        $exam->title = $request->input('title', 'Judul Ujian Preview');
+        $exam->description = $request->input('description', 'Ini adalah deskripsi mode preview.');
+        $exam->content = $request->input('content', '<p>Tidak ada konten yang diisi.</p>');
+        $exam->duration_minutes = $request->input('duration_minutes', 60);
+        $exam->questions_count = 10; // Angka statis untuk desain
+        $exam->thumbnail = null;
+
+        // Kirim ke view preview beserta flag 'isPreview'
+        return view('exams.preview', [
+            'exam' => $exam,
+            'isPreview' => true,
+        ]);
+    }
+
+    public function livePreview()
+    {
+        return view('exams.live-preview');
+    }
 }

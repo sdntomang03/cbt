@@ -99,7 +99,8 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         Route::get('/exams/{exam}/export', [ExamController::class, 'exportGrades'])->name('exams.export');
         Route::resource('exams', ExamController::class);
         Route::post('/exam-types', [ExamController::class, 'storeType'])->name('exam-types.store');
-
+        Route::post('/preview', [ExamController::class, 'preview'])->name('preview');
+        Route::get('/live-preview', [ExamController::class, 'livePreview'])->name('live-preview');
         // Nested resource Soal Utama
         Route::resource('exams.soal', SoalController::class)->except(['show']);
 
