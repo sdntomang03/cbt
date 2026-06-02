@@ -251,24 +251,48 @@
         content: `
             <h3 class="text-2xl font-black text-slate-800 mb-6 text-center">3 Pilar Utama Materi</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
-                <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                    <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center text-xl mb-4"><i class="fas fa-rocket"></i></div>
+                <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow text-center">
+                    <div class="w-12 h-12 mx-auto bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center text-xl mb-4"><i class="fas fa-rocket"></i></div>
                     <h4 class="text-lg font-bold text-slate-800 mb-2">Konsep Inti</h4>
                     <p class="text-sm text-slate-600">Jelaskan ide pokok pertama di sini.</p>
                 </div>
-                <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                    <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-xl mb-4"><i class="fas fa-chart-pie"></i></div>
+                <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow text-center">
+                    <div class="w-12 h-12 mx-auto bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-xl mb-4"><i class="fas fa-chart-pie"></i></div>
                     <h4 class="text-lg font-bold text-slate-800 mb-2">Analisis Data</h4>
                     <p class="text-sm text-slate-600">Jelaskan fungsi analitis dari konsep pertama.</p>
                 </div>
-                <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                    <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center text-xl mb-4"><i class="fas fa-lightbulb"></i></div>
+                <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow text-center">
+                    <div class="w-12 h-12 mx-auto bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center text-xl mb-4"><i class="fas fa-lightbulb"></i></div>
                     <h4 class="text-lg font-bold text-slate-800 mb-2">Kesimpulan</h4>
                     <p class="text-sm text-slate-600">Benang merah agar siswa mudah mengingatnya.</p>
                 </div>
             </div>
         `
-    },
+},
+{
+        title: '🗂️ 2 Card Kolom (Perbandingan / Opsi)',
+        description: 'Dua kartu berjajar, cocok untuk membandingkan 2 konsep atau memberikan 2 opsi.',
+        content: `
+            <h3 class="text-2xl font-black text-slate-800 mb-6 text-center">2 Konsep Utama</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
+
+                <!-- Kartu 1 -->
+                <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow text-center">
+                    <div class="w-12 h-12 mx-auto bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center text-xl mb-4"><i class="fas fa-rocket"></i></div>
+                    <h4 class="text-lg font-bold text-slate-800 mb-2">Konsep Pertama</h4>
+                    <p class="text-sm text-slate-600">Jelaskan ide pokok atau opsi pertama di sini dengan jelas dan padat.</p>
+                </div>
+
+                <!-- Kartu 2 -->
+                <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow text-center">
+                    <div class="w-12 h-12 mx-auto bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-xl mb-4"><i class="fas fa-chart-pie"></i></div>
+                    <h4 class="text-lg font-bold text-slate-800 mb-2">Konsep Kedua</h4>
+                    <p class="text-sm text-slate-600">Jelaskan ide pokok atau opsi kedua di sini sebagai pelengkap atau perbandingan.</p>
+                </div>
+
+            </div>
+        `
+},
     {
         title: '📊 Tabel Perbandingan',
         description: 'Tabel modern untuk membandingkan dua teori, konsep, atau pendekatan.',
