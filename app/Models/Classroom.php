@@ -43,4 +43,9 @@ class Classroom extends Model
     {
         return $this->hasMany(Exam::class);
     }
+
+    public function level()
+    {
+        return $this->belongsTo(Level::class);
+    }
 }

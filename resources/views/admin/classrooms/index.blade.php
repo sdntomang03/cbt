@@ -189,6 +189,21 @@
                         </select>
                     </div>
 
+                    <div>
+                        <label
+                            class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Level
+                            / Tingkat <span class="text-rose-500">*</span></label>
+                        <select name="level_id" x-model="$store.classModule.formData.level_id" required
+                            class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 font-bold text-slate-700 py-3.5 px-4 bg-slate-50 shadow-sm">
+                            <option value="">-- Pilih Level --</option>
+                            @isset($levels)
+                            @foreach($levels as $level)
+                            <option value="{{ $level->id }}">{{ $level->name }}</option>
+                            @endforeach
+                            @endisset
+                        </select>
+                    </div>
+
                     {{-- Wali Kelas --}}
                     <div>
                         <label
@@ -230,6 +245,7 @@
                 formData: {
                     name: '',
                     academic_year_id: '',
+                    level_id: '',
                     homeroom_teacher_id: ''
                 },
                 newClassroom() {
@@ -239,6 +255,7 @@
                     this.formData = {
                         name: '',
                         academic_year_id: '',
+                        level_id: '',
                         homeroom_teacher_id: ''
                     };
                     this.openModal = true;
@@ -251,6 +268,7 @@
                         name: classroom.name,
                         // Gunakan fallback string kosong agar select option reset dengan benar jika data null
                         academic_year_id: classroom.academic_year_id || '',
+                        level_id: classroom.level_id || '',
                         homeroom_teacher_id: classroom.homeroom_teacher_id || ''
                     };
                     this.openModal = true;

@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\Classroom;
+use App\Models\Level;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class ClassroomController extends Controller
@@ -29,9 +31,10 @@ class ClassroomController extends Controller
         // Ambil Data Pendukung untuk Dropdown Modal
         $academicYears = AcademicYear::where('school_id', $schoolId)->get();
         // Pastikan relasi spatie sudah diatur dengan benar untuk memanggil scope 'role'
+        $levels = Level::where('school_id', $schoolId)->get();
         $teachers = User::role('guru')->where('school_id', $schoolId)->get();
 
-        return view('admin.classrooms.index', compact('classrooms', 'academicYears', 'teachers'));
+        return view('admin.classrooms.index', compact('classrooms', 'academicYears', 'teachers', 'levels'));
     }
 
     /**
@@ -52,6 +55,7 @@ class ClassroomController extends Controller
             'school_id' => $schoolId,
             'academic_year_id' => $request->academic_year_id,
             'user_id' => $request->homeroom_teacher_id, // Perhatikan pemetaan field DB dengan input form
+            'level_id' => $request->level_id,
             'name' => $request->name,
         ]);
 
@@ -75,11 +79,13 @@ class ClassroomController extends Controller
             'name' => 'required|string|max:255',
             'academic_year_id' => ['nullable', Rule::exists('academic_years', 'id')->where('school_id', $schoolId)],
             'homeroom_teacher_id' => ['nullable', Rule::exists('users', 'id')->where('school_id', $schoolId)],
+            'level_id' => ['nullable', Rule::exists('levels', 'id')->where('school_id', $schoolId)],
         ]);
 
         $classroom->update([
             'academic_year_id' => $request->academic_year_id,
             'user_id' => $request->homeroom_teacher_id,
+            'level_id' => $request->level_id,
             'name' => $request->name,
         ]);
 
@@ -115,7 +121,7 @@ class ClassroomController extends Controller
             $q->orderBy('name', 'asc');
         }]);
 
-        $assignedStudentIds = \Illuminate\Support\Facades\DB::table('classroom_student')
+        $assignedStudentIds = DB::table('classroom_student')
             ->join('users', 'classroom_student.student_id', '=', 'users.id')
             ->where('users.school_id', $schoolId)
             ->pluck('student_id');

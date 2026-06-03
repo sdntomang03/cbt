@@ -65,34 +65,31 @@ class MathExamController extends Controller
             'title' => 'required|string|max:255',
             'student_ids' => 'required|array|min:1',
             'student_ids.*' => 'exists:users,id',
-            'types' => 'required|array|min:1',
-            'digits' => 'required|array', // Menerima array multi-dimensi [type][num1] & [type][num2]
-            'total_questions' => 'required|integer|min:1|max:200',
+            'rules' => 'required|array|min:1', // Validasi aturan soal dinamis
             'duration_minutes' => 'required|integer|min:1',
         ]);
 
+        // Hitung total soal dari rules
+        $totalQuestions = array_reduce($request->rules, function ($carry, $rule) {
+            return $carry + (int) $rule['count'];
+        }, 0);
+
         $exam = MathExam::create([
             'title' => $request->title,
-            'types' => $request->types,
-            'digits' => $request->digits,
-            'total_questions' => $request->total_questions,
+            // Kita simpan seluruh struktur Rules ke dalam kolom digits agar tidak perlu buat kolom database baru
+            'digits' => $request->rules,
+            'types' => collect($request->rules)->pluck('type')->unique()->values()->toArray(),
+            'total_questions' => $totalQuestions,
             'duration_minutes' => $request->duration_minutes,
             'school_id' => auth()->user()->school_id,
         ]);
 
-        $selectedTypes = $request->types;
-        $totalQuestions = $request->total_questions;
-        $totalTypes = count($selectedTypes);
-
-        // Kuota Soal
-        $baseQuota = floor($totalQuestions / $totalTypes);
-        $remainder = $totalQuestions % $totalTypes;
-
+        // Bangun cetak biru (Blueprint) soal berdasarkan rules
         $examBlueprint = [];
-        foreach ($selectedTypes as $index => $type) {
-            $quota = $baseQuota + ($index < $remainder ? 1 : 0);
-            for ($i = 0; $i < $quota; $i++) {
-                $examBlueprint[] = $type;
+        foreach ($request->rules as $rule) {
+            $count = (int) $rule['count'];
+            for ($i = 0; $i < $count; $i++) {
+                $examBlueprint[] = $rule; // Masukkan konfigurasi spesifik ke dalam antrean
             }
         }
 
@@ -110,11 +107,11 @@ class MathExamController extends Controller
             ];
 
             $studentBlueprint = $examBlueprint;
-            shuffle($studentBlueprint);
+            shuffle($studentBlueprint); // Acak urutan soal untuk tiap siswa
 
-            foreach ($studentBlueprint as $currentType) {
-                // Generate soal menggunakan Helper canggih kita
-                $questionData = $this->generateMathQuestion($currentType, $request->digits);
+            foreach ($studentBlueprint as $currentRule) {
+                // Generate soal menggunakan Rule Spesifik
+                $questionData = $this->generateMathQuestion($currentRule);
 
                 $allQuestionsData[] = [
                     'math_exam_id' => $exam->id,
@@ -135,9 +132,7 @@ class MathExamController extends Controller
             MathExamQuestion::insert($chunk);
         }
 
-        $countStudents = count($request->student_ids);
-
-        return redirect()->back()->with('success', "Ujian '{$exam->title}' berhasil dibuat untuk $countStudents siswa!");
+        return redirect()->back()->with('success', "Ujian '{$exam->title}' berhasil dibuat untuk ".count($request->student_ids).' siswa!');
     }
 
     // =========================================================================
@@ -160,10 +155,11 @@ class MathExamController extends Controller
         return ['min' => $min, 'max' => $max];
     }
 
-    private function generateMathQuestion($type, $digitsConfig)
+    private function generateMathQuestion($rule)
     {
-        $set1 = $this->getDigitRange($digitsConfig[$type]['num1'] ?? '1');
-        $set2 = $this->getDigitRange($digitsConfig[$type]['num2'] ?? '1');
+        $type = $rule['type'];
+        $set1 = $this->getDigitRange($rule['num1']);
+        $set2 = $this->getDigitRange($rule['num2']);
 
         $n1 = rand($set1['min'], $set1['max']);
         $n2 = rand($set2['min'], $set2['max']);
@@ -178,11 +174,13 @@ class MathExamController extends Controller
                 break;
             case 'subtraction':
                 $operator = '-';
-                // Hindari angka negatif untuk SD (Angka Kiri harus lebih besar)
-                if ($n1 < $n2) {
-                    $temp = $n1;
-                    $n1 = $n2;
-                    $n2 = $temp;
+                // Jika TIDAK diacak posisinya, jamin angka kiri lebih besar agar tidak negatif
+                if (empty($rule['random_pos']) || $rule['random_pos'] === 'false') {
+                    if ($n1 < $n2) {
+                        $temp = $n1;
+                        $n1 = $n2;
+                        $n2 = $temp;
+                    }
                 }
                 $correct = $n1 - $n2;
                 break;
@@ -192,16 +190,11 @@ class MathExamController extends Controller
                 break;
             case 'division':
                 $operator = ':';
-
-                // Algoritma Cerdas: Menjamin tidak ada sisa bagi (desimal)
-                $n2 = max(2, $n2); // Pembagi (Angka Kanan) minimal 2 agar tidak terlalu mudah
-
-                // Cari rentang Hasil Bagi (Correct Answer) agar Angka Kiri sesuai range yang diminta
+                $n2 = max(2, $n2);
                 $minMultiplier = (int) ceil($set1['min'] / $n2);
                 $maxMultiplier = (int) floor($set1['max'] / $n2);
 
                 if ($minMultiplier > $maxMultiplier) {
-                    // Fallback aman jika setting guru tidak masuk akal (misal: 1 digit dibagi 3 digit)
                     $correct = rand(1, 9);
                     $n1 = $n2 * $correct;
                 } else {
@@ -209,6 +202,23 @@ class MathExamController extends Controller
                     $n1 = $correct * $n2;
                 }
                 break;
+        }
+
+        // LOGIKA ACAK POSISI (SWAP) KECUALI PEMBAGIAN
+        // Cek jika random_pos aktif
+        if (! empty($rule['random_pos']) && $rule['random_pos'] === 'true' && $type !== 'division') {
+            // 50% kesempatan untuk ditukar posisinya
+            if (rand(0, 1) === 1) {
+                $temp = $n1;
+                $n1 = $n2;
+                $n2 = $temp;
+
+                // Jika operasi pengurangan ditukar posisinya, nilai harus dihitung ulang (akan jadi negatif)
+                if ($type === 'subtraction') {
+                    $correct = $n1 - $n2;
+                }
+                // Penjumlahan & Perkalian tidak perlu dihitung ulang karena sifatnya komutatif
+            }
         }
 
         return [
@@ -295,18 +305,14 @@ class MathExamController extends Controller
 
         $exam = MathExam::findOrFail($id);
 
-        $selectedTypes = $exam->types;
-        $totalQuestions = $exam->total_questions;
-        $totalTypes = count($selectedTypes);
-
-        $baseQuota = floor($totalQuestions / $totalTypes);
-        $remainder = $totalQuestions % $totalTypes;
+        // Ambil kembali rules dari database (yang disimpan di kolom digits)
+        $rules = $exam->digits;
 
         $examBlueprint = [];
-        foreach ($selectedTypes as $index => $type) {
-            $quota = $baseQuota + ($index < $remainder ? 1 : 0);
-            for ($i = 0; $i < $quota; $i++) {
-                $examBlueprint[] = $type;
+        foreach ($rules as $rule) {
+            $count = (int) $rule['count'];
+            for ($i = 0; $i < $count; $i++) {
+                $examBlueprint[] = $rule;
             }
         }
 
@@ -322,6 +328,7 @@ class MathExamController extends Controller
                 'math_exam_id' => $exam->id,
                 'student_id' => $studentId,
                 'status' => 'not_started',
+                'school_id' => auth()->user()->school_id, // Asumsi menambahkan ke DB
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
@@ -329,9 +336,8 @@ class MathExamController extends Controller
             $studentBlueprint = $examBlueprint;
             shuffle($studentBlueprint);
 
-            foreach ($studentBlueprint as $currentType) {
-                // Gunakan helper yang sama persis dengan fungsi Store!
-                $questionData = $this->generateMathQuestion($currentType, $exam->digits);
+            foreach ($studentBlueprint as $currentRule) {
+                $questionData = $this->generateMathQuestion($currentRule);
 
                 $allQuestionsData[] = [
                     'math_exam_id' => $exam->id,
@@ -340,6 +346,7 @@ class MathExamController extends Controller
                     'num2' => $questionData['num2'],
                     'operator' => $questionData['operator'],
                     'correct_answer' => $questionData['correct_answer'],
+                    'school_id' => auth()->user()->school_id,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];

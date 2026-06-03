@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Exam;
 use App\Models\PublicExamResult;
-use App\Models\Question;
 use App\Models\Subject;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -119,8 +118,8 @@ class PublicExamController extends Controller
         }
 
         // Ambil Data Soal Lengkap
-        $questions = Question::with(['options', 'matches'])
-            ->where('exam_id', $exam->id)
+        $questions = $exam->questions()
+            ->with(['options', 'matches'])
             ->get()
             ->keyBy('id');
 
@@ -232,7 +231,7 @@ class PublicExamController extends Controller
             // KALKULASI & SIMPAN KE DATABASE RANKING
             // ==========================================
             if ($userData) {
-                $questions = Question::where('exam_id', $exam->id)->with('options')->get();
+                $questions = $exam->questions()->with('options')->get();
                 $correctCount = 0;
                 $wrongCount = 0;
                 $unansweredCount = 0;
@@ -295,7 +294,7 @@ class PublicExamController extends Controller
             return redirect()->route('public.exams.index');
         }
 
-        $questions = Question::where('exam_id', $exam->id)->with('options')->get();
+        $questions = $exam->questions()->with('options')->get();
         $totalQuestions = $questions->count();
         $correctCount = 0;
         $wrongCount = 0;

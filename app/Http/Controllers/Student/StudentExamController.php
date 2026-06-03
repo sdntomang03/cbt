@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\ExamSession;
 use App\Models\ExamSessionUser;
-use App\Models\Question;
 use App\Models\RegistrationSetting;
 use App\Models\StudentAnswer;
 use Carbon\Carbon;
@@ -113,7 +112,7 @@ class StudentExamController extends Controller
         // ==============================================================
         // PERUBAHAN AJAX: HANYA AMBIL ARRAY ID SOAL
         // ==============================================================
-        $questionIds = Question::where('exam_id', $exam->id)->pluck('id')->toArray();
+        $questionIds = $exam->questions()->pluck('questions.id')->toArray();
 
         $existingAnswers = StudentAnswer::where('exam_session_id', $session->id)
             ->where('user_id', $user->id)
@@ -171,10 +170,10 @@ class StudentExamController extends Controller
             return response()->json(['error' => 'Ujian sudah selesai'], 403);
         }
 
-        // Pastikan soal memang milik exam ini (keamanan)
-        $question = Question::where('exam_id', $exam->id)
-            ->where('id', $question_id)
-            ->select(['id', 'exam_id', 'type', 'content'])
+        // Keamanan otomatis terjamin karena kita mencari dari dalam relasi ujian tersebut
+        $question = $exam->questions()
+            ->where('questions.id', $question_id) // Gunakan prefix questions. untuk keamanan query
+            ->select(['questions.id', 'questions.type', 'questions.content']) // HAPUS 'exam_id' DARI SINI
             ->with([
                 'options' => fn ($q) => $q->select(['id', 'question_id', 'option_text']),
                 'matches' => fn ($q) => $q->select(['id', 'question_id', 'premise_text', 'target_text']),
@@ -242,7 +241,7 @@ class StudentExamController extends Controller
                 ->get();
 
             $totalScore = 0;
-            $totalQuestions = Question::where('exam_id', $session->exam_id)->count();
+            $totalQuestions = $session->exam->questions()->count();
 
             foreach ($answers as $ans) {
                 $q = $ans->question;

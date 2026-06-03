@@ -134,9 +134,10 @@ class SoalController extends Controller
 
     public function destroy(Exam $exam, Question $soal)
     {
-        $soal->delete();
+        // Hanya melepas kaitan soal dari ujian ini
+        $exam->questions()->detach($soal->id);
 
-        return response()->json(['message' => 'Soal berhasil dihapus']);
+        return response()->json(['message' => 'Soal berhasil dikeluarkan dari ujian']);
     }
 
     private function saveQuestionDetails($question, $items, $type)
@@ -376,5 +377,53 @@ class SoalController extends Controller
         }
 
         return response()->json(['error' => 'Tidak ada gambar yang diproses'], 400);
+    }
+
+    public function showBankSoal(Request $request, Exam $exam)
+    {
+        $search = $request->input('search');
+        $subjectId = $request->input('subject_id');
+        $levelId = $request->input('level_id');
+
+        // Tangkap parameter per_page (default 20 jika kosong)
+        $perPage = $request->input('per_page', 20);
+
+        $subjects = Subject::orderBy('name')->get();
+        $levels = Level::orderBy('name')->get();
+
+        $existingQuestionIds = $exam->questions()->pluck('questions.id')->toArray();
+
+        $bankQuestions = Question::with(['subject', 'level'])
+            ->whereNotIn('id', $existingQuestionIds)
+            ->when($search, function ($query) use ($search) {
+                $query->where('content', 'LIKE', "%{$search}%");
+            })
+            ->when($subjectId, function ($query) use ($subjectId) {
+                $query->where('subject_id', $subjectId);
+            })
+            ->when($levelId, function ($query) use ($levelId) {
+                $query->where('level_id', $levelId);
+            })
+            ->latest()
+            ->paginate($perPage) // Gunakan variabel $perPage di sini
+            ->withQueryString();
+
+        return view('soal.bank_soal', compact('exam', 'bankQuestions', 'subjects', 'levels'));
+    }
+
+    // 2. Memasukkan soal yang dicentang ke dalam Ujian
+    public function attachBankSoal(Request $request, Exam $exam)
+    {
+        $request->validate([
+            'question_ids' => 'required|array',
+            'question_ids.*' => 'exists:questions,id',
+        ]);
+
+        // Gunakan syncWithoutDetaching agar soal lama di ujian ini tidak terhapus,
+        // dan soal dari bank soal yang baru dicentang akan ditambahkan.
+        $exam->questions()->syncWithoutDetaching($request->question_ids);
+
+        return redirect()->route('admin.exams.soal.index', $exam)
+            ->with('success', 'Berhasil menambahkan '.count($request->question_ids).' soal dari Bank Soal.');
     }
 }

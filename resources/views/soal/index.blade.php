@@ -86,6 +86,12 @@
                     <span class="hidden md:inline">Excel</span>
                 </button>
 
+                <a href="{{ route('admin.exams.soal.bank', $exam) }}"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-50 border border-cyan-200 text-cyan-700 hover:bg-cyan-100 font-semibold text-sm transition-all shadow-sm">
+                    <i class="fas fa-database text-cyan-500 text-xs"></i>
+                    <span class="hidden md:inline">Bank Soal</span>
+                </a>
+
                 <a href="{{ route('admin.soal.import_json_view', $exam) }}"
                     class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 font-semibold text-sm transition-all shadow-sm">
                     <i class="fas fa-file-code text-amber-500 text-xs"></i>
@@ -294,9 +300,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
+        // Render Matematika (Sama seperti index.blade.php)
         document.addEventListener("DOMContentLoaded", function() {
-
-            // 1. Render rumus yang diketik manual menggunakan $$...$$ atau $...$
             if (typeof renderMathInElement !== 'undefined') {
                 renderMathInElement(document.body, {
                     delimiters: [
@@ -308,51 +313,87 @@
                     throwOnError: false
                 });
             }
-
-            // 2. Render rumus dari tombol Formula Quill Editor (jika ada tag .ql-formula)
-            if (typeof katex !== 'undefined') {
-                document.querySelectorAll('.ql-formula').forEach(el => {
-                    let exp = el.getAttribute('data-value');
-                    if (exp) {
-                        // Cuci karakter khusus HTML (Decoded)
-                        let decodedExp = exp
-                            .replace(/&gt;/g, '>')
-                            .replace(/&lt;/g, '<')
-                            .replace(/&amp;/g, '&')
-                            .replace(/&quot;/g, '"')
-                            .replace(/&#39;/g, "'")
-                            .replace(/&nbsp;/g, ' ')
-                            .replace(/\u00A0/g, ' ')
-                            .replace(/<br\s*\/?>/gi, '\n');
-
-                        try {
-                            katex.render(decodedExp, el, {
-                                throwOnError: false,
-                                displayMode: el.style.display === 'block' || el.tagName === 'DIV'
-                            });
-                        } catch (e) {
-                            console.error("Gagal render KaTeX:", e);
-                        }
-                    }
-                });
-            }
         });
 
-        function confirmDelete(id) {
-            Swal.fire({
-                title: 'Hapus Pertanyaan?',
-                text: "Data tidak bisa dikembalikan!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                confirmButtonText: 'Ya, Hapus'
-            }).then(r => {
-                if(r.isConfirmed) {
-                    axios.delete(`/admin/exams/{{ $exam->getRouteKey() }}/soal/${id}`)
-                        .then(() => window.location.reload())
-                        .catch(err => Swal.fire('Error', 'Gagal menghapus soal', 'error'));
+        // -------------------------------------------------------------
+        // STATE MANAGEMENT (Agar centang tidak hilang saat pindah page)
+        // -------------------------------------------------------------
+
+        // Gunakan Storage Key yang spesifik untuk ujian ini agar tidak bentrok
+        const storageKey = 'bank_soal_selected_{{ $exam->id }}';
+
+        // Ambil data dari LocalStorage, jika kosong jadikan Array
+        let selectedQuestions = JSON.parse(localStorage.getItem(storageKey)) || [];
+
+        const checkboxes = document.querySelectorAll('.checkbox-custom');
+        const actionBar = document.getElementById('actionBar');
+        const countText = document.getElementById('countText');
+        const formBankSoal = document.getElementById('formBankSoal');
+
+        // Fungsi untuk mengembalikan status centang saat halaman dimuat
+        function initCheckboxes() {
+            checkboxes.forEach(cb => {
+                // Jika value dari checkbox ini ada di dalam array selectedQuestions, centang!
+                if (selectedQuestions.includes(cb.value)) {
+                    cb.checked = true;
                 }
+
+                // Tambahkan event listener saat dicentang / di-uncentang
+                cb.addEventListener('change', function(e) {
+                    const val = e.target.value;
+                    if (e.target.checked) {
+                        // Masukkan ke array jika dicentang dan belum ada
+                        if (!selectedQuestions.includes(val)) selectedQuestions.push(val);
+                    } else {
+                        // Hapus dari array jika uncentang
+                        selectedQuestions = selectedQuestions.filter(id => id !== val);
+                    }
+                    // Simpan kembali array terbaru ke browser
+                    localStorage.setItem(storageKey, JSON.stringify(selectedQuestions));
+                    updateUI();
+                });
             });
+            updateUI(); // Panggil saat pertama kali load
         }
+
+        // Fungsi untuk mengupdate angka teks dan Action Bar
+        function updateUI() {
+            countText.innerText = selectedQuestions.length + ' Soal Dipilih';
+
+            if (selectedQuestions.length > 0) {
+                actionBar.classList.remove('translate-y-full'); // Munculkan
+            } else {
+                actionBar.classList.add('translate-y-full'); // Sembunyikan
+            }
+        }
+
+        // Fungsi mencegat Form Submit (Agar soal dari halaman lain ikut terkirim)
+        formBankSoal.addEventListener('submit', function(e) {
+            e.preventDefault(); // Hentikan proses submit asli bawaan HTML
+
+            if (selectedQuestions.length === 0) return;
+
+            // 1. Hapus atribut "name" dari checkbox yang ada di layar,
+            // agar tidak terjadi double input dengan data yang akan kita buat di bawah.
+            checkboxes.forEach(cb => cb.removeAttribute('name'));
+
+            // 2. Buat input hidden untuk SETIAP ID soal yang ada di memory (LocalStorage)
+            selectedQuestions.forEach(id => {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'question_ids[]'; // Format array Laravel
+                hiddenInput.value = id;
+                this.appendChild(hiddenInput); // Sisipkan ke dalam form
+            });
+
+            // 3. Bersihkan memori LocalStorage agar jika guru membuka bank soal lagi, centangnya bersih
+            localStorage.removeItem(storageKey);
+
+            // 4. Lanjutkan proses Submit ke Laravel
+            this.submit();
+        });
+
+        // Jalankan sistem
+        initCheckboxes();
     </script>
 </x-app-layout>

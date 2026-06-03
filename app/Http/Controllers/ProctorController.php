@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Exam;
 use App\Models\ExamSession;
 use App\Models\ExamSessionUser;
-use App\Models\Question;
+use App\Models\School;
 use App\Models\StudentAnswer;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class ProctorController extends Controller
@@ -33,15 +35,15 @@ class ProctorController extends Controller
     {
         // 1. --- [AUTO-SWEEP / PENYAPU OTOMATIS] ---
         // Mencari siswa offline yang waktunya sudah habis dan menutup paksa ujiannya.
-        $now = \Carbon\Carbon::now('Asia/Jakarta');
+        $now = Carbon::now('Asia/Jakarta');
         $durationMinutes = (int) $examSession->exam->duration_minutes;
-        $sessionEnd = \Carbon\Carbon::parse($examSession->end_time)->timezone('Asia/Jakarta');
+        $sessionEnd = Carbon::parse($examSession->end_time)->timezone('Asia/Jakarta');
 
         $ongoingStudents = $examSession->students()->wherePivot('status', 'ongoing')->get();
 
         foreach ($ongoingStudents as $student) {
             if ($student->pivot->started_at) {
-                $startedAt = \Carbon\Carbon::parse($student->pivot->started_at)->timezone('Asia/Jakarta');
+                $startedAt = Carbon::parse($student->pivot->started_at)->timezone('Asia/Jakarta');
                 $personalDeadline = $startedAt->copy()->addMinutes($durationMinutes);
 
                 // Real deadline adalah waktu tersingkat antara durasi siswa vs jadwal akhir sesi
@@ -70,7 +72,7 @@ class ProctorController extends Controller
         }
 
         // 4. Ambil data sekolah khusus untuk filter Super Admin
-        $schools = auth()->user()->hasRole('admin') ? \App\Models\School::orderBy('name')->get() : [];
+        $schools = auth()->user()->hasRole('admin') ? School::orderBy('name')->get() : [];
 
         // 5. Tampilkan view pertama kali dimuat
         return view('proctor.monitoring', compact('examSession', 'students', 'schools'));
@@ -82,19 +84,19 @@ class ProctorController extends Controller
      */
     private function forceFinishLogic(ExamSession $examSession, User $student)
     {
-        $examUser = \App\Models\ExamSessionUser::where('exam_session_id', $examSession->id)
+        $examUser = ExamSessionUser::where('exam_session_id', $examSession->id)
             ->where('user_id', $student->id)
             ->first();
 
         if ($examUser && $examUser->status !== 'completed') {
 
-            $answers = \App\Models\StudentAnswer::where('exam_session_id', $examSession->id)
+            $answers = StudentAnswer::where('exam_session_id', $examSession->id)
                 ->where('user_id', $student->id)
                 ->with(['question.options', 'question.matches'])
                 ->get();
 
             $totalScore = 0;
-            $totalQuestions = \App\Models\Question::where('exam_id', $examSession->exam_id)->count();
+            $totalQuestions = Exam::find($examSession->exam_id)->questions()->count();
 
             foreach ($answers as $ans) {
                 $q = $ans->question;
@@ -170,7 +172,7 @@ class ProctorController extends Controller
             // Perbarui status menjadi completed
             $examUser->update([
                 'status' => 'completed',
-                'finished_at' => \Carbon\Carbon::now('Asia/Jakarta'),
+                'finished_at' => Carbon::now('Asia/Jakarta'),
                 'score' => round($finalScore, 2),
             ]);
         }
@@ -215,7 +217,10 @@ class ProctorController extends Controller
 
             $totalScore = 0;
             // 2. Hitung total soal pada ujian ini
-            $totalQuestions = Question::where('exam_id', $examSession->exam_id)->count();
+            $totalQuestions = Exam::find($examSession->exam_id)->questions()->count();
+
+            // ATAU jika model ExamSession kamu sudah punya relasi public function exam(), bisa lebih singkat:
+            // $totalQuestions = $examSession->exam->questions()->count();
 
             // 3. Looping untuk mengoreksi jawaban satu per satu
             foreach ($answers as $ans) {

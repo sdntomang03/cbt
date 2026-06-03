@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Traits\BelongsToSchool;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Question extends Model
@@ -13,9 +12,9 @@ class Question extends Model
 
     protected $guarded = ['id'];
 
-    public function exam(): BelongsTo
+    public function exams()
     {
-        return $this->belongsTo(Exam::class);
+        return $this->belongsToMany(Exam::class, 'exam_question');
     }
 
     public function options(): HasMany

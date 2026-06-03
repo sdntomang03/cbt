@@ -23,8 +23,7 @@ class Exam extends Model
 
     public function questions()
     {
-        // Ini artinya tabel 'questions' punya kolom 'exam_id'
-        return $this->hasMany(Question::class, 'exam_id');
+        return $this->belongsToMany(Question::class, 'exam_question');
     }
 
     protected function casts(): array

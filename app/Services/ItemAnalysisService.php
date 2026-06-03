@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Question;
 use App\Models\StudentAnswer;
 use Illuminate\Support\Collection;
 
@@ -30,7 +29,7 @@ class ItemAnalysisService
         }
 
         // 3. Ambil semua soal
-        $questions = Question::where('exam_id', $examId)
+        $questions = Exam::find($examId)->questions()
             ->with(['options', 'matches'])
             ->get();
 

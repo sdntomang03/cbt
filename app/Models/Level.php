@@ -25,4 +25,9 @@ class Level extends Model
         // Asumsi foreign key di tabel exams adalah 'level_id'
         return $this->hasMany(Exam::class);
     }
+
+    public function classrooms()
+    {
+        return $this->hasMany(Classroom::class);
+    }
 }

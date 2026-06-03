@@ -110,7 +110,8 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         Route::get('/exams/{exam}/import-json', [SoalController::class, 'showImportJson'])->name('soal.import_json_view');
         Route::post('/exams/{exam}/import-json/preview', [SoalController::class, 'previewImportJson'])->name('soal.import_json_preview');
         Route::post('/exams/{exam}/import-json/store', [SoalController::class, 'storeImportJson'])->name('soal.import_json_store');
-
+        Route::get('exams/{exam}/soal/bank', [SoalController::class, 'showBankSoal'])->name('exams.soal.bank');
+        Route::post('exams/{exam}/soal/bank', [SoalController::class, 'attachBankSoal'])->name('exams.soal.bank.store');
         // Manajemen Soal (AJAX)
         Route::get('/exams/{exam}/questions', [QuestionAjaxController::class, 'index'])->name('ajax.questions.index');
         Route::post('/exams/{exam}/questions', [QuestionAjaxController::class, 'store'])->name('ajax.questions.store');
