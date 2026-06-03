@@ -33,95 +33,67 @@
 
                     {{-- ================= KOLOM KIRI (PILIH PESERTA) ================= --}}
 
-                    <div class="lg:col-span-4 flex flex-col h-[550px] xl:h-[650px]">
-                        <div
-                            class="bg-white p-4 sm:p-5 rounded-[1.5rem] shadow-sm border border-slate-100 flex-1 flex flex-col overflow-hidden">
-                            <h3 class="font-black text-base text-slate-800 mb-4 flex items-center gap-2">
-                                <i class="fas fa-users text-indigo-500"></i> Pilih Peserta
-                            </h3>
+                    <div
+                        class="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 rounded-xl p-1.5 space-y-3 border border-slate-100/50">
 
-                            <div class="mb-2.5 relative">
-                                <select x-model="selectedSchool"
-                                    class="w-full pl-3 pr-8 py-2 rounded-lg border-slate-200 text-xs font-bold text-slate-600 bg-slate-50 focus:ring-2 focus:ring-indigo-500 cursor-pointer appearance-none">
-                                    <option value="">-- Semua Sekolah --</option>
-                                    @foreach($schools as $school)
-                                    <option value="{{ $school->id }}">{{ $school->name }}</option>
-                                    @endforeach
-                                </select>
-                                <i
-                                    class="fas fa-chevron-down absolute right-3 top-3 text-slate-400 text-[10px] pointer-events-none"></i>
-                            </div>
+                        {{-- Looping Berdasarkan Grup Kelas --}}
+                        <template x-for="(studentsInClass, className) in groupedStudents" :key="className">
+                            <div class="space-y-1.5">
 
-                            <div class="mb-2.5 relative">
-                                <select x-model="selectedClass" :disabled="availableClasses.length === 0"
-                                    class="w-full pl-3 pr-8 py-2 rounded-lg border-slate-200 text-xs font-bold text-slate-600 bg-slate-50 focus:ring-2 focus:ring-indigo-500 cursor-pointer appearance-none disabled:opacity-50">
-                                    <option value="">-- Semua Kelas --</option>
-                                    <template x-for="kelas in availableClasses" :key="kelas">
-                                        <option :value="kelas" x-text="kelas"></option>
-                                    </template>
-                                </select>
-                                <i
-                                    class="fas fa-chevron-down absolute right-3 top-3 text-slate-400 text-[10px] pointer-events-none"></i>
-                            </div>
-
-                            <div class="mb-4 relative">
-                                <i class="fas fa-search absolute left-3 top-2.5 text-slate-400 text-xs"></i>
-                                <input type="text" x-model="search" placeholder="Cari nama siswa..."
-                                    class="w-full pl-8 pr-3 py-2 rounded-lg border-slate-200 bg-slate-50 text-xs font-bold focus:ring-2 focus:ring-indigo-500 placeholder-slate-400 text-slate-700">
-                            </div>
-
-                            <div class="flex justify-between items-center mb-2 px-1">
-                                <div class="flex items-center gap-2">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"
-                                        x-show="selectedStudents.length > 0" x-cloak></span>
-                                    <span class="text-[10px] font-black text-slate-500">
-                                        <span x-text="selectedStudents.length" class="text-indigo-600"></span> TERPILIH
+                                {{-- Header Grup Kelas & Tombol Pilih 1 Kelas --}}
+                                <div
+                                    class="flex items-center justify-between px-3 py-2 bg-slate-200/60 rounded-lg sticky top-0 z-10 backdrop-blur-sm">
+                                    <span class="text-xs font-black text-slate-700 flex items-center gap-1.5">
+                                        <i class="fas fa-layer-group text-slate-400"></i>
+                                        <span x-text="className"></span>
                                     </span>
+                                    <button type="button" @click="toggleClass(className)"
+                                        class="text-[10px] font-black transition flex items-center gap-1 px-2 py-1 rounded hover:bg-slate-300/50"
+                                        :class="isClassSelected(className) ? 'text-indigo-600' : 'text-slate-500 hover:text-indigo-600'">
+                                        <i class="fas"
+                                            :class="isClassSelected(className) ? 'fa-check-square' : 'fa-square'"></i>
+                                        <span
+                                            x-text="isClassSelected(className) ? 'Batal 1 Kelas' : 'Pilih 1 Kelas'"></span>
+                                    </button>
                                 </div>
-                                <button type="button" @click="toggleSelectAll()"
-                                    class="text-[10px] font-black transition flex items-center gap-1 px-2 py-1 rounded-md hover:bg-slate-50"
-                                    :class="isAllSelected ? 'text-indigo-600' : 'text-slate-400 hover:text-indigo-600'">
-                                    <i class="fas" :class="isAllSelected ? 'fa-check-square' : 'fa-square'"></i>
-                                    <span x-text="isAllSelected ? 'Batal Semua' : 'Pilih Semua'"></span>
-                                </button>
-                            </div>
 
-                            <div
-                                class="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 rounded-xl p-1.5 space-y-1 border border-slate-100/50">
-                                <template x-for="student in filteredStudents" :key="student.id">
-                                    <label
-                                        class="flex items-center px-3 py-2 bg-white rounded-lg cursor-pointer border-2 transition-all hover:shadow-sm"
-                                        :class="selectedStudents.includes(String(student.id)) ? 'border-indigo-500 shadow-indigo-50' : 'border-transparent hover:border-indigo-100'">
-                                        <div class="relative flex items-center justify-center w-4 h-4 mr-3 shrink-0">
-                                            <input type="checkbox" name="student_ids[]" :value="student.id"
-                                                x-model="selectedStudents"
-                                                class="peer w-4 h-4 opacity-0 absolute cursor-pointer">
+                                {{-- Daftar Siswa di dalam Kelas tersebut --}}
+                                <div class="space-y-1 pl-1">
+                                    <template x-for="student in studentsInClass" :key="student.id">
+                                        <label
+                                            class="flex items-center px-3 py-2 bg-white rounded-lg cursor-pointer border-2 transition-all hover:shadow-sm"
+                                            :class="selectedStudents.includes(String(student.id)) ? 'border-indigo-500 shadow-indigo-50' : 'border-transparent hover:border-indigo-100'">
                                             <div
-                                                class="w-4 h-4 rounded border-2 border-slate-300 flex items-center justify-center peer-checked:bg-indigo-500 peer-checked:border-indigo-500 transition-colors">
-                                                <i
-                                                    class="fas fa-check text-white text-[8px] opacity-0 peer-checked:opacity-100"></i>
+                                                class="relative flex items-center justify-center w-4 h-4 mr-3 shrink-0">
+                                                <input type="checkbox" name="student_ids[]" :value="student.id"
+                                                    x-model="selectedStudents"
+                                                    class="peer w-4 h-4 opacity-0 absolute cursor-pointer">
+                                                <div
+                                                    class="w-4 h-4 rounded border-2 border-slate-300 flex items-center justify-center peer-checked:bg-indigo-500 peer-checked:border-indigo-500 transition-colors">
+                                                    <i
+                                                        class="fas fa-check text-white text-[8px] opacity-0 peer-checked:opacity-100"></i>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div class="flex flex-col min-w-0">
-                                            <span class="font-black text-slate-700 text-xs truncate"
-                                                x-text="student.name"></span>
-                                            <div
-                                                class="flex items-center gap-1 text-[9px] font-bold text-slate-400 mt-0.5">
-                                                <span class="truncate"
-                                                    x-text="student.school ? student.school.name : 'Pusat'"></span>
-                                                <span x-show="student.kelas"
-                                                    class="px-1 py-0.5 bg-slate-100 rounded text-slate-500"
-                                                    x-text="student.kelas"></span>
+                                            <div class="flex flex-col min-w-0">
+                                                <span class="font-black text-slate-700 text-xs truncate"
+                                                    x-text="student.name"></span>
+                                                <div
+                                                    class="flex items-center gap-1 text-[9px] font-bold text-slate-400 mt-0.5">
+                                                    <span class="truncate"
+                                                        x-text="student.school ? student.school.name : 'Pusat'"></span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </label>
-                                </template>
-
-                                <div x-show="filteredStudents.length === 0"
-                                    class="text-center py-6 text-slate-400 text-xs font-bold" x-cloak>
-                                    Tidak ada siswa.
+                                        </label>
+                                    </template>
                                 </div>
+
                             </div>
+                        </template>
+
+                        {{-- Pesan Kosong --}}
+                        <div x-show="Object.keys(groupedStudents).length === 0"
+                            class="text-center py-6 text-slate-400 text-xs font-bold" x-cloak>
+                            Tidak ada siswa yang sesuai filter.
                         </div>
                     </div>
 
@@ -338,13 +310,10 @@
                 ],
 
                 init() {
-                    // Ketika filter sekolah diubah, paksa reset pilihan kelas ke "Semua Kelas"
                     this.$watch('selectedSchool', () => {
                         this.selectedClass = '';
                     });
 
-                    // Pantau juga perubahan pada availableClasses
-                    // Jika kelas yang sedang dipilih tiba-tiba tidak ada di daftar kelas sekolah yang baru, reset!
                     this.$watch('availableClasses', (newClasses) => {
                         if (this.selectedClass !== '' && !newClasses.includes(this.selectedClass)) {
                             this.selectedClass = '';
@@ -355,7 +324,6 @@
                 get availableClasses() {
                     let filtered = this.students;
 
-                    // Filter berdasarkan sekolah yang dipilih
                     if (this.selectedSchool !== '') {
                         filtered = filtered.filter(s => {
                             const sSchool = s.school_id ? String(s.school_id) : '';
@@ -363,18 +331,15 @@
                         });
                     }
 
-                    // Ambil nama-nama kelas yang unik dan buang yang kosong
                     const classesArray = filtered.map(s => s.kelas).filter(k => k && String(k).trim() !== '');
                     return [...new Set(classesArray)].sort();
                 },
 
                 get filteredStudents() {
                     return this.students.filter(s => {
-                        // Pastikan tipe data aman (jika null/undefined ubah ke string kosong)
                         const sSchool = s.school_id ? String(s.school_id) : '';
                         const sClass = s.kelas ? String(s.kelas) : '';
 
-                        // Logika Pencocokan
                         const matchSchool = this.selectedSchool === '' || sSchool === String(this.selectedSchool);
                         const matchClass = this.selectedClass === '' || sClass === String(this.selectedClass);
                         const matchName = s.name.toLowerCase().includes(this.search.toLowerCase());
@@ -383,25 +348,69 @@
                     });
                 },
 
+                // FITUR BARU: Mengelompokkan Siswa Berdasarkan Kelas
+                get groupedStudents() {
+                    const groups = {};
+                    this.filteredStudents.forEach(student => {
+                        // Jika tidak ada nama kelas, masukkan ke "Tanpa Kelas"
+                        const className = student.kelas && String(student.kelas).trim() !== '' ? String(student.kelas) : 'Tanpa Kelas';
+
+                        if (!groups[className]) {
+                            groups[className] = [];
+                        }
+                        groups[className].push(student);
+                    });
+
+                    // Mengurutkan Object Key agar tampil rapi berdasarkan abjad kelas
+                    return Object.keys(groups).sort().reduce((obj, key) => {
+                        obj[key] = groups[key];
+                        return obj;
+                    }, {});
+                },
+
+                // Cek apakah seluruh siswa di kelas tertentu sudah tercentang
+                isClassSelected(className) {
+                    const studentsInClass = this.groupedStudents[className] || [];
+                    if (studentsInClass.length === 0) return false;
+
+                    const classStudentIds = studentsInClass.map(s => String(s.id));
+                    return classStudentIds.every(id => this.selectedStudents.includes(id));
+                },
+
+                // Centang atau hapus centang seluruh siswa di kelas tertentu
+                toggleClass(className) {
+                    const studentsInClass = this.groupedStudents[className] || [];
+                    const classStudentIds = studentsInClass.map(s => String(s.id));
+
+                    if (this.isClassSelected(className)) {
+                        // Hapus semua id siswa dari kelas ini di dalam array selectedStudents
+                        this.selectedStudents = this.selectedStudents.filter(id => !classStudentIds.includes(id));
+                    } else {
+                        // Tambahkan id siswa yang belum ada ke dalam selectedStudents
+                        const newSelections = classStudentIds.filter(id => !this.selectedStudents.includes(id));
+                        this.selectedStudents.push(...newSelections);
+                    }
+                },
+
+                // Cek Semua Siswa (Global)
                 get isAllSelected() {
                     if (this.filteredStudents.length === 0) return false;
                     const visibleIds = this.filteredStudents.map(s => String(s.id));
                     return visibleIds.every(id => this.selectedStudents.includes(id));
                 },
 
+                // Centang Semua Siswa (Global)
                 toggleSelectAll() {
                     const visibleIds = this.filteredStudents.map(s => String(s.id));
                     if (this.isAllSelected) {
-                        // Jika sudah terpilih semua, hapus hanya siswa yang sedang tampil di layar
                         this.selectedStudents = this.selectedStudents.filter(id => !visibleIds.includes(id));
                     } else {
-                        // Tambahkan siswa yang tampil di layar ke dalam daftar pilihan
                         const newSelections = visibleIds.filter(id => !this.selectedStudents.includes(id));
                         this.selectedStudents.push(...newSelections);
                     }
                 },
 
-                // METODE BUILDER SOAL (Tetap sama)
+                // METODE BUILDER SOAL
                 addRule() {
                     this.ruleCounter++;
                     this.rules.push({
