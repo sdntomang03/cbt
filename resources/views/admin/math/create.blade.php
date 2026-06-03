@@ -338,24 +338,45 @@
                 ],
 
                 init() {
+                    // Ketika filter sekolah diubah, paksa reset pilihan kelas ke "Semua Kelas"
                     this.$watch('selectedSchool', () => {
                         this.selectedClass = '';
+                    });
+
+                    // Pantau juga perubahan pada availableClasses
+                    // Jika kelas yang sedang dipilih tiba-tiba tidak ada di daftar kelas sekolah yang baru, reset!
+                    this.$watch('availableClasses', (newClasses) => {
+                        if (this.selectedClass !== '' && !newClasses.includes(this.selectedClass)) {
+                            this.selectedClass = '';
+                        }
                     });
                 },
 
                 get availableClasses() {
                     let filtered = this.students;
+
+                    // Filter berdasarkan sekolah yang dipilih
                     if (this.selectedSchool !== '') {
-                        filtered = filtered.filter(s => s.school_id && String(s.school_id) === String(this.selectedSchool));
+                        filtered = filtered.filter(s => {
+                            const sSchool = s.school_id ? String(s.school_id) : '';
+                            return sSchool === String(this.selectedSchool);
+                        });
                     }
-                    const classesArray = filtered.map(s => s.kelas).filter(k => k && k.trim() !== '');
+
+                    // Ambil nama-nama kelas yang unik dan buang yang kosong
+                    const classesArray = filtered.map(s => s.kelas).filter(k => k && String(k).trim() !== '');
                     return [...new Set(classesArray)].sort();
                 },
 
                 get filteredStudents() {
                     return this.students.filter(s => {
-                        const matchSchool = this.selectedSchool === '' || (s.school_id && String(s.school_id) === String(this.selectedSchool));
-                        const matchClass = this.selectedClass === '' || (s.kelas && String(s.kelas) === String(this.selectedClass));
+                        // Pastikan tipe data aman (jika null/undefined ubah ke string kosong)
+                        const sSchool = s.school_id ? String(s.school_id) : '';
+                        const sClass = s.kelas ? String(s.kelas) : '';
+
+                        // Logika Pencocokan
+                        const matchSchool = this.selectedSchool === '' || sSchool === String(this.selectedSchool);
+                        const matchClass = this.selectedClass === '' || sClass === String(this.selectedClass);
                         const matchName = s.name.toLowerCase().includes(this.search.toLowerCase());
 
                         return matchSchool && matchClass && matchName;
@@ -371,14 +392,16 @@
                 toggleSelectAll() {
                     const visibleIds = this.filteredStudents.map(s => String(s.id));
                     if (this.isAllSelected) {
+                        // Jika sudah terpilih semua, hapus hanya siswa yang sedang tampil di layar
                         this.selectedStudents = this.selectedStudents.filter(id => !visibleIds.includes(id));
                     } else {
+                        // Tambahkan siswa yang tampil di layar ke dalam daftar pilihan
                         const newSelections = visibleIds.filter(id => !this.selectedStudents.includes(id));
                         this.selectedStudents.push(...newSelections);
                     }
                 },
 
-                // METODE BUILDER SOAL
+                // METODE BUILDER SOAL (Tetap sama)
                 addRule() {
                     this.ruleCounter++;
                     this.rules.push({
