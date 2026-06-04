@@ -12,21 +12,27 @@ class ApiAuthController extends Controller
 {
     public function login(Request $request)
     {
+        // 1. Ubah nama field penerima menjadi lebih umum (misal: login_id)
+        // dan hapus aturan format '|email'
         $request->validate([
-            'email' => 'required|email', // Sesuaikan jika siswa login pakai NISN
+            'login_id' => 'required|string',
             'password' => 'required',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        // 2. Cari user berdasarkan Email ATAU Username
+        // Catatan: Ganti 'username' dengan nama kolom yang sesuai jika berbeda di database Anda
+        $user = User::where('email', $request->login_id)
+            ->orWhere('username', $request->login_id)
+            ->first();
 
-        // Cek apakah user ada dan password cocok
+        // 3. Cek apakah user ada dan password cocok
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Kredensial yang diberikan salah.'],
+                'login_id' => ['Kredensial yang diberikan salah.'],
             ]);
         }
 
-        // Hapus token lama agar tidak menumpuk (opsional, untuk single-device login)
+        // Hapus token lama agar tidak menumpuk
         $user->tokens()->delete();
 
         // Buat token baru untuk Flutter
@@ -40,7 +46,8 @@ class ApiAuthController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'role' => $user->roles->pluck('name')->first() ?? 'siswa', // Jika pakai Spatie
+                    // Pastikan $user->role tidak membuat error 500 seperti dibahas sebelumnya
+                    'role' => $user->roles->pluck('name')->first() ?? 'siswa',
                 ],
                 'access_token' => $token,
                 'token_type' => 'Bearer',
