@@ -300,8 +300,9 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
     <script>
-        // Render Matematika (Sama seperti index.blade.php)
+        // Render Matematika
         document.addEventListener("DOMContentLoaded", function() {
             if (typeof renderMathInElement !== 'undefined') {
                 renderMathInElement(document.body, {
@@ -317,134 +318,55 @@
         });
 
         // -------------------------------------------------------------
-        // STATE MANAGEMENT (Agar centang tidak hilang saat pindah page)
-        // -------------------------------------------------------------
-
-        // Gunakan Storage Key yang spesifik untuk ujian ini agar tidak bentrok
-        const storageKey = 'bank_soal_selected_{{ $exam->id }}';
-
-        // Ambil data dari LocalStorage, jika kosong jadikan Array
-        let selectedQuestions = JSON.parse(localStorage.getItem(storageKey)) || [];
-
-        const checkboxes = document.querySelectorAll('.checkbox-custom');
-        const actionBar = document.getElementById('actionBar');
-        const countText = document.getElementById('countText');
-        const formBankSoal = document.getElementById('formBankSoal');
-
-        // Fungsi untuk mengembalikan status centang saat halaman dimuat
-        function initCheckboxes() {
-            checkboxes.forEach(cb => {
-                // Jika value dari checkbox ini ada di dalam array selectedQuestions, centang!
-                if (selectedQuestions.includes(cb.value)) {
-                    cb.checked = true;
-                }
-
-                // Tambahkan event listener saat dicentang / di-uncentang
-                cb.addEventListener('change', function(e) {
-                    const val = e.target.value;
-                    if (e.target.checked) {
-                        // Masukkan ke array jika dicentang dan belum ada
-                        if (!selectedQuestions.includes(val)) selectedQuestions.push(val);
-                    } else {
-                        // Hapus dari array jika uncentang
-                        selectedQuestions = selectedQuestions.filter(id => id !== val);
-                    }
-                    // Simpan kembali array terbaru ke browser
-                    localStorage.setItem(storageKey, JSON.stringify(selectedQuestions));
-                    updateUI();
-                });
-            });
-            updateUI(); // Panggil saat pertama kali load
-        }
-
-        // Fungsi untuk mengupdate angka teks dan Action Bar
-        function updateUI() {
-            countText.innerText = selectedQuestions.length + ' Soal Dipilih';
-
-            if (selectedQuestions.length > 0) {
-                actionBar.classList.remove('translate-y-full'); // Munculkan
-            } else {
-                actionBar.classList.add('translate-y-full'); // Sembunyikan
-            }
-        }
-
-        // Fungsi mencegat Form Submit (Agar soal dari halaman lain ikut terkirim)
-        formBankSoal.addEventListener('submit', function(e) {
-            e.preventDefault(); // Hentikan proses submit asli bawaan HTML
-
-            if (selectedQuestions.length === 0) return;
-
-            // 1. Hapus atribut "name" dari checkbox yang ada di layar,
-            // agar tidak terjadi double input dengan data yang akan kita buat di bawah.
-            checkboxes.forEach(cb => cb.removeAttribute('name'));
-
-            // 2. Buat input hidden untuk SETIAP ID soal yang ada di memory (LocalStorage)
-            selectedQuestions.forEach(id => {
-                const hiddenInput = document.createElement('input');
-                hiddenInput.type = 'hidden';
-                hiddenInput.name = 'question_ids[]'; // Format array Laravel
-                hiddenInput.value = id;
-                this.appendChild(hiddenInput); // Sisipkan ke dalam form
-            });
-
-            // 3. Bersihkan memori LocalStorage agar jika guru membuka bank soal lagi, centangnya bersih
-            localStorage.removeItem(storageKey);
-
-            // 4. Lanjutkan proses Submit ke Laravel
-            this.submit();
-        });
-
-        // Jalankan sistem
-        initCheckboxes();
         // Fungsi Konfirmasi dan Eksekusi Hapus (Lepas) Soal
-function confirmDelete(deleteUrl) {
-    Swal.fire({
-        title: 'Keluarkan Soal?',
-        text: "Soal ini akan dikeluarkan dari ujian (namun tetap aman di Bank Soal).",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444', // Warna merah (rose-500)
-        cancelButtonColor: '#94a3b8',  // Warna abu-abu (slate-400)
-        confirmButtonText: 'Ya, Keluarkan!',
-        cancelButtonText: 'Batal'
-    }).then((result) => {
-        if (result.isConfirmed) {
-
-            // Tampilkan loading
+        // -------------------------------------------------------------
+        function confirmDelete(deleteUrl) {
             Swal.fire({
-                title: 'Memproses...',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
+                title: 'Keluarkan Soal?',
+                text: "Soal ini akan dikeluarkan dari ujian (namun tetap aman di Bank Soal).",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'Ya, Keluarkan!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+
+                    // Tampilkan loading
+                    Swal.fire({
+                        title: 'Memproses...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    // Eksekusi hapus menggunakan Axios
+                    axios.delete(deleteUrl, {
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}' // <-- Mengamankan request
+                        }
+                    })
+                    .then(response => {
+                        Swal.fire(
+                            'Berhasil!',
+                            response.data.message,
+                            'success'
+                        ).then(() => {
+                            window.location.reload();
+                        });
+                    })
+                    .catch(error => {
+                        console.error(error);
+                        Swal.fire(
+                            'Gagal!',
+                            'Terjadi kesalahan saat mengeluarkan soal.',
+                            'error'
+                        );
+                    });
                 }
             });
-
-            // Eksekusi hapus menggunakan Axios
-            axios.delete(deleteUrl, {
-    headers: {
-        'X-CSRF-TOKEN': '{{ csrf_token() }}' // <-- WAJIB ADA DI LARAVEL
-    }
-})
-.then(response => {
-    Swal.fire(
-        'Berhasil!',
-        response.data.message,
-        'success'
-    ).then(() => {
-        window.location.reload();
-    });
-})
-.catch(error => {
-    // Console log ini akan membantu kita melihat error aslinya di F12
-    console.error(error.response ? error.response.data : error);
-    Swal.fire(
-        'Gagal!',
-        'Terjadi kesalahan saat mengeluarkan soal.',
-        'error'
-    );
-});
         }
-    });
-}
     </script>
 </x-app-layout>
