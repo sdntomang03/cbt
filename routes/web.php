@@ -101,7 +101,9 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         Route::post('/exam-types', [ExamController::class, 'storeType'])->name('exam-types.store');
         Route::post('/preview', [ExamController::class, 'preview'])->name('preview');
         Route::get('/live-preview', [ExamController::class, 'livePreview'])->name('live-preview');
-        // Nested resource Soal Utama
+        Route::get('/chart-generator', [SoalController::class, 'chartGenerator'])
+            ->name('soal.chart.generator');
+
         Route::resource('exams.soal', SoalController::class)->except(['show']);
 
         // Import/Export Soal

@@ -426,4 +426,11 @@ class SoalController extends Controller
         return redirect()->route('admin.exams.soal.index', $exam)
             ->with('success', 'Berhasil menambahkan '.count($request->question_ids).' soal dari Bank Soal.');
     }
+
+    public function chartGenerator()
+    {
+        // Halaman ini bersifat statis di awal karena datanya di-render dan diedit
+        // langsung via Javascript di dalam tampilan Blade.
+        return view('soal.chart_generator');
+    }
 }
