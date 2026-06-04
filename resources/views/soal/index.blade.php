@@ -36,37 +36,40 @@
     </style>
 
     <x-slot name="header">
-        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 py-2">
-            <div class="flex items-center gap-4">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 lg:gap-6 py-2">
+
+            <div class="flex items-center gap-3 lg:gap-4 w-full lg:w-auto">
                 <a href="{{ route('admin.exams.index') }}"
                     class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 shadow-sm border border-slate-200 transition-all hover:-translate-x-0.5 shrink-0">
                     <i class="fas fa-arrow-left text-sm"></i>
                 </a>
 
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 flex-1 min-w-0">
                     <div
-                        class="w-11 h-11 rounded-xl bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-200 shrink-0">
-                        <i class="fas fa-layer-group text-white text-base"></i>
+                        class="w-10 h-10 lg:w-11 lg:h-11 rounded-xl bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-200 shrink-0">
+                        <i class="fas fa-layer-group text-white text-sm lg:text-base"></i>
                     </div>
-                    <div>
+                    <div class="min-w-0">
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Bank
                             Soal</p>
                         <h2
-                            class="font-black text-lg text-slate-800 tracking-tight leading-tight truncate max-w-[260px] lg:max-w-[400px]">
+                            class="font-black text-base lg:text-lg text-slate-800 tracking-tight leading-tight truncate">
                             {{ $exam->title }}
                         </h2>
                     </div>
                 </div>
 
                 <div
-                    class="hidden sm:flex flex-col items-center justify-center bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-2 ml-1">
-                    <span class="text-2xl font-black text-indigo-600 leading-none">{{ $questions->total() }}</span>
+                    class="hidden sm:flex flex-col items-center justify-center bg-indigo-50 border border-indigo-100 rounded-xl px-3 lg:px-4 py-1.5 lg:py-2 shrink-0">
+                    <span class="text-xl lg:text-2xl font-black text-indigo-600 leading-none">{{ $questions->total()
+                        }}</span>
                     <span
-                        class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider leading-none mt-0.5">Soal</span>
+                        class="text-[9px] lg:text-[10px] font-bold text-indigo-400 uppercase tracking-wider leading-none mt-0.5">Soal</span>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center justify-start lg:justify-end gap-2 flex-wrap w-full lg:w-auto mt-2 lg:mt-0">
+
                 <form action="{{ route('admin.exams.soal.import', $exam->id) }}" method="POST"
                     enctype="multipart/form-data" id="formImportExcel" class="hidden">
                     @csrf
@@ -75,33 +78,39 @@
                 </form>
 
                 <a href="{{ route('admin.soal.template') }}" target="_blank" title="Download Template Excel"
-                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50 font-semibold text-sm transition-all shadow-sm">
+                    class="inline-flex items-center gap-2 px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50 font-semibold text-sm transition-all shadow-sm">
                     <i class="fas fa-file-download text-slate-400 text-xs"></i>
                     <span class="hidden md:inline">Template</span>
                 </a>
 
                 <button type="button" onclick="document.getElementById('fileExcel').click()" title="Import dari Excel"
-                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-semibold text-sm transition-all shadow-sm">
+                    class="inline-flex items-center gap-2 px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-semibold text-sm transition-all shadow-sm">
                     <i class="fas fa-file-excel text-emerald-500 text-xs"></i>
                     <span class="hidden md:inline">Excel</span>
                 </button>
 
                 <a href="{{ route('admin.exams.soal.bank', $exam) }}"
-                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-50 border border-cyan-200 text-cyan-700 hover:bg-cyan-100 font-semibold text-sm transition-all shadow-sm">
+                    class="inline-flex items-center gap-2 px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl bg-cyan-50 border border-cyan-200 text-cyan-700 hover:bg-cyan-100 font-semibold text-sm transition-all shadow-sm">
                     <i class="fas fa-database text-cyan-500 text-xs"></i>
                     <span class="hidden md:inline">Bank Soal</span>
                 </a>
 
                 <a href="{{ route('admin.soal.import_json_view', $exam) }}"
-                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 font-semibold text-sm transition-all shadow-sm">
+                    class="inline-flex items-center gap-2 px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 font-semibold text-sm transition-all shadow-sm">
                     <i class="fas fa-file-code text-amber-500 text-xs"></i>
                     <span class="hidden md:inline">JSON</span>
                 </a>
 
-                <div class="w-px h-8 bg-slate-200 hidden sm:block mx-1"></div>
+                <a href="{{ route('admin.soal.chart.generator', $exam) }}"
+                    class="inline-flex items-center gap-2 px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl bg-fuchsia-50 border border-fuchsia-200 text-fuchsia-700 hover:bg-fuchsia-100 font-semibold text-sm transition-all shadow-sm">
+                    <i class="fas fa-chart-pie text-fuchsia-500 text-xs"></i>
+                    <span class="hidden md:inline">Chart</span>
+                </a>
+
+                <div class="w-px h-8 bg-slate-200 hidden sm:block mx-0.5 lg:mx-1"></div>
 
                 <a href="{{ route('admin.exams.soal.create', $exam) }}"
-                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition-all shadow-md shadow-indigo-200">
+                    class="inline-flex items-center gap-2 px-4 lg:px-5 py-2 lg:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition-all shadow-md shadow-indigo-200">
                     <i class="fas fa-plus text-xs"></i>
                     <span>Buat Soal</span>
                 </a>
