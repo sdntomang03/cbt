@@ -199,7 +199,7 @@
                                         <i class="fas fa-pencil-alt"></i>
                                     </a>
                                     <button type="button"
-                                        onclick="confirmDelete('{{ route('admin.exams.soal.destroy', [$exam->id, $q->id]) }}')"
+                                        onclick="confirmDelete('{{ route('admin.exams.soal.destroy', [$exam->hashid, $q->id]) }}')"
                                         class="w-10 h-10 rounded-full bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white transition flex items-center justify-center bounce-active shadow-sm">
                                         <i class="fas fa-trash-alt"></i>
                                     </button>
