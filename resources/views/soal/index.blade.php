@@ -420,25 +420,29 @@ function confirmDelete(deleteUrl) {
             });
 
             // Eksekusi hapus menggunakan Axios
-            axios.delete(deleteUrl)
-                .then(response => {
-                    Swal.fire(
-                        'Berhasil!',
-                        response.data.message, // Mengambil pesan dari Controller
-                        'success'
-                    ).then(() => {
-                        // Refresh halaman agar soal yang dilepas hilang dari daftar
-                        window.location.reload();
-                    });
-                })
-                .catch(error => {
-                    console.error(error);
-                    Swal.fire(
-                        'Gagal!',
-                        'Terjadi kesalahan saat mengeluarkan soal.',
-                        'error'
-                    );
-                });
+            axios.delete(deleteUrl, {
+    headers: {
+        'X-CSRF-TOKEN': '{{ csrf_token() }}' // <-- WAJIB ADA DI LARAVEL
+    }
+})
+.then(response => {
+    Swal.fire(
+        'Berhasil!',
+        response.data.message,
+        'success'
+    ).then(() => {
+        window.location.reload();
+    });
+})
+.catch(error => {
+    // Console log ini akan membantu kita melihat error aslinya di F12
+    console.error(error.response ? error.response.data : error);
+    Swal.fire(
+        'Gagal!',
+        'Terjadi kesalahan saat mengeluarkan soal.',
+        'error'
+    );
+});
         }
     });
 }
