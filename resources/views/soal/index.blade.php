@@ -396,5 +396,51 @@
 
         // Jalankan sistem
         initCheckboxes();
+        // Fungsi Konfirmasi dan Eksekusi Hapus (Lepas) Soal
+function confirmDelete(deleteUrl) {
+    Swal.fire({
+        title: 'Keluarkan Soal?',
+        text: "Soal ini akan dikeluarkan dari ujian (namun tetap aman di Bank Soal).",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444', // Warna merah (rose-500)
+        cancelButtonColor: '#94a3b8',  // Warna abu-abu (slate-400)
+        confirmButtonText: 'Ya, Keluarkan!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+
+            // Tampilkan loading
+            Swal.fire({
+                title: 'Memproses...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Eksekusi hapus menggunakan Axios
+            axios.delete(deleteUrl)
+                .then(response => {
+                    Swal.fire(
+                        'Berhasil!',
+                        response.data.message, // Mengambil pesan dari Controller
+                        'success'
+                    ).then(() => {
+                        // Refresh halaman agar soal yang dilepas hilang dari daftar
+                        window.location.reload();
+                    });
+                })
+                .catch(error => {
+                    console.error(error);
+                    Swal.fire(
+                        'Gagal!',
+                        'Terjadi kesalahan saat mengeluarkan soal.',
+                        'error'
+                    );
+                });
+        }
+    });
+}
     </script>
 </x-app-layout>
