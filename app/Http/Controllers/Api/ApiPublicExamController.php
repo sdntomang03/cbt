@@ -331,6 +331,16 @@ class ApiPublicExamController extends Controller
                 'unanswered_count' => $unansweredCount,
                 'duration_seconds' => $durationSeconds,
             ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'score' => $score,
+                    'correct' => $correctCount,
+                    'wrong' => $wrongCount,
+                    'unanswered' => $unansweredCount,
+                ],
+            ]);
         }
 
         return response()->json(['success' => true]);
