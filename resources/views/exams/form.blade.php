@@ -165,7 +165,8 @@
             method="POST" enctype="multipart/form-data"
             class="bg-white shadow-sm sm:rounded-[2rem] border border-slate-100 overflow-hidden mb-10" x-data="{
                 isPublic: {{ old('is_public', isset($exam) && $exam->is_public ? 'true' : 'false') }},
-                enableViolation: {{ old('enable_violation', isset($exam) && $exam->enable_violation ? 'true' : 'false') }}
+                enableViolation: {{ old('enable_violation', isset($exam) && $exam->enable_violation ? 'true' : 'false') }},
+                isPremium: {{ old('is_premium', isset($exam) && $exam->is_premium ? 'true' : 'false') }}
             }">
 
             @csrf
@@ -350,6 +351,27 @@
                 </label>
 
                 <div x-show="isPublic" class="space-y-5 pt-4">
+
+                    {{-- 0. SETTING PREMIUM (BARU) --}}
+                    <label
+                        class="flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200 cursor-pointer hover:shadow-md transition">
+                        <div>
+                            <div class="text-base font-black text-amber-800 flex items-center gap-2">
+                                <i class="fas fa-crown text-amber-500"></i> Jadikan Ujian Premium
+                            </div>
+                            <div class="text-xs text-amber-700/80 mt-1">Hanya user dengan langganan PRO yang dapat
+                                mengerjakan ujian ini.</div>
+                        </div>
+
+                        <div class="relative">
+                            <input type="checkbox" name="is_premium" x-model="isPremium" class="sr-only">
+                            <div class="w-14 h-7 rounded-full transition-colors duration-200 ease-in-out"
+                                :class="isPremium ? 'bg-amber-500' : 'bg-slate-200'">
+                                <div class="w-5 h-5 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out mt-1"
+                                    :class="isPremium ? 'translate-x-8 ml-0.5' : 'translate-x-1'"></div>
+                            </div>
+                        </div>
+                    </label>
 
                     {{-- 1. Deskripsi Singkat untuk Card Detail --}}
                     <div>

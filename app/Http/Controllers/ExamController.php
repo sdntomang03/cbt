@@ -69,6 +69,7 @@ class ExamController extends Controller
             'meta_keywords' => 'nullable|string|max:255',
             'content' => 'nullable|string',
             'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+
         ]);
 
         try {
@@ -83,6 +84,7 @@ class ExamController extends Controller
             $validated['require_token'] = $request->has('require_token');
             $validated['enable_violation'] = $request->has('enable_violation');
             $validated['is_public'] = $request->has('is_public');
+            $validated['is_premium'] = $request->has('is_premium');
 
             $validated['max_tolerances'] = $request->max_tolerances ?? 3;
 
@@ -163,6 +165,7 @@ class ExamController extends Controller
             $validated['require_token'] = $request->has('require_token');
             $validated['enable_violation'] = $request->has('enable_violation');
             $validated['is_public'] = $request->has('is_public');
+            $validated['is_premium'] = $request->has('is_premium');
             $validated['max_tolerances'] = $request->max_tolerances ?? 3;
 
             // =========================================================
