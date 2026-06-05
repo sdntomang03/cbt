@@ -375,16 +375,17 @@ class ApiPublicExamController extends Controller
         ]);
     }
 
-    // Ganti $identifier menjadi objek model Exam
+    // Perhatikan parameternya: Kita langsung memakai model (\App\Models\Exam $exam)
     public function getRanking(Exam $exam)
     {
-        // Laravel OTOMATIS men-decode hashid 'jR8z9X' menjadi data ujian dengan ID 1 !
-        // Jadi Anda bisa langsung pakai $exam->id
+        // Karena ada fungsi resolveRouteBinding di model Exam Anda,
+        // Laravel OTOMATIS menerjemahkan hashid dari Flutter menjadi ID angka di sini!
+        // Jadi $exam->id sudah pasti berisi ID Angka aslinya.
 
         $rankings = PublicExamResult::where('exam_id', $exam->id)
             ->orderBy('score', 'desc')
             ->orderBy('duration_seconds', 'asc')
-            ->take(100)
+            ->take(100) // Ambil Top 100 Nasional
             ->get();
 
         return response()->json([
