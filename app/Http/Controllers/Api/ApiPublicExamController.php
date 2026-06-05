@@ -253,4 +253,32 @@ class ApiPublicExamController extends Controller
 
         return response()->json(['success' => false]);
     }
+
+    // 7. Mencatat pelanggaran (Diadopsi dari Web recordViolation)
+    public function recordViolation(Request $request, Exam $exam)
+    {
+        $token = $request->input('session_token');
+        $cacheKey = 'api_exam_state_'.$exam->id.'_'.$token;
+        $state = Cache::get($cacheKey);
+
+        if ($state && ! $state['is_locked']) {
+            $state['violation_count'] += 1;
+            $max = $exam->max_tolerances ?? 3;
+
+            if ($state['violation_count'] >= $max) {
+                $state['is_locked'] = true;
+            }
+
+            Cache::put($cacheKey, $state, now()->addHours(6));
+
+            return response()->json([
+                'success' => true,
+                'violation_count' => $state['violation_count'],
+                'max_tolerances' => $max,
+                'is_locked' => $state['is_locked'],
+            ]);
+        }
+
+        return response()->json(['success' => false, 'error' => 'Gagal mencatat pelanggaran'], 400);
+    }
 }
