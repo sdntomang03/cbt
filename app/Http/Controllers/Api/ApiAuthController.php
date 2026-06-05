@@ -42,6 +42,7 @@ class ApiAuthController extends Controller
                     'email' => $user->email,
                     'role' => $user->roles->pluck('name')->first() ?? 'siswa',
                     'is_premium' => $user->is_premium,
+                    'premium_until' => $user->premium_until,
                 ],
                 'access_token' => $token,
                 'token_type' => 'Bearer',
