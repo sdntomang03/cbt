@@ -581,4 +581,34 @@ class PublicExamController extends Controller
 
         return view('public.exams.detail', compact('exam'));
     }
+
+    public function getRanking($identifier)
+    {
+        // 1. Cari data ujiannya terlebih dahulu.
+        // Kita cek apakah $identifier itu cocok dengan 'hashid', 'slug', atau 'id'
+        $exam = Exam::where('hashid', $identifier)
+            ->orWhere('id', $identifier)
+            ->first();
+
+        // Jika ujian tidak ditemukan, kembalikan pesan error
+        if (! $exam) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Data ujian tidak ditemukan.',
+                'data' => [],
+            ], 404);
+        }
+
+        // 2. Gunakan ID asli (Integer) dari tabel exams untuk mencari ranking
+        $rankings = PublicExamResult::where('exam_id', $exam->id)
+            ->orderBy('score', 'desc')
+            ->orderBy('duration_seconds', 'asc') // Ranking berdasarkan skor, lalu durasi tercepat
+            ->take(100) // Ambil Top 100 Nasional
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $rankings,
+        ]);
+    }
 }

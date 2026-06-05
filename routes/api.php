@@ -18,7 +18,7 @@ Route::prefix('public/exams')->group(function () {
     Route::get('/', [ApiPublicExamController::class, 'index']);
     Route::get('/{slug}/detail', [ApiPublicExamController::class, 'detail']);
     Route::get('/{exam}/ranking', [ApiPublicExamController::class, 'ranking']);
-
+    Route::get('/exams/{identifier}/ranking', [ApiPublicExamController::class, 'getRanking']);
     // PERBAIKAN DI SINI: Sesuaikan nama fungsinya!
     Route::get('/{exam}/verify', [ApiPublicExamController::class, 'getVerificationCode']);
     Route::post('/{exam}/verify', [ApiPublicExamController::class, 'verify']);
