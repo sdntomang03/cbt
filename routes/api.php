@@ -37,7 +37,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Auth
     Route::post('/logout', [ApiAuthController::class, 'logout']);
-
+    Route::post('/profile/update', [ApiAuthController::class, 'updateProfile']);
+    Route::post('/profile/password', [ApiAuthController::class, 'updatePassword']);
     // Area Ujian Internal Siswa
     Route::prefix('student')->group(function () {
 

@@ -105,4 +105,46 @@ class ApiAuthController extends Controller
             'message' => 'Logout Berhasil',
         ]);
     }
+
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user(); // Ambil user yang sedang login dari token Sanctum
+
+        // Update data di database (Sesuaikan nama kolom dengan tabel users/students Anda)
+        $user->nama_peserta = $request->nama_peserta;
+        $user->asal_sekolah = $request->asal_sekolah;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil berhasil diperbarui',
+        ]);
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'old_password' => 'required',
+            'new_password' => 'required|min:6',
+        ]);
+
+        $user = $request->user();
+
+        // Cek apakah password lama yang diketik cocok dengan di database
+        if (! Hash::check($request->old_password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kata sandi lama tidak sesuai!',
+            ], 400); // Bad Request
+        }
+
+        // Jika cocok, ubah ke password baru
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kata sandi berhasil diubah',
+        ]);
+    }
 }
