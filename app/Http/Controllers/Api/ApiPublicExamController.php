@@ -209,20 +209,52 @@ class ApiPublicExamController extends Controller
                 $answers = $state['answers'] ?? [];
 
                 // Hitung Skor persis seperti Web
+                // Hitung Skor persis seperti Web
                 foreach ($questions as $q) {
-                    if (! isset($answers[$q->id]) || $answers[$q->id] === '') {
+                    if (! isset($answers[$q->id]) || empty($answers[$q->id])) {
                         $unansweredCount++;
 
                         continue;
                     }
 
                     $userAnswer = $answers[$q->id];
-                    if (in_array($q->type, ['single_choice', 'true_false'])) {
+
+                    // 1. Pilihan Ganda Biasa
+                    if ($q->type === 'single_choice') {
                         $correctOption = $q->options->where('is_correct', 1)->first();
                         ($correctOption && $userAnswer == $correctOption->id) ? $correctCount++ : $wrongCount++;
-                    } elseif ($q->type === 'complex_choice' && is_array($userAnswer)) {
+                    }
+                    // 2. Benar Salah (Array Pernyataan {"50":"benar", "51":"salah"})
+                    elseif ($q->type === 'true_false' && is_array($userAnswer)) {
+                        $isAllCorrect = true;
+                        foreach ($q->options as $opt) {
+                            $expectedAnswer = $opt->is_correct ? 'benar' : 'salah';
+                            $givenAnswer = isset($userAnswer[$opt->id]) ? strtolower($userAnswer[$opt->id]) : null;
+
+                            if ($givenAnswer !== $expectedAnswer) {
+                                $isAllCorrect = false;
+                                break;
+                            }
+                        }
+                        $isAllCorrect ? $correctCount++ : $wrongCount++;
+                    }
+                    // 3. Pilihan Ganda Kompleks (Checkbox)
+                    elseif ($q->type === 'complex_choice' && is_array($userAnswer)) {
                         $correctOptionIds = $q->options->where('is_correct', 1)->pluck('id')->toArray();
                         (count(array_diff($correctOptionIds, $userAnswer)) === 0 && count(array_diff($userAnswer, $correctOptionIds)) === 0) ? $correctCount++ : $wrongCount++;
+                    }
+                    // 4. Menjodohkan (Array Pasangan {"1":1, "2":2})
+                    elseif ($q->type === 'matching' && is_array($userAnswer)) {
+                        $isAllCorrect = true;
+                        foreach ($q->matches as $match) {
+                            // Cek apakah target id yang dijawab sama dengan id target yang seharusnya
+                            $answeredTarget = isset($userAnswer[$match->id]) ? $userAnswer[$match->id] : null;
+                            if ($answeredTarget != $match->id) {
+                                $isAllCorrect = false;
+                                break;
+                            }
+                        }
+                        $isAllCorrect ? $correctCount++ : $wrongCount++;
                     } else {
                         $wrongCount++;
                     }
