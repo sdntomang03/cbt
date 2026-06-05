@@ -480,7 +480,7 @@
                                 </div>
 
                                 <div class="space-y-4">
-                                    <template x-if="q.type === 'single_choice' || q.type === 'true_false'">
+                                    <template x-if="q.type === 'single_choice'">
                                         <div class="space-y-3">
                                             <template x-for="opt in q.options" :key="opt.id">
                                                 <label
@@ -494,6 +494,33 @@
                                                     <div class="flex-1 prose max-w-none text-slate-700 no-select"
                                                         x-html="opt.option_text"></div>
                                                 </label>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    {{-- PERBAIKAN: FORMAT BARU BENAR / SALAH --}}
+                                    <template x-if="q.type === 'true_false'">
+                                        <div class="space-y-4">
+                                            <template x-for="opt in q.options" :key="opt.id">
+                                                <div
+                                                    class="p-5 border border-slate-200 rounded-2xl bg-white shadow-sm transition-all">
+                                                    <div class="prose max-w-none text-slate-700 no-select mb-4"
+                                                        x-html="opt.option_text"></div>
+                                                    <div class="flex gap-4">
+                                                        <button type="button"
+                                                            @click="setTrueFalseAnswer(q.id, opt.id, 'benar')"
+                                                            class="flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-colors font-bold"
+                                                            :class="(answers[q.id] && answers[q.id][opt.id] === 'benar') ? 'bg-emerald-50 border-emerald-500 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'">
+                                                            <i class="fas fa-check-circle"></i> BENAR
+                                                        </button>
+                                                        <button type="button"
+                                                            @click="setTrueFalseAnswer(q.id, opt.id, 'salah')"
+                                                            class="flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-colors font-bold"
+                                                            :class="(answers[q.id] && answers[q.id][opt.id] === 'salah') ? 'bg-rose-50 border-rose-500 text-rose-700' : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'">
+                                                            <i class="fas fa-times-circle"></i> SALAH
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </template>
                                         </div>
                                     </template>
@@ -642,7 +669,10 @@
         </div>
 
         <form id="finish-form" action="{{ route('public.exams.finish', $exam) }}" method="POST" style="display:none;">
-            @csrf</form>
+            @csrf
+            {{-- TAMBAHAN HIDDEN INPUT UNTUK FINAL SYNC --}}
+            <input type="hidden" name="final_answers" id="final-answers-input">
+        </form>
     </div>
 
     <script>
@@ -750,18 +780,16 @@
                     this.$nextTick(() => {
                         this.renderMath();
                         if (this.q && this.q.type === 'matching') this.drawLines();
-                        // TAMBAHAN: Paksa browser mengeksekusi script diagram Chart.js yang diinjeksi
                         this.executeInjectedScripts();
                     });
                 },
 
-                // TAMBAHAN FUNGSI EKSEKUSI SCRIPT DINAMIS
                 executeInjectedScripts() {
                     const container = document.getElementById('content-injector');
                     if (!container) return;
                     const scripts = container.querySelectorAll('script');
                     scripts.forEach(oldScript => {
-                        if (oldScript.src) return; // Jangan load CDN berulang kali
+                        if (oldScript.src) return;
                         const newScript = document.createElement('script');
                         Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
                         newScript.appendChild(document.createTextNode(oldScript.innerHTML));
@@ -833,6 +861,15 @@
                     if (!Array.isArray(this.answers[qId])) this.answers[qId] = [];
                     const idx = this.answers[qId].indexOf(optId);
                     if (idx === -1) this.answers[qId].push(optId); else this.answers[qId].splice(idx, 1);
+                    this.saveAnswer(qId, this.answers[qId]);
+                },
+
+                // PERBAIKAN: FUNGSI BARU UNTUK SET BENAR/SALAH
+                setTrueFalseAnswer(qId, optId, value) {
+                    if (!this.answers[qId] || typeof this.answers[qId] !== 'object' || Array.isArray(this.answers[qId])) {
+                        this.answers[qId] = {};
+                    }
+                    this.answers[qId][optId] = value;
                     this.saveAnswer(qId, this.answers[qId]);
                 },
 
@@ -910,7 +947,10 @@
                     this.clearLines(); clearInterval(this.timerInterval);
                     window.onbeforeunload = null;
                     const f = document.getElementById('finish-form');
-                    if (f) {
+                    const input = document.getElementById('final-answers-input');
+                    if (f && input) {
+                        // SINKRONISASI FINAL KE LARAVEL
+                        input.value = JSON.stringify(this.answers);
                         Swal.fire({ title: 'Menyimpan Jawaban...', html: 'Mohon tunggu, jangan tutup halaman ini.', allowOutsideClick: false, allowEscapeKey: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
                         f.submit();
                     } else { alert('Error.'); }
