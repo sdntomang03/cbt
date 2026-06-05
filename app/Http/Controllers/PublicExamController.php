@@ -215,7 +215,7 @@ class PublicExamController extends Controller
     /**
      * Memproses penyelesaian ujian
      */
-    public function finish(Exam $exam)
+    public function finish(Request $request, Exam $exam)
     {
         abort_if(! $exam->is_public, 403);
         $sessionKey = 'public_exam_state_'.$exam->id;
@@ -223,6 +223,17 @@ class PublicExamController extends Controller
         $userData = session()->get('public_user_'.$exam->id);
 
         if ($state && $state['status'] !== 'completed') {
+
+            // ========================================================
+            // 1. SINKRONISASI JAWABAN WEB
+            // ========================================================
+            if ($request->has('final_answers') && ! empty($request->final_answers)) {
+                $decodedAnswers = is_string($request->final_answers) ? json_decode($request->final_answers, true) : $request->final_answers;
+                if (is_array($decodedAnswers)) {
+                    $state['answers'] = $decodedAnswers;
+                }
+            }
+
             $state['status'] = 'completed';
             $state['finished_at'] = Carbon::now('Asia/Jakarta')->toDateTimeString();
             session()->put($sessionKey, $state);
@@ -231,26 +242,69 @@ class PublicExamController extends Controller
             // KALKULASI & SIMPAN KE DATABASE RANKING
             // ==========================================
             if ($userData) {
-                $questions = $exam->questions()->with('options')->get();
+                // PASTIKAN LOAD RELATION 'matches'
+                $questions = $exam->questions()->with(['options', 'matches'])->get();
                 $correctCount = 0;
                 $wrongCount = 0;
                 $unansweredCount = 0;
                 $answers = $state['answers'] ?? [];
 
                 foreach ($questions as $q) {
-                    if (! isset($answers[$q->id]) || $answers[$q->id] === '') {
+                    $userAnswer = isset($answers[$q->id]) ? $answers[$q->id] : null;
+
+                    if (is_string($userAnswer) && (strpos($userAnswer, '{') === 0 || strpos($userAnswer, '[') === 0)) {
+                        $userAnswer = json_decode($userAnswer, true) ?? $userAnswer;
+                    }
+                    if (is_object($userAnswer)) {
+                        $userAnswer = (array) $userAnswer;
+                    }
+
+                    if ($userAnswer === null || $userAnswer === '' || (is_array($userAnswer) && empty($userAnswer))) {
                         $unansweredCount++;
 
                         continue;
                     }
 
-                    $userAnswer = $answers[$q->id];
-                    if (in_array($q->type, ['single_choice', 'true_false'])) {
+                    if ($q->type === 'single_choice') {
                         $correctOption = $q->options->where('is_correct', 1)->first();
-                        ($correctOption && $userAnswer == $correctOption->id) ? $correctCount++ : $wrongCount++;
+                        if ($correctOption && $userAnswer == $correctOption->id) {
+                            $correctCount++;
+                        } else {
+                            $wrongCount++;
+                        }
+                    } elseif ($q->type === 'true_false' && is_array($userAnswer)) {
+                        $isAllCorrect = true;
+                        foreach ($q->options as $opt) {
+                            $isOptCorrect = filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN);
+                            $expectedAnswer = $isOptCorrect ? 'benar' : 'salah';
+                            $givenAnswer = isset($userAnswer[$opt->id]) ? strtolower(trim((string) $userAnswer[$opt->id])) : null;
+
+                            if ($givenAnswer !== $expectedAnswer) {
+                                $isAllCorrect = false;
+                                break;
+                            }
+                        }
+                        $isAllCorrect ? $correctCount++ : $wrongCount++;
                     } elseif ($q->type === 'complex_choice' && is_array($userAnswer)) {
                         $correctOptionIds = $q->options->where('is_correct', 1)->pluck('id')->toArray();
-                        (count(array_diff($correctOptionIds, $userAnswer)) === 0 && count(array_diff($userAnswer, $correctOptionIds)) === 0) ? $correctCount++ : $wrongCount++;
+                        $correctStr = array_map('strval', $correctOptionIds);
+                        $userStr = array_map('strval', $userAnswer);
+
+                        if (count(array_diff($correctStr, $userStr)) === 0 && count(array_diff($userStr, $correctStr)) === 0) {
+                            $correctCount++;
+                        } else {
+                            $wrongCount++;
+                        }
+                    } elseif ($q->type === 'matching' && is_array($userAnswer)) {
+                        $isAllCorrect = true;
+                        foreach ($q->matches as $match) {
+                            $answeredTarget = isset($userAnswer[$match->id]) ? $userAnswer[$match->id] : null;
+                            if ($answeredTarget != $match->id) {
+                                $isAllCorrect = false;
+                                break;
+                            }
+                        }
+                        $isAllCorrect ? $correctCount++ : $wrongCount++;
                     } else {
                         $wrongCount++;
                     }
@@ -259,12 +313,10 @@ class PublicExamController extends Controller
                 $totalQuestions = $questions->count();
                 $score = $totalQuestions > 0 ? round(($correctCount / $totalQuestions) * 100) : 0;
 
-                // Waktu Pengerjaan
                 $startedAt = Carbon::parse($state['started_at']);
                 $finishedAt = Carbon::parse($state['finished_at']);
                 $durationSeconds = $finishedAt->diffInSeconds($startedAt);
 
-                // Masukkan ke Database!
                 PublicExamResult::create([
                     'exam_id' => $exam->id,
                     'nama_peserta' => $userData['nama_peserta'],
@@ -294,7 +346,8 @@ class PublicExamController extends Controller
             return redirect()->route('public.exams.index');
         }
 
-        $questions = $exam->questions()->with('options')->get();
+        // PASTIKAN LOAD RELATION 'matches'
+        $questions = $exam->questions()->with(['options', 'matches'])->get();
         $totalQuestions = $questions->count();
         $correctCount = 0;
         $wrongCount = 0;
@@ -302,19 +355,61 @@ class PublicExamController extends Controller
         $answers = $state['answers'] ?? [];
 
         foreach ($questions as $q) {
-            if (! isset($answers[$q->id]) || $answers[$q->id] === '') {
+            $userAnswer = isset($answers[$q->id]) ? $answers[$q->id] : null;
+
+            if (is_string($userAnswer) && (strpos($userAnswer, '{') === 0 || strpos($userAnswer, '[') === 0)) {
+                $userAnswer = json_decode($userAnswer, true) ?? $userAnswer;
+            }
+            if (is_object($userAnswer)) {
+                $userAnswer = (array) $userAnswer;
+            }
+
+            if ($userAnswer === null || $userAnswer === '' || (is_array($userAnswer) && empty($userAnswer))) {
                 $unansweredCount++;
 
                 continue;
             }
 
-            $userAnswer = $answers[$q->id];
-            if (in_array($q->type, ['single_choice', 'true_false'])) {
+            if ($q->type === 'single_choice') {
                 $correctOption = $q->options->where('is_correct', 1)->first();
-                ($correctOption && $userAnswer == $correctOption->id) ? $correctCount++ : $wrongCount++;
+                if ($correctOption && $userAnswer == $correctOption->id) {
+                    $correctCount++;
+                } else {
+                    $wrongCount++;
+                }
+            } elseif ($q->type === 'true_false' && is_array($userAnswer)) {
+                $isAllCorrect = true;
+                foreach ($q->options as $opt) {
+                    $isOptCorrect = filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN);
+                    $expectedAnswer = $isOptCorrect ? 'benar' : 'salah';
+                    $givenAnswer = isset($userAnswer[$opt->id]) ? strtolower(trim((string) $userAnswer[$opt->id])) : null;
+
+                    if ($givenAnswer !== $expectedAnswer) {
+                        $isAllCorrect = false;
+                        break;
+                    }
+                }
+                $isAllCorrect ? $correctCount++ : $wrongCount++;
             } elseif ($q->type === 'complex_choice' && is_array($userAnswer)) {
                 $correctOptionIds = $q->options->where('is_correct', 1)->pluck('id')->toArray();
-                (count(array_diff($correctOptionIds, $userAnswer)) === 0 && count(array_diff($userAnswer, $correctOptionIds)) === 0) ? $correctCount++ : $wrongCount++;
+                $correctStr = array_map('strval', $correctOptionIds);
+                $userStr = array_map('strval', $userAnswer);
+
+                if (count(array_diff($correctStr, $userStr)) === 0 && count(array_diff($userStr, $correctStr)) === 0) {
+                    $correctCount++;
+                } else {
+                    $wrongCount++;
+                }
+            } elseif ($q->type === 'matching' && is_array($userAnswer)) {
+                $isAllCorrect = true;
+                foreach ($q->matches as $match) {
+                    $answeredTarget = isset($userAnswer[$match->id]) ? $userAnswer[$match->id] : null;
+                    if ($answeredTarget != $match->id) {
+                        $isAllCorrect = false;
+                        break;
+                    }
+                }
+                $isAllCorrect ? $correctCount++ : $wrongCount++;
             } else {
                 $wrongCount++;
             }
