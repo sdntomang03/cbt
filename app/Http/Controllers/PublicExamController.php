@@ -250,9 +250,11 @@ class PublicExamController extends Controller
         if ($userData) {
             $questions = $exam->questions()->with(['options', 'matches'])->get();
             $answers = $state['answers'] ?? [];
+            $totalScore = 0;
             $correctCount = 0;
             $wrongCount = 0;
             $unansweredCount = 0;
+            $totalQuestions = $questions->count();
 
             foreach ($questions as $q) {
                 $userAnswer = $answers[$q->id] ?? null;
@@ -274,49 +276,76 @@ class PublicExamController extends Controller
                     continue;
                 }
 
-                $isCorrect = false;
+                $poin = 0;
 
                 if ($q->type === 'single_choice') {
-                    $correctOption = $q->options->firstWhere('is_correct', 1);
-                    $isCorrect = $correctOption && $userAnswer == $correctOption->id;
+                    $correctOption = $q->options->firstWhere('is_correct', true);
+                    if ($correctOption && $userAnswer == $correctOption->id) {
+                        $poin = 1;
+                    }
 
-                } elseif ($q->type === 'true_false' && is_array($userAnswer)) {
-                    $isCorrect = true;
+                } elseif ($q->type === 'complex_choice') {
+                    $correctIds = $q->options->where('is_correct', true)->pluck('id')->sort()->values()->toArray();
+                    $userIds = is_array($userAnswer) ? $userAnswer : [];
+                    sort($userIds);
+                    if ($correctIds == $userIds) {
+                        $poin = 1;
+                    }
+
+                } elseif (in_array($q->type, ['true_false', 'true_false_multi'])) {
+                    // Poin parsial: per opsi yang benar
+                    $totalOptions = $q->options->count();
+                    $correctMatches = 0;
+                    $userAnswers = is_array($userAnswer) ? $userAnswer : [];
+
                     foreach ($q->options as $opt) {
-                        $expected = filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN) ? 'benar' : 'salah';
-                        $given = isset($userAnswer[$opt->id]) ? strtolower(trim((string) $userAnswer[$opt->id])) : null;
-                        if ($given !== $expected) {
-                            $isCorrect = false;
-                            break;
+                        $expected = $opt->is_correct ? 'benar' : 'salah';
+                        $userValue = isset($userAnswers[$opt->id]) ? strtolower(trim((string) $userAnswers[$opt->id])) : null;
+                        if ($userValue === $expected) {
+                            $correctMatches++;
                         }
                     }
 
-                } elseif ($q->type === 'complex_choice' && is_array($userAnswer)) {
-                    $correctIds = array_map('strval', $q->options->where('is_correct', 1)->pluck('id')->toArray());
-                    $userIds = array_map('strval', $userAnswer);
-                    $isCorrect = empty(array_diff($correctIds, $userIds)) && empty(array_diff($userIds, $correctIds));
-
-                } elseif ($q->type === 'matching' && is_array($userAnswer)) {
-                    $isCorrect = true;
-                    foreach ($q->matches as $match) {
-                        if (($userAnswer[$match->id] ?? null) != $match->correct_target_id) {
-                            $isCorrect = false;
-                            break;
-                        }
+                    if ($totalOptions > 0) {
+                        $poin = $correctMatches / $totalOptions;
                     }
 
-                } elseif ($q->type === 'essay' && is_string($userAnswer)) {
-                    $cleanCorrect = trim(strip_tags(html_entity_decode($q->options->first()->option_text ?? '')));
-                    $cleanUser = trim(strip_tags($userAnswer));
-                    $isCorrect = strcasecmp($cleanCorrect, $cleanUser) === 0
-                        || (is_numeric($cleanCorrect) && is_numeric($cleanUser) && (float) $cleanCorrect === (float) $cleanUser);
+                } elseif ($q->type === 'matching') {
+                    // Poin parsial: per pasangan yang benar
+                    $totalPairs = $q->matches->count();
+                    $correctPairs = 0;
+                    $userAnswers = is_array($userAnswer) ? $userAnswer : [];
+
+                    if ($totalPairs > 0) {
+                        foreach ($q->matches as $match) {
+                            if (isset($userAnswers[$match->id]) && $userAnswers[$match->id] == $match->correct_target_id) {
+                                $correctPairs++;
+                            }
+                        }
+                        $poin = $correctPairs / $totalPairs;
+                    }
+
+                } elseif ($q->type === 'essay') {
+                    // Cocokkan ke semua option is_correct = 1
+                    $cleanUser = trim(strip_tags(is_string($userAnswer) ? $userAnswer : ''));
+
+                    $poin = $q->options
+                        ->where('is_correct', 1)
+                        ->contains(function ($opt) use ($cleanUser) {
+                            $cleanCorrect = trim(strip_tags(html_entity_decode($opt->option_text ?? '')));
+
+                            return strcasecmp($cleanCorrect, $cleanUser) === 0
+                                || (is_numeric($cleanCorrect) && is_numeric($cleanUser) && (float) $cleanCorrect === (float) $cleanUser);
+                        }) ? 1 : 0;
                 }
 
-                $isCorrect ? $correctCount++ : $wrongCount++;
+                $totalScore += $poin;
+
+                // Untuk kolom correct/wrong: threshold poin penuh = 1
+                $poin === 1 ? $correctCount++ : $wrongCount++;
             }
 
-            $totalQuestions = $questions->count();
-            $score = $totalQuestions > 0 ? round(($correctCount / $totalQuestions) * 100) : 0;
+            $score = $totalQuestions > 0 ? round(($totalScore / $totalQuestions) * 100, 2) : 0;
             $durationSeconds = Carbon::parse($state['finished_at'])->diffInSeconds(Carbon::parse($state['started_at']));
 
             PublicExamResult::create([
