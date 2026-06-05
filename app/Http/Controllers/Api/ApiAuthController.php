@@ -111,8 +111,8 @@ class ApiAuthController extends Controller
         $user = $request->user(); // Ambil user yang sedang login dari token Sanctum
 
         // Update data di database (Sesuaikan nama kolom dengan tabel users/students Anda)
-        $user->nama_peserta = $request->nama_peserta;
-        $user->asal_sekolah = $request->asal_sekolah;
+        $user->name = $request->nama_peserta;
+        $user->sekolah = $request->asal_sekolah;
         $user->save();
 
         return response()->json([
