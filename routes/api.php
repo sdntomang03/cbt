@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 // RUTE AUTH PUBLIK (Bisa diakses Flutter tanpa Login)
 // =========================================================
 Route::post('/login', [ApiAuthController::class, 'login']);
-
+Route::post('/register', [ApiAuthController::class, 'register']);
 // =========================================================
 // RUTE UJIAN PUBLIK (Tanpa Login Sanctum, via Session Token)
 // =========================================================
