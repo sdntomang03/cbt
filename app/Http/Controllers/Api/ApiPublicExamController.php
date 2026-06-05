@@ -32,6 +32,30 @@ class ApiPublicExamController extends Controller
             return response()->json(['success' => false, 'message' => 'Ujian tidak valid'], 403);
         }
 
+        // ========================================================
+        // TAMBAHAN: PENGECEKAN UJIAN PREMIUM
+        // ========================================================
+        if ($exam->is_premium) {
+            // Coba ambil data user dari Token Sanctum yang dikirim Flutter
+            $user = auth('sanctum')->user();
+
+            if (! $user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda harus login untuk mengakses ujian premium ini.',
+                ], 401);
+            }
+
+            // Memanggil Accessor getIsPremiumAttribute() di model User
+            if (! $user->is_premium) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ujian ini khusus member Premium. Yuk, langganan sekarang!',
+                ], 403);
+            }
+        }
+        // ========================================================
+
         $token = strtoupper(Str::random(6));
         Cache::put('verify_code_'.$exam->id.'_'.request()->ip(), $token, now()->addMinutes(15));
 
