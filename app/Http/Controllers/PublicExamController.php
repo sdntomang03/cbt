@@ -305,20 +305,7 @@ class PublicExamController extends Controller
                             }
                         }
                         $isAllCorrect ? $correctCount++ : $wrongCount++;
-                    } elseif ($q->type === 'essay') {
-    $correctRaw = $q->options->first()->option_text ?? '';
-    $cleanCorrect = trim(strip_tags(html_entity_decode($correctRaw)));
-    $cleanUser = trim(strip_tags($userAnswer));
-
-    $isCorrect = false;
-
-    if (strcasecmp($cleanCorrect, $cleanUser) === 0) {
-        $isCorrect = true;
-    } elseif (is_numeric($cleanCorrect) && is_numeric($cleanUser)) {
-        if ((float) $cleanCorrect === (float) $cleanUser) {
-            $isCorrect = true;
-        }
-    } else {
+                    } else {
                         $wrongCount++;
                     }
                 }
