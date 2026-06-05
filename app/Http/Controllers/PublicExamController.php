@@ -354,25 +354,42 @@ class PublicExamController extends Controller
         $unansweredCount = 0;
         $answers = $state['answers'] ?? [];
 
+        // ========================================================
+        // KOREKSI UNIVERSAL (ANTI-ERROR TIPE DATA)
+        // ========================================================
         foreach ($questions as $q) {
             $userAnswer = isset($answers[$q->id]) ? $answers[$q->id] : null;
 
-            if (is_string($userAnswer) && (strpos($userAnswer, '{') === 0 || strpos($userAnswer, '[') === 0)) {
-                $userAnswer = json_decode($userAnswer, true) ?? $userAnswer;
+            // A. Pastikan format JSON string di-decode ke Array dengan aman
+            if (is_string($userAnswer) && (strpos(trim($userAnswer), '{') === 0 || strpos(trim($userAnswer), '[') === 0)) {
+                $decoded = json_decode($userAnswer, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $userAnswer = $decoded;
+                }
             }
             if (is_object($userAnswer)) {
                 $userAnswer = (array) $userAnswer;
             }
 
+            // B. Hitung sebagai "Tidak Dijawab" jika kosong
             if ($userAnswer === null || $userAnswer === '' || (is_array($userAnswer) && empty($userAnswer))) {
                 $unansweredCount++;
 
                 continue;
             }
 
+            // C. Logika Koreksi Berdasarkan Tipe
             if ($q->type === 'single_choice') {
-                $correctOption = $q->options->where('is_correct', 1)->first();
-                if ($correctOption && $userAnswer == $correctOption->id) {
+                // Cari opsi yang is_correct bernilai true / 1 / "1" secara fleksibel
+                $correctOptionId = null;
+                foreach ($q->options as $opt) {
+                    if (filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN)) {
+                        $correctOptionId = (string) $opt->id;
+                        break;
+                    }
+                }
+
+                if ($correctOptionId !== null && (string) $userAnswer === $correctOptionId) {
                     $correctCount++;
                 } else {
                     $wrongCount++;
@@ -382,7 +399,9 @@ class PublicExamController extends Controller
                 foreach ($q->options as $opt) {
                     $isOptCorrect = filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN);
                     $expectedAnswer = $isOptCorrect ? 'benar' : 'salah';
-                    $givenAnswer = isset($userAnswer[$opt->id]) ? strtolower(trim((string) $userAnswer[$opt->id])) : null;
+
+                    $optId = (string) $opt->id;
+                    $givenAnswer = isset($userAnswer[$optId]) ? strtolower(trim((string) $userAnswer[$optId])) : null;
 
                     if ($givenAnswer !== $expectedAnswer) {
                         $isAllCorrect = false;
@@ -391,11 +410,21 @@ class PublicExamController extends Controller
                 }
                 $isAllCorrect ? $correctCount++ : $wrongCount++;
             } elseif ($q->type === 'complex_choice' && is_array($userAnswer)) {
-                $correctOptionIds = $q->options->where('is_correct', 1)->pluck('id')->toArray();
-                $correctStr = array_map('strval', $correctOptionIds);
-                $userStr = array_map('strval', $userAnswer);
+                $correctOptionIds = [];
+                foreach ($q->options as $opt) {
+                    if (filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN)) {
+                        $correctOptionIds[] = (string) $opt->id;
+                    }
+                }
 
-                if (count(array_diff($correctStr, $userStr)) === 0 && count(array_diff($userStr, $correctStr)) === 0) {
+                // Ekstrak hanya value-nya dan jadikan string
+                $userStr = array_map('strval', array_values($userAnswer));
+
+                // Urutkan array agar perbandingan posisi tidak mempengaruhi hasil
+                sort($correctOptionIds);
+                sort($userStr);
+
+                if ($correctOptionIds === $userStr) {
                     $correctCount++;
                 } else {
                     $wrongCount++;
@@ -403,14 +432,17 @@ class PublicExamController extends Controller
             } elseif ($q->type === 'matching' && is_array($userAnswer)) {
                 $isAllCorrect = true;
                 foreach ($q->matches as $match) {
-                    $answeredTarget = isset($userAnswer[$match->id]) ? $userAnswer[$match->id] : null;
-                    if ($answeredTarget != $match->id) {
+                    $mId = (string) $match->id;
+                    $answeredTarget = isset($userAnswer[$mId]) ? (string) $userAnswer[$mId] : null;
+
+                    if ($answeredTarget !== $mId) {
                         $isAllCorrect = false;
                         break;
                     }
                 }
                 $isAllCorrect ? $correctCount++ : $wrongCount++;
             } else {
+                // Tipe soal essay otomatis masuk sini karena harus dinilai guru manual
                 $wrongCount++;
             }
         }
