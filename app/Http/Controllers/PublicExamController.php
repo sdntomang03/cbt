@@ -325,18 +325,19 @@ class PublicExamController extends Controller
                         $poin = $correctPairs / $totalPairs;
                     }
 
-                } elseif ($q->type === 'essay') {
-                    // Cocokkan ke semua option is_correct = 1
-                    $cleanUser = trim(strip_tags(is_string($userAnswer) ? $userAnswer : ''));
+                } elseif ($q->type === 'essay' && is_string($userAnswer)) {
+                    $cleanUser = preg_replace('/\s+/', ' ', trim(strip_tags($userAnswer)));
 
-                    $poin = $q->options
+                    $isCorrect = $q->options
                         ->where('is_correct', 1)
                         ->contains(function ($opt) use ($cleanUser) {
-                            $cleanCorrect = trim(strip_tags(html_entity_decode($opt->option_text ?? '')));
+                            $cleanCorrect = preg_replace('/\s+/', ' ', trim(strip_tags(html_entity_decode($opt->option_text ?? ''))));
 
                             return strcasecmp($cleanCorrect, $cleanUser) === 0
                                 || (is_numeric($cleanCorrect) && is_numeric($cleanUser) && (float) $cleanCorrect === (float) $cleanUser);
-                        }) ? 1 : 0;
+                        });
+
+                    $isCorrect ? $correctCount++ : $wrongCount++;
                 }
 
                 $totalScore += $poin;
@@ -471,6 +472,19 @@ class PublicExamController extends Controller
                     }
                 }
                 $isAllCorrect ? $correctCount++ : $wrongCount++;
+            } elseif ($q->type === 'essay' && is_string($userAnswer)) {
+                $cleanUser = preg_replace('/\s+/', ' ', trim(strip_tags($userAnswer)));
+
+                $isCorrect = $q->options
+                    ->where('is_correct', 1)
+                    ->contains(function ($opt) use ($cleanUser) {
+                        $cleanCorrect = preg_replace('/\s+/', ' ', trim(strip_tags(html_entity_decode($opt->option_text ?? ''))));
+
+                        return strcasecmp($cleanCorrect, $cleanUser) === 0
+                            || (is_numeric($cleanCorrect) && is_numeric($cleanUser) && (float) $cleanCorrect === (float) $cleanUser);
+                    });
+
+                $isCorrect ? $correctCount++ : $wrongCount++;
             } else {
                 // Tipe soal essay otomatis masuk sini karena harus dinilai guru manual
                 $wrongCount++;
