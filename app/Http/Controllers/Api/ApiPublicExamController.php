@@ -176,6 +176,16 @@ class ApiPublicExamController extends Controller
             return response()->json(['success' => false, 'message' => 'Ujian sudah selesai atau tidak ditemukan']);
         }
 
+        // ========================================================
+        // 1. SINKRONISASI JAWABAN AKHIR DARI FLUTTER
+        // ========================================================
+        if ($request->has('final_answers') && ! empty($request->final_answers)) {
+            $decodedAnswers = is_string($request->final_answers) ? json_decode($request->final_answers, true) : $request->final_answers;
+            if (is_array($decodedAnswers)) {
+                $state['answers'] = $decodedAnswers;
+            }
+        }
+
         $state['status'] = 'completed';
         $state['finished_at'] = Carbon::now('Asia/Jakarta')->toDateTimeString();
         Cache::put($cacheKey, $state, now()->addHours(6));
@@ -185,107 +195,130 @@ class ApiPublicExamController extends Controller
         if ($userData) {
             $questions = $exam->questions()->with(['options', 'matches'])->get();
             $answers = $state['answers'] ?? [];
-            $totalScore = 0;
+
             $correctCount = 0;
             $wrongCount = 0;
             $unansweredCount = 0;
-            $totalQuestions = $questions->count();
+            $objectiveCount = 0;
 
+            // ========================================================
+            // 2. KOREKSI UNIVERSAL (PERSIS SEPERTI DI WEB)
+            // ========================================================
             foreach ($questions as $q) {
-                $userAnswer = $answers[$q->id] ?? null;
+                $userAnswer = isset($answers[$q->id]) ? $answers[$q->id] : null;
 
-                // Normalisasi: decode JSON string jika perlu
-                if (is_string($userAnswer) && in_array($userAnswer[0] ?? '', ['{', '['])) {
-                    $userAnswer = json_decode($userAnswer, true) ?? $userAnswer;
+                // A. Decode JSON string ke Array jika perlu
+                if (is_string($userAnswer) && (strpos(trim($userAnswer), '{') === 0 || strpos(trim($userAnswer), '[') === 0)) {
+                    $decoded = json_decode($userAnswer, true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $userAnswer = $decoded;
+                    }
                 }
-
-                // Normalisasi: object → array (dari JSON Flutter)
                 if (is_object($userAnswer)) {
                     $userAnswer = (array) $userAnswer;
                 }
 
-                // Cek tidak dijawab
+                // Tentukan apakah soal ini bisa dikoreksi otomatis (punya kunci jawaban)
+                $hasKey = false;
+                if (in_array($q->type, ['single_choice', 'complex_choice', 'true_false', 'matching'])) {
+                    $hasKey = true;
+                } elseif (in_array($q->type, ['essay', 'isian', 'short_answer'])) {
+                    if ($q->options && $q->options->where('is_correct', 1)->count() > 0) {
+                        $hasKey = true;
+                    }
+                }
+
+                // Abaikan dari perhitungan jika murni essay manual (tanpa kunci jawaban sama sekali)
+                if (! $hasKey) {
+                    continue;
+                }
+
+                $objectiveCount++;
+
+                // B. Hitung "Tidak Dijawab"
                 if ($userAnswer === null || $userAnswer === '' || (is_array($userAnswer) && empty($userAnswer))) {
                     $unansweredCount++;
 
                     continue;
                 }
 
-                $poin = 0;
-
+                // C. Logika Koreksi Berdasarkan Tipe
                 if ($q->type === 'single_choice') {
-                    // Flutter kirim integer opt id
-                    $correctOption = $q->options->firstWhere('is_correct', true);
-                    if ($correctOption && $userAnswer == $correctOption->id) {
-                        $poin = 1;
-                    }
-
-                } elseif ($q->type === 'complex_choice') {
-                    // Flutter kirim List of integer opt id
-                    $correctIds = $q->options->where('is_correct', true)->pluck('id')->sort()->values()->toArray();
-                    $userIds = is_array($userAnswer) ? array_map('intval', $userAnswer) : [];
-                    sort($userIds);
-                    if ($correctIds == $userIds) {
-                        $poin = 1;
-                    }
-
-                } elseif (in_array($q->type, ['true_false', 'true_false_multi'])) {
-                    // Flutter kirim Map<String optId, String 'benar'/'salah'>
-                    // Poin parsial: per opsi yang benar
-                    $totalOptions = $q->options->count();
-                    $correctMatches = 0;
-                    $userAnswers = is_array($userAnswer) ? $userAnswer : [];
-
+                    $correctOptionId = null;
                     foreach ($q->options as $opt) {
-                        $expected = filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN) ? 'benar' : 'salah';
-                        $userValue = isset($userAnswers[(string) $opt->id])
-                            ? strtolower(trim((string) $userAnswers[(string) $opt->id]))
-                            : null;
-                        if ($userValue === $expected) {
-                            $correctMatches++;
+                        if (filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN)) {
+                            $correctOptionId = (string) $opt->id;
+                            break;
                         }
                     }
-
-                    if ($totalOptions > 0) {
-                        $poin = $correctMatches / $totalOptions;
+                    if ($correctOptionId !== null && (string) $userAnswer === $correctOptionId) {
+                        $correctCount++;
+                    } else {
+                        $wrongCount++;
                     }
+                } elseif ($q->type === 'true_false' && is_array($userAnswer)) {
+                    $isAllCorrect = true;
+                    foreach ($q->options as $opt) {
+                        $isOptCorrect = filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN);
+                        $expectedAnswer = $isOptCorrect ? 'benar' : 'salah';
 
-                } elseif ($q->type === 'matching') {
-                    // Flutter kirim Map<String premiseId, int targetId>
-                    // Poin parsial: per pasangan yang benar
-                    $totalPairs = $q->matches->count();
-                    $correctPairs = 0;
-                    $userAnswers = is_array($userAnswer) ? $userAnswer : [];
+                        $optId = (string) $opt->id;
+                        $givenAnswer = isset($userAnswer[$optId]) ? strtolower(trim((string) $userAnswer[$optId])) : null;
 
-                    if ($totalPairs > 0) {
-                        foreach ($q->matches as $match) {
-                            $answered = $userAnswers[(string) $match->id] ?? null;
-                            if ($answered !== null && (int) $answered === (int) $match->correct_target_id) {
-                                $correctPairs++;
-                            }
+                        if ($givenAnswer !== $expectedAnswer) {
+                            $isAllCorrect = false;
+                            break;
                         }
-                        $poin = $correctPairs / $totalPairs;
                     }
+                    $isAllCorrect ? $correctCount++ : $wrongCount++;
+                } elseif ($q->type === 'complex_choice' && is_array($userAnswer)) {
+                    $correctOptionIds = [];
+                    foreach ($q->options as $opt) {
+                        if (filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN)) {
+                            $correctOptionIds[] = (string) $opt->id;
+                        }
+                    }
+                    $userStr = array_map('strval', array_values($userAnswer));
+                    sort($correctOptionIds);
+                    sort($userStr);
 
-                } elseif ($q->type === 'essay') {
-                    // Flutter kirim string dari TextField
-                    $cleanUser = preg_replace('/\s+/', ' ', trim(strip_tags(is_string($userAnswer) ? $userAnswer : '')));
+                    if ($correctOptionIds === $userStr) {
+                        $correctCount++;
+                    } else {
+                        $wrongCount++;
+                    }
+                } elseif ($q->type === 'matching' && is_array($userAnswer)) {
+                    $isAllCorrect = true;
+                    foreach ($q->matches as $match) {
+                        $mId = (string) $match->id;
+                        $answeredTarget = isset($userAnswer[$mId]) ? (string) $userAnswer[$mId] : null;
+                        if ($answeredTarget !== $mId) {
+                            $isAllCorrect = false;
+                            break;
+                        }
+                    }
+                    $isAllCorrect ? $correctCount++ : $wrongCount++;
+                } elseif (in_array($q->type, ['essay', 'isian', 'short_answer'])) {
+                    $isCorrect = false;
+                    $rawUserText = is_array($userAnswer) ? implode(' ', $userAnswer) : (string) $userAnswer;
+                    $cleanUserAnswer = strtolower(trim(html_entity_decode(strip_tags($rawUserText))));
 
-                    $poin = $q->options
-                        ->where('is_correct', 1)
-                        ->contains(function ($opt) use ($cleanUser) {
-                            $cleanCorrect = preg_replace('/\s+/', ' ', trim(strip_tags(html_entity_decode($opt->option_text ?? ''))));
-
-                            return strcasecmp($cleanCorrect, $cleanUser) === 0
-                                || (is_numeric($cleanCorrect) && is_numeric($cleanUser) && (float) $cleanCorrect === (float) $cleanUser);
-                        }) ? 1 : 0;
+                    $correctOptions = $q->options->where('is_correct', 1);
+                    foreach ($correctOptions as $opt) {
+                        $cleanOptionText = strtolower(trim(html_entity_decode(strip_tags($opt->option_text))));
+                        if ($cleanUserAnswer === $cleanOptionText) {
+                            $isCorrect = true;
+                            break;
+                        }
+                    }
+                    $isCorrect ? $correctCount++ : $wrongCount++;
+                } else {
+                    $wrongCount++;
                 }
-
-                $totalScore += $poin;
-                $poin === 1 ? $correctCount++ : $wrongCount++;
             }
 
-            $score = $totalQuestions > 0 ? round(($totalScore / $totalQuestions) * 100, 2) : 0;
+            // D. Hitung Skor berdasarkan jumlah soal yang objektif/bisa dinilai saja
+            $score = $objectiveCount > 0 ? round(($correctCount / $objectiveCount) * 100) : 0;
             $durationSeconds = Carbon::parse($state['finished_at'])->diffInSeconds(Carbon::parse($state['started_at']));
 
             PublicExamResult::create([
