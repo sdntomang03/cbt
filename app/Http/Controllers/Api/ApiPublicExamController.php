@@ -154,7 +154,7 @@ class ApiPublicExamController extends Controller
             return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
         }
 
-        $token = $request->session_token;
+        $token = $request->input('session_token');
         $cacheKey = $this->getCacheKey($exam->id, $token);
         $userData = Cache::get($cacheKey.'_user');
 
@@ -232,7 +232,7 @@ class ApiPublicExamController extends Controller
      */
     public function storeAnswer(Request $request, Exam $exam)
     {
-        $token = $request->session_token;
+        $token = $request->input('session_token');
         $cacheKey = $this->getCacheKey($exam->id, $token);
         $state = Cache::get($cacheKey.'_state');
 
@@ -263,7 +263,7 @@ class ApiPublicExamController extends Controller
      */
     public function recordViolation(Request $request, Exam $exam)
     {
-        $token = $request->session_token;
+        $token = $request->input('session_token');
         $cacheKey = $this->getCacheKey($exam->id, $token);
         $state = Cache::get($cacheKey.'_state');
 
@@ -295,7 +295,7 @@ class ApiPublicExamController extends Controller
      */
     public function finish(Request $request, Exam $exam)
     {
-        $token = $request->session_token;
+        $token = $request->input('session_token');
         $cacheKey = $this->getCacheKey($exam->id, $token);
         $state = Cache::get($cacheKey.'_state');
         $userData = Cache::get($cacheKey.'_user');
@@ -391,7 +391,7 @@ class ApiPublicExamController extends Controller
      */
     public function restart(Request $request, Exam $exam)
     {
-        $token = $request->session_token;
+        $token = $request->input('session_token');
         $cacheKey = $this->getCacheKey($exam->id, $token);
 
         // Hapus state lama agar ujian bisa dimulai ulang
