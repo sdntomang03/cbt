@@ -374,4 +374,22 @@ class ApiPublicExamController extends Controller
             'is_locked' => $state['is_locked'],
         ]);
     }
+
+    // Ganti $identifier menjadi objek model Exam
+    public function getRanking(Exam $exam)
+    {
+        // Laravel OTOMATIS men-decode hashid 'jR8z9X' menjadi data ujian dengan ID 1 !
+        // Jadi Anda bisa langsung pakai $exam->id
+
+        $rankings = PublicExamResult::where('exam_id', $exam->id)
+            ->orderBy('score', 'desc')
+            ->orderBy('duration_seconds', 'asc')
+            ->take(100)
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $rankings,
+        ]);
+    }
 }
