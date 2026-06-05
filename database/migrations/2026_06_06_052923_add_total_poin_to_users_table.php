@@ -16,7 +16,7 @@ return new class extends Migration
             $table->integer('total_poin')->default(0)->after('sekolah');
 
             // Opsional tapi penting: penanda apakah user ini adalah user premium
-            $table->timestamp('premium_until')->nullable()->after('is_premium');
+            $table->timestamp('premium_until')->nullable()->after('total_poin');
         });
     }
 
