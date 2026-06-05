@@ -8,7 +8,7 @@ class PublicExamResult extends Model
 {
     protected $fillable = [
         'exam_id', 'nama_peserta', 'asal_sekolah', 'score',
-        'correct_count', 'wrong_count', 'unanswered_count', 'duration_seconds',
+        'correct_count', 'wrong_count', 'unanswered_count', 'duration_seconds', 'user_id',
     ];
 
     public function exam()

@@ -31,6 +31,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'premium_until' => 'datetime',    // <--- Konversi ke format Waktu
         ];
     }
 
@@ -57,5 +58,18 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         // Parameter: (Model Tujuan, Nama Tabel Pivot, Foreign Key di Pivot untuk Model Ini, Foreign Key di Pivot untuk Model Tujuan)
         return $this->belongsToMany(Classroom::class, 'classroom_student', 'student_id', 'classroom_id');
+    }
+
+    // Memberitahu Laravel untuk menyisipkan variabel buatan ke JSON
+    protected $appends = ['is_premium'];
+
+    /**
+     * Membuat kolom virtual 'is_premium' untuk dibaca oleh Flutter.
+     * Cukup 1 baris logika!
+     */
+    public function getIsPremiumAttribute(): bool
+    {
+        // Jika premium_until ada isinya DAN waktunya belum lewat dari hari ini
+        return $this->premium_until && now()->lessThanOrEqualTo($this->premium_until);
     }
 }
