@@ -7,35 +7,29 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Models\Role;
 
 class ApiAuthController extends Controller
 {
     public function login(Request $request)
     {
-        // 1. Ubah nama field penerima menjadi lebih umum (misal: login_id)
-        // dan hapus aturan format '|email'
         $request->validate([
             'login_id' => 'required|string',
             'password' => 'required',
         ]);
 
-        // 2. Cari user berdasarkan Email ATAU Username
-        // Catatan: Ganti 'username' dengan nama kolom yang sesuai jika berbeda di database Anda
         $user = User::where('email', $request->login_id)
             ->orWhere('username', $request->login_id)
             ->first();
 
-        // 3. Cek apakah user ada dan password cocok
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'login_id' => ['Kredensial yang diberikan salah.'],
             ]);
         }
 
-        // Hapus token lama agar tidak menumpuk
         $user->tokens()->delete();
 
-        // Buat token baru untuk Flutter
         $token = $user->createToken('flutter_mobile_app')->plainTextToken;
 
         return response()->json([
@@ -46,7 +40,6 @@ class ApiAuthController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    // Pastikan $user->role tidak membuat error 500 seperti dibahas sebelumnya
                     'role' => $user->roles->pluck('name')->first() ?? 'siswa',
                 ],
                 'access_token' => $token,
@@ -55,9 +48,56 @@ class ApiAuthController extends Controller
         ]);
     }
 
+    // ==========================================
+    // TAMBAHAN: FUNGSI REGISTER
+    // ==========================================
+    public function register(Request $request)
+    {
+        // 1. Validasi Input dari Flutter
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:users,username',
+            'email' => 'nullable|string|email|max:255|unique:users,email',
+            'asal_sekolah_public' => 'nullable|string|max:255',
+            'password' => 'required|string|min:8|confirmed', // 'confirmed' akan otomatis mengecek 'password_confirmation'
+        ]);
+
+        // 2. Buat User Baru
+        $user = User::create([
+            'name' => $request->name,
+            'username' => $request->username,
+            'email' => $request->email,
+            'asal_sekolah_public' => $request->asal_sekolah_public,
+            'password' => Hash::make($request->password),
+        ]);
+
+        // Opsional: Berikan role 'siswa' secara default jika Anda menggunakan Spatie Permission
+        if (class_exists(Role::class)) {
+            $user->assignRole('siswa');
+        }
+
+        // 3. Buatkan Token (Agar langsung login)
+        $token = $user->createToken('flutter_mobile_app')->plainTextToken;
+
+        // 4. Kembalikan Response format JSON persis seperti fungsi Login
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Registrasi Berhasil',
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => 'siswa', // Default role
+                ],
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+            ],
+        ], 201); // 201 adalah status code HTTP untuk "Created"
+    }
+
     public function logout(Request $request)
     {
-        // Cabut token saat ini
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
