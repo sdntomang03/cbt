@@ -16,7 +16,7 @@ class ModuleController extends Controller
     // SISI GURU / ADMIN (CRUD)
     // ========================================================
 
-    public function indexAdmin()
+    public function index()
     {
         $modules = Module::with(['subject', 'level', 'author'])
             ->orderBy('created_at', 'desc')
