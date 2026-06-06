@@ -20,7 +20,7 @@
                 </h1>
                 <p class="text-lg text-slate-300 max-w-2xl mx-auto font-medium">
                     Daftar siswa terdaftar terbaik dengan akumulasi poin tertinggi berdasarkan hasil simulasi try out
-                    dan latihan soal.
+                    dan latihan soal. Segera daftar dan raih peringkat terbaikmu di papan peringkat nasional!
                 </p>
             </div>
         </div>
