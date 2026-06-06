@@ -359,12 +359,31 @@ class PublicExamController extends Controller
         session()->put($sessionKey, $state);
 
         // ========================================================
-        // 3. SIMPAN KE DATABASE
+        // 3. SIMPAN KE DATABASE & UPDATE POIN
         // ========================================================
         if ($userData) {
             $durationSeconds = Carbon::parse($state['finished_at'])->diffInSeconds(Carbon::parse($state['started_at']));
             $userId = auth()->check() ? auth()->id() : null;
 
+            // LOGIKA UPDATE POIN BERDASARKAN SELISIH NILAI TERTINGGI
+            if ($userId) {
+                // Cari nilai tertinggi sebelumnya untuk ujian ini
+                $highestPreviousScore = PublicExamResult::where('exam_id', $exam->id)
+                    ->where('user_id', $userId)
+                    ->max('score'); // Akan mengembalikan null jika belum pernah mengerjakan
+
+                if (is_null($highestPreviousScore)) {
+                    // Jika belum pernah mengerjakan, tambahkan skor penuh
+                    auth()->user()->increment('total_poin', $score);
+                } elseif ($score > $highestPreviousScore) {
+                    // Jika pernah mengerjakan dan skor baru lebih besar, tambahkan selisihnya
+                    $selisih = $score - $highestPreviousScore;
+                    auth()->user()->increment('total_poin', $selisih);
+                }
+                // Jika skor baru lebih kecil atau sama dengan skor sebelumnya, poin tidak bertambah
+            }
+
+            // Simpan riwayat ujian ini ke database
             PublicExamResult::create([
                 'exam_id' => $exam->id,
                 'nama_peserta' => $userData['nama_peserta'],
@@ -376,13 +395,10 @@ class PublicExamController extends Controller
                 'unanswered_count' => $unansweredCount,
                 'duration_seconds' => $durationSeconds,
             ]);
-
-            if (auth()->check()) {
-                auth()->user()->increment('total_poin', $score);
-            }
         }
 
         return redirect()->route('public.exams.result', $exam);
+
     }
 
     /**
