@@ -348,10 +348,11 @@ class PublicExamController extends Controller
 
             $score = $totalQuestions > 0 ? round(($totalScore / $totalQuestions) * 100, 2) : 0;
             $durationSeconds = Carbon::parse($state['finished_at'])->diffInSeconds(Carbon::parse($state['started_at']));
-
+            $userId = auth()->check() ? auth()->id() : null;
             PublicExamResult::create([
                 'exam_id' => $exam->id,
                 'nama_peserta' => $userData['nama_peserta'],
+                'user_id' => $userId,
                 'asal_sekolah' => $userData['asal_sekolah'],
                 'score' => $score,
                 'correct_count' => $correctCount,
