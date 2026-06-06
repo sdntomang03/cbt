@@ -6,7 +6,7 @@ $actionUrl = $isEdit ? route('admin.modules.update', $module) : route('admin.mod
 
 <x-app-layout>
     <div class="py-12 bg-slate-50 min-h-screen">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
 
             {{-- KEPALA FORM --}}
             <div class="mb-8">
@@ -20,7 +20,8 @@ $actionUrl = $isEdit ? route('admin.modules.update', $module) : route('admin.mod
             </div>
 
             {{-- CONTAINER BODY FORM --}}
-            <form action="{{ $actionUrl }}" method="POST" enctype="multipart/form-data" class="space-y-8">
+            <form action="{{ $actionUrl }}" method="POST" enctype="multipart/form-data" class="space-y-8"
+                id="moduleForm">
                 @csrf
                 @if($isEdit) @method('PUT') @endif
 
@@ -75,13 +76,28 @@ $actionUrl = $isEdit ? route('admin.modules.update', $module) : route('admin.mod
                             placeholder="Tuliskan ringkasan 1-2 kalimat mengenai apa yang akan dipelajari siswa di modul ini untuk menarik minat baca mereka.">{{ old('description', $module->description ?? '') }}</textarea>
                     </div>
 
-                    {{-- FIELD 4: LONG CONTENT (RICH TEXT AREA) --}}
-                    <div>
+                    {{-- FIELD 4: LONG CONTENT (RICH TEXT AREA DENGAN QUILL & KATEX) --}}
+                    <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50">
                         <label for="content" class="block text-sm font-bold text-slate-700 mb-2">Isi Materi Pembelajaran
                             Lengkap</label>
-                        <textarea name="content" id="content" rows="12"
-                            class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block p-4 font-mono"
-                            placeholder="Gunakan editor HTML atau ketikkan materi lengkap di sini... (Mendukung tag HTML seperti &lt;p&gt;, &lt;h2&gt;, &lt;ul&gt;, dll.)">{{ old('content', $module->content ?? '') }}</textarea>
+
+                        {{-- Textarea asli disembunyikan untuk menampung data saat form disubmit --}}
+                        <textarea name="content" id="content"
+                            class="hidden">{{ old('content', $module->content ?? '') }}</textarea>
+
+                        {{-- Wadah Editor Quill --}}
+                        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-inner">
+                            <div id="quill-editor" class="bg-white">{!! old('content', $module->content ?? '') !!}</div>
+                        </div>
+
+                        <div
+                            class="mt-3 flex items-start gap-2 bg-indigo-50 border border-indigo-100 p-3 rounded-lg text-indigo-700 text-xs">
+                            <i class="fas fa-info-circle mt-0.5"></i>
+                            <p>
+                                Klik ikon <strong><kbd>&sum;</kbd> (Formula)</strong> di bilah alat untuk mengetik rumus
+                                matematika menggunakan format LaTeX (contoh: <code>c = \pm\sqrt{a^2 + b^2}</code>).
+                            </p>
+                        </div>
                     </div>
 
                     {{-- FIELD 5: INPUT FILE MULTIMEDIA (COVER, VIDEO, PDF) --}}
@@ -209,4 +225,102 @@ $actionUrl = $isEdit ? route('admin.modules.update', $module) : route('admin.mod
             </form>
         </div>
     </div>
+
+    {{-- ========================================== --}}
+    {{-- SCRIPT & STYLE UNTUK RICH TEXT EDITOR --}}
+    {{-- ========================================== --}}
+
+    {{-- CSS KaTeX dan Quill --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+
+    <style>
+        /* Modifikasi Tampilan Quill agar senada dengan Tailwind */
+        .ql-toolbar.ql-snow {
+            background-color: #f8fafc;
+            /* bg-slate-50 */
+            border: none !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+            font-family: inherit;
+            padding: 12px 16px;
+        }
+
+        .ql-container.ql-snow {
+            border: none !important;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        .ql-editor {
+            min-height: 400px;
+            padding: 1.5rem;
+            color: #334155;
+            line-height: 1.7;
+        }
+
+        /* Penyesuaian Modal Formula Quill */
+        .ql-snow .ql-tooltip {
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            padding: 12px 16px;
+            left: 50% !important;
+            transform: translateX(-50%);
+        }
+
+        /* Memperbesar ukuran teks LaTeX saat di-edit */
+        .ql-snow .ql-tooltip input[type=text] {
+            width: 300px;
+            font-family: monospace;
+            padding: 8px;
+        }
+    </style>
+
+    {{-- Library JS KaTeX dan Quill --}}
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+
+    {{-- Inisialisasi Editor --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Konfigurasi Toolbar
+            var toolbarOptions = [
+                [{ 'header': [1, 2, 3, 4, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                ['blockquote', 'code-block'],
+                [{ 'align': [] }],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                [{ 'script': 'sub'}, { 'script': 'super' }],
+                [{ 'color': [] }, { 'background': [] }],
+                ['link', 'image', 'video', 'formula'],
+                ['clean']
+            ];
+
+            // Render Quill
+            var quill = new Quill('#quill-editor', {
+                theme: 'snow',
+                modules: {
+                    formula: true, // Wajib bernilai true untuk KaTeX LaTeX
+                    toolbar: toolbarOptions
+                },
+                placeholder: 'Tuliskan materi pembelajaran secara lengkap di sini...'
+            });
+
+            // Sinkronisasi Quill dengan Textarea Hidden sebelum form dikirim
+            var form = document.getElementById('moduleForm');
+            var contentInput = document.getElementById('content');
+
+            form.addEventListener('submit', function(e) {
+                // Ambil kode HTML dari editor Quill
+                var htmlContent = quill.root.innerHTML;
+
+                // Masukkan ke textarea agar terkirim ke Laravel backend
+                if(htmlContent === '<p><br></p>') {
+                    contentInput.value = '';
+                } else {
+                    contentInput.value = htmlContent;
+                }
+            });
+        });
+    </script>
 </x-app-layout>
