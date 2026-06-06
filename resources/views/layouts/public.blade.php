@@ -139,10 +139,15 @@
                 <div class="hidden sm:flex sm:items-center sm:gap-8">
                     <a href="/" class="text-sm font-bold text-slate-500 hover:text-indigo-600 transition">Beranda</a>
                     <a href="{{ route('public.exams.index') }}"
-                        class="text-sm font-black text-indigo-600 border-b-2 border-indigo-600 py-7">Tryout</a>
+                        class="text-sm font-bold transition-all py-7 border-b-2 {{ request()->routeIs('public.exams.*') ? 'text-indigo-600 border-indigo-600 font-black' : 'text-slate-500 border-transparent hover:text-indigo-600' }}">
+                        Tryout
+                    </a>
+
+                    {{-- Menu Ranking Nasional --}}
                     <a href="{{ route('public.ranking.nasional') }}"
-                        class="text-sm font-black text-indigo-600 border-b-2 border-indigo-600 py-7">Ranking
-                        Nasional</a>
+                        class="text-sm font-bold transition-all py-7 border-b-2 {{ request()->routeIs('public.ranking.nasional') ? 'text-indigo-600 border-indigo-600 font-black' : 'text-slate-500 border-transparent hover:text-indigo-600' }}">
+                        Ranking Nasional
+                    </a>
 
                     @auth
                     <a href="{{ route('dashboard') }}"
