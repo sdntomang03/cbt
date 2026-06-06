@@ -140,6 +140,9 @@
                     <a href="/" class="text-sm font-bold text-slate-500 hover:text-indigo-600 transition">Beranda</a>
                     <a href="{{ route('public.exams.index') }}"
                         class="text-sm font-black text-indigo-600 border-b-2 border-indigo-600 py-7">Tryout</a>
+                    <a href="{{ route('public.ranking.nasional') }}"
+                        class="text-sm font-black text-indigo-600 border-b-2 border-indigo-600 py-7">Ranking
+                        Nasional</a>
 
                     @auth
                     <a href="{{ route('dashboard') }}"

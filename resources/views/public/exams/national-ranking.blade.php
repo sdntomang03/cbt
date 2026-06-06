@@ -19,7 +19,8 @@
                     Peringkat Nasional
                 </h1>
                 <p class="text-lg text-slate-300 max-w-2xl mx-auto font-medium">
-                    Daftar siswa terbaik dengan akumulasi poin tertinggi dari seluruh simulasi try out dan latihan soal.
+                    Daftar siswa terdaftar terbaik dengan akumulasi poin tertinggi berdasarkan hasil simulasi try out
+                    dan latihan soal.
                 </p>
             </div>
         </div>
