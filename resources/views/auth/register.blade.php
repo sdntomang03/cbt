@@ -24,6 +24,13 @@
         </div>
 
         <div class="mt-4">
+            <x-input-label for="sekolah" :value="__('Nama Sekolah')" />
+            <x-text-input id="sekolah" class="block mt-1 w-full" type="text" name="sekolah" :value="old('sekolah')"
+                required autocomplete="sekolah" />
+            <x-input-error :messages="$errors->get('sekolah')" class="mt-2" />
+        </div>
+
+        <div class="mt-4">
             <x-input-label for="password" :value="__('Password')" />
 
             <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" required
