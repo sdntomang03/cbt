@@ -100,11 +100,17 @@ class PublicExamController extends Controller
             ]);
         }
 
-        // Validasi Blokir & Selesai
+        // Validasi Blokir
         if ($state['is_locked']) {
-            session()->forget('public_verified_exam_'.$exam->id);
+            // 1. Hapus memori ujian yang terkunci agar bisa diulang
+            session()->forget('public_exam_state_'.$exam->id);
 
-            return redirect()->route('welcome')->with('error', 'Ujian Anda telah dikunci karena pelanggaran keamanan.');
+            // 2. (Opsional) Hapus data diri agar mereka harus ketik nama lagi
+            // session()->forget('public_user_'.$exam->id);
+
+            // 3. Arahkan kembali ke halaman daftar ujian dengan pesan peringatan
+            return redirect()->route('public.exams.index')
+                ->with('error', 'Ujian Anda dikunci karena pelanggaran keamanan. Silakan pilih dan mulai ulang ujian dari awal.');
         }
         if ($state['status'] === 'completed' || $state['finished_at'] !== null) {
             return redirect()->route('public.exams.result', $exam);
