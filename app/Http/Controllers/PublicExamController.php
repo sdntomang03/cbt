@@ -256,126 +256,112 @@ class PublicExamController extends Controller
             }
         }
 
+        // ========================================================
+        // 2. KALKULASI / KOREKSI (HANYA DILAKUKAN DI SINI)
+        // ========================================================
+        $questions = $exam->questions()->with(['options', 'matches'])->get();
+        $answers = $state['answers'] ?? [];
+
+        $correctCount = 0;
+        $wrongCount = 0;
+        $unansweredCount = 0;
+        $totalQuestions = $questions->count();
+
+        foreach ($questions as $q) {
+            $userAnswer = isset($answers[$q->id]) ? $answers[$q->id] : null;
+
+            if (is_string($userAnswer) && (strpos(trim($userAnswer), '{') === 0 || strpos(trim($userAnswer), '[') === 0)) {
+                $decoded = json_decode($userAnswer, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $userAnswer = $decoded;
+                }
+            }
+            if (is_object($userAnswer)) {
+                $userAnswer = (array) $userAnswer;
+            }
+
+            if ($userAnswer === null || $userAnswer === '' || (is_array($userAnswer) && empty($userAnswer))) {
+                $unansweredCount++;
+
+                continue;
+            }
+
+            if ($q->type === 'single_choice') {
+                $correctOptionId = null;
+                foreach ($q->options as $opt) {
+                    if (filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN)) {
+                        $correctOptionId = (string) $opt->id;
+                        break;
+                    }
+                }
+                ($correctOptionId !== null && (string) $userAnswer === $correctOptionId) ? $correctCount++ : $wrongCount++;
+            } elseif ($q->type === 'true_false' && is_array($userAnswer)) {
+                $isAllCorrect = true;
+                foreach ($q->options as $opt) {
+                    $isOptCorrect = filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN);
+                    $expectedAnswer = $isOptCorrect ? 'benar' : 'salah';
+                    $optId = (string) $opt->id;
+                    $givenAnswer = isset($userAnswer[$optId]) ? strtolower(trim((string) $userAnswer[$optId])) : null;
+                    if ($givenAnswer !== $expectedAnswer) {
+                        $isAllCorrect = false;
+                        break;
+                    }
+                }
+                $isAllCorrect ? $correctCount++ : $wrongCount++;
+            } elseif ($q->type === 'complex_choice' && is_array($userAnswer)) {
+                $correctOptionIds = [];
+                foreach ($q->options as $opt) {
+                    if (filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN)) {
+                        $correctOptionIds[] = (string) $opt->id;
+                    }
+                }
+                $userStr = array_map('strval', array_values($userAnswer));
+                sort($correctOptionIds);
+                sort($userStr);
+                ($correctOptionIds === $userStr) ? $correctCount++ : $wrongCount++;
+            } elseif ($q->type === 'matching' && is_array($userAnswer)) {
+                $isAllCorrect = true;
+                foreach ($q->matches as $match) {
+                    $mId = (string) $match->id;
+                    $answeredTarget = isset($userAnswer[$mId]) ? (string) $userAnswer[$mId] : null;
+                    if ($answeredTarget !== $mId) {
+                        $isAllCorrect = false;
+                        break;
+                    }
+                }
+                $isAllCorrect ? $correctCount++ : $wrongCount++;
+            } elseif ($q->type === 'essay' && is_string($userAnswer)) {
+                $cleanUser = preg_replace('/\s+/', ' ', trim(strip_tags($userAnswer)));
+                $isCorrect = $q->options->where('is_correct', 1)->contains(function ($opt) use ($cleanUser) {
+                    $cleanCorrect = preg_replace('/\s+/', ' ', trim(strip_tags(html_entity_decode($opt->option_text ?? ''))));
+
+                    return strcasecmp($cleanCorrect, $cleanUser) === 0 || (is_numeric($cleanCorrect) && is_numeric($cleanUser) && (float) $cleanCorrect === (float) $cleanUser);
+                });
+                $isCorrect ? $correctCount++ : $wrongCount++;
+            } else {
+                $wrongCount++;
+            }
+        }
+
+        $score = $totalQuestions > 0 ? round(($correctCount / $totalQuestions) * 100) : 0;
+
+        // SIMPAN HASIL KALKULASI KE SESSION
         $state['status'] = 'completed';
         $state['finished_at'] = Carbon::now('Asia/Jakarta')->toDateTimeString();
+        $state['grading'] = [
+            'score' => $score,
+            'correctCount' => $correctCount,
+            'wrongCount' => $wrongCount,
+            'unansweredCount' => $unansweredCount,
+            'totalQuestions' => $totalQuestions,
+        ];
+
         session()->put($sessionKey, $state);
 
         // ========================================================
-        // 2. KALKULASI & SIMPAN KE DATABASE
+        // 3. SIMPAN KE DATABASE
         // ========================================================
         if ($userData) {
-            $questions = $exam->questions()->with(['options', 'matches'])->get();
-            $answers = $state['answers'] ?? [];
-
-            // Hapus $totalScore, kita murni gunakan perhitungan jumlah benar seperti di result()
-            $correctCount = 0;
-            $wrongCount = 0;
-            $unansweredCount = 0;
-            $totalQuestions = $questions->count();
-
-            // KOREKSI UNIVERSAL (DISAMAKAN PERSIS DENGAN FUNGSI RESULT)
-            foreach ($questions as $q) {
-                $userAnswer = isset($answers[$q->id]) ? $answers[$q->id] : null;
-
-                // A. Pastikan format JSON string di-decode ke Array dengan aman
-                if (is_string($userAnswer) && (strpos(trim($userAnswer), '{') === 0 || strpos(trim($userAnswer), '[') === 0)) {
-                    $decoded = json_decode($userAnswer, true);
-                    if (json_last_error() === JSON_ERROR_NONE) {
-                        $userAnswer = $decoded;
-                    }
-                }
-                if (is_object($userAnswer)) {
-                    $userAnswer = (array) $userAnswer;
-                }
-
-                // B. Hitung sebagai "Tidak Dijawab" jika kosong
-                if ($userAnswer === null || $userAnswer === '' || (is_array($userAnswer) && empty($userAnswer))) {
-                    $unansweredCount++;
-
-                    continue;
-                }
-
-                // C. Logika Koreksi Berdasarkan Tipe
-                if ($q->type === 'single_choice') {
-                    $correctOptionId = null;
-                    foreach ($q->options as $opt) {
-                        if (filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN)) {
-                            $correctOptionId = (string) $opt->id;
-                            break;
-                        }
-                    }
-
-                    if ($correctOptionId !== null && (string) $userAnswer === $correctOptionId) {
-                        $correctCount++;
-                    } else {
-                        $wrongCount++;
-                    }
-                } elseif ($q->type === 'true_false' && is_array($userAnswer)) {
-                    $isAllCorrect = true;
-                    foreach ($q->options as $opt) {
-                        $isOptCorrect = filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN);
-                        $expectedAnswer = $isOptCorrect ? 'benar' : 'salah';
-
-                        $optId = (string) $opt->id;
-                        $givenAnswer = isset($userAnswer[$optId]) ? strtolower(trim((string) $userAnswer[$optId])) : null;
-
-                        if ($givenAnswer !== $expectedAnswer) {
-                            $isAllCorrect = false;
-                            break;
-                        }
-                    }
-                    $isAllCorrect ? $correctCount++ : $wrongCount++;
-                } elseif ($q->type === 'complex_choice' && is_array($userAnswer)) {
-                    $correctOptionIds = [];
-                    foreach ($q->options as $opt) {
-                        if (filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN)) {
-                            $correctOptionIds[] = (string) $opt->id;
-                        }
-                    }
-
-                    $userStr = array_map('strval', array_values($userAnswer));
-
-                    sort($correctOptionIds);
-                    sort($userStr);
-
-                    if ($correctOptionIds === $userStr) {
-                        $correctCount++;
-                    } else {
-                        $wrongCount++;
-                    }
-                } elseif ($q->type === 'matching' && is_array($userAnswer)) {
-                    $isAllCorrect = true;
-                    foreach ($q->matches as $match) {
-                        $mId = (string) $match->id;
-                        $answeredTarget = isset($userAnswer[$mId]) ? (string) $userAnswer[$mId] : null;
-
-                        if ($answeredTarget !== $mId) {
-                            $isAllCorrect = false;
-                            break;
-                        }
-                    }
-                    $isAllCorrect ? $correctCount++ : $wrongCount++;
-                } elseif ($q->type === 'essay' && is_string($userAnswer)) {
-                    $cleanUser = preg_replace('/\s+/', ' ', trim(strip_tags($userAnswer)));
-
-                    $isCorrect = $q->options
-                        ->where('is_correct', 1)
-                        ->contains(function ($opt) use ($cleanUser) {
-                            $cleanCorrect = preg_replace('/\s+/', ' ', trim(strip_tags(html_entity_decode($opt->option_text ?? ''))));
-
-                            return strcasecmp($cleanCorrect, $cleanUser) === 0
-                                || (is_numeric($cleanCorrect) && is_numeric($cleanUser) && (float) $cleanCorrect === (float) $cleanUser);
-                        });
-
-                    $isCorrect ? $correctCount++ : $wrongCount++;
-                } else {
-                    $wrongCount++;
-                }
-            }
-
-            // Hitung nilai akhir menggunakan jumlah jawaban benar saja
-            $score = $totalQuestions > 0 ? round(($correctCount / $totalQuestions) * 100) : 0;
-
             $durationSeconds = Carbon::parse($state['finished_at'])->diffInSeconds(Carbon::parse($state['started_at']));
             $userId = auth()->check() ? auth()->id() : null;
 
@@ -390,6 +376,10 @@ class PublicExamController extends Controller
                 'unanswered_count' => $unansweredCount,
                 'duration_seconds' => $durationSeconds,
             ]);
+
+            if (auth()->check()) {
+                auth()->user()->increment('total_poin', $score);
+            }
         }
 
         return redirect()->route('public.exams.result', $exam);
@@ -408,123 +398,23 @@ class PublicExamController extends Controller
             return redirect()->route('public.exams.index');
         }
 
-        // PASTIKAN LOAD RELATION 'matches'
-        $questions = $exam->questions()->with(['options', 'matches'])->get();
-        $totalQuestions = $questions->count();
-        $correctCount = 0;
-        $wrongCount = 0;
-        $unansweredCount = 0;
-        $answers = $state['answers'] ?? [];
+        // Ambil hasil perhitungan dari session (dibuat oleh metode finish)
+        $grading = $state['grading'] ?? null;
 
-        // ========================================================
-        // KOREKSI UNIVERSAL (ANTI-ERROR TIPE DATA)
-        // ========================================================
-        foreach ($questions as $q) {
-            $userAnswer = isset($answers[$q->id]) ? $answers[$q->id] : null;
-
-            // A. Pastikan format JSON string di-decode ke Array dengan aman
-            if (is_string($userAnswer) && (strpos(trim($userAnswer), '{') === 0 || strpos(trim($userAnswer), '[') === 0)) {
-                $decoded = json_decode($userAnswer, true);
-                if (json_last_error() === JSON_ERROR_NONE) {
-                    $userAnswer = $decoded;
-                }
-            }
-            if (is_object($userAnswer)) {
-                $userAnswer = (array) $userAnswer;
-            }
-
-            // B. Hitung sebagai "Tidak Dijawab" jika kosong
-            if ($userAnswer === null || $userAnswer === '' || (is_array($userAnswer) && empty($userAnswer))) {
-                $unansweredCount++;
-
-                continue;
-            }
-
-            // C. Logika Koreksi Berdasarkan Tipe
-            if ($q->type === 'single_choice') {
-                // Cari opsi yang is_correct bernilai true / 1 / "1" secara fleksibel
-                $correctOptionId = null;
-                foreach ($q->options as $opt) {
-                    if (filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN)) {
-                        $correctOptionId = (string) $opt->id;
-                        break;
-                    }
-                }
-
-                if ($correctOptionId !== null && (string) $userAnswer === $correctOptionId) {
-                    $correctCount++;
-                } else {
-                    $wrongCount++;
-                }
-            } elseif ($q->type === 'true_false' && is_array($userAnswer)) {
-                $isAllCorrect = true;
-                foreach ($q->options as $opt) {
-                    $isOptCorrect = filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN);
-                    $expectedAnswer = $isOptCorrect ? 'benar' : 'salah';
-
-                    $optId = (string) $opt->id;
-                    $givenAnswer = isset($userAnswer[$optId]) ? strtolower(trim((string) $userAnswer[$optId])) : null;
-
-                    if ($givenAnswer !== $expectedAnswer) {
-                        $isAllCorrect = false;
-                        break;
-                    }
-                }
-                $isAllCorrect ? $correctCount++ : $wrongCount++;
-            } elseif ($q->type === 'complex_choice' && is_array($userAnswer)) {
-                $correctOptionIds = [];
-                foreach ($q->options as $opt) {
-                    if (filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN)) {
-                        $correctOptionIds[] = (string) $opt->id;
-                    }
-                }
-
-                // Ekstrak hanya value-nya dan jadikan string
-                $userStr = array_map('strval', array_values($userAnswer));
-
-                // Urutkan array agar perbandingan posisi tidak mempengaruhi hasil
-                sort($correctOptionIds);
-                sort($userStr);
-
-                if ($correctOptionIds === $userStr) {
-                    $correctCount++;
-                } else {
-                    $wrongCount++;
-                }
-            } elseif ($q->type === 'matching' && is_array($userAnswer)) {
-                $isAllCorrect = true;
-                foreach ($q->matches as $match) {
-                    $mId = (string) $match->id;
-                    $answeredTarget = isset($userAnswer[$mId]) ? (string) $userAnswer[$mId] : null;
-
-                    if ($answeredTarget !== $mId) {
-                        $isAllCorrect = false;
-                        break;
-                    }
-                }
-                $isAllCorrect ? $correctCount++ : $wrongCount++;
-            } elseif ($q->type === 'essay' && is_string($userAnswer)) {
-                $cleanUser = preg_replace('/\s+/', ' ', trim(strip_tags($userAnswer)));
-
-                $isCorrect = $q->options
-                    ->where('is_correct', 1)
-                    ->contains(function ($opt) use ($cleanUser) {
-                        $cleanCorrect = preg_replace('/\s+/', ' ', trim(strip_tags(html_entity_decode($opt->option_text ?? ''))));
-
-                        return strcasecmp($cleanCorrect, $cleanUser) === 0
-                            || (is_numeric($cleanCorrect) && is_numeric($cleanUser) && (float) $cleanCorrect === (float) $cleanUser);
-                    });
-
-                $isCorrect ? $correctCount++ : $wrongCount++;
-            } else {
-                // Tipe soal essay otomatis masuk sini karena harus dinilai guru manual
-                $wrongCount++;
-            }
+        // Fallback keamanan jika nilai belum ada di session
+        if (! $grading) {
+            return redirect()->route('public.exams.index')
+                ->with('error', 'Sesi ujian telah berakhir. Silakan ulangi ujian Anda.');
         }
 
-        $score = $totalQuestions > 0 ? round(($correctCount / $totalQuestions) * 100) : 0;
-
-        return view('public.exams.result', compact('exam', 'score', 'correctCount', 'wrongCount', 'unansweredCount', 'totalQuestions'));
+        return view('public.exams.result', [
+            'exam' => $exam,
+            'score' => $grading['score'],
+            'correctCount' => $grading['correctCount'],
+            'wrongCount' => $grading['wrongCount'],
+            'unansweredCount' => $grading['unansweredCount'],
+            'totalQuestions' => $grading['totalQuestions'],
+        ]);
     }
 
     /**
