@@ -1,8 +1,6 @@
 <x-public-layout :pageTitle="$exam->title . ' - CBT Pro'"
     :metaDescription="$exam->meta_description ?? 'Simulasi ujian online di CBT Pro.'"
     :metaKeywords="$exam->meta_keywords ?? null" :metaImage="$exam->thumbnail ?? null">
-
-
     <div class="bg-slate-50 min-h-screen pb-20">
 
         {{-- HERO SECTION (Thumbnail & Judul) --}}
@@ -11,6 +9,8 @@
             <div class="absolute inset-0 bg-cover bg-center opacity-20 filter blur-sm"
                 style="background-image: url('{{ asset('storage/' . $exam->thumbnail) }}')"></div>
             @else
+            <div class="absolute inset-0 bg-gradient-to-r from-indigo-800 to-slate-900 opacity-90"></div>
+            @endif
 
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
                 <span
@@ -33,11 +33,9 @@
 
                 {{-- KIRI: Konten Artikel (Materi/Panduan) --}}
                 <div class="lg:w-2/3">
-                    {{-- Mengubah div menjadi article untuk semantik SEO --}}
                     <article
                         class="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8 sm:p-12 overflow-hidden">
 
-                        {{-- Mengelompokkan elemen pembuka dengan tag header --}}
                         <header>
                             @if($exam->thumbnail)
                             <img src="{{ asset('storage/' . $exam->thumbnail) }}"
@@ -50,7 +48,6 @@
                             </h2>
                         </header>
 
-                        {{-- Konten utama artikel --}}
                         <div class="prose prose-indigo prose-lg max-w-none text-slate-600">
                             @if($exam->content)
                             {!! $exam->content !!}
@@ -90,7 +87,6 @@
                                         class="fas fa-stopwatch text-emerald-500 text-xl w-6"></i> Durasi</div>
                                 <div class="font-black text-slate-800">{{ $exam->duration_minutes }} Menit</div>
                             </div>
-
                         </div>
 
                         {{-- ============================================== --}}
