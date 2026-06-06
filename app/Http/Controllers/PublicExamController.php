@@ -250,81 +250,95 @@ class PublicExamController extends Controller
         if ($userData) {
             $questions = $exam->questions()->with(['options', 'matches'])->get();
             $answers = $state['answers'] ?? [];
-            $totalScore = 0;
+
+            // Hapus $totalScore, kita murni gunakan perhitungan jumlah benar seperti di result()
             $correctCount = 0;
             $wrongCount = 0;
             $unansweredCount = 0;
             $totalQuestions = $questions->count();
 
+            // KOREKSI UNIVERSAL (DISAMAKAN PERSIS DENGAN FUNGSI RESULT)
             foreach ($questions as $q) {
-                $userAnswer = $answers[$q->id] ?? null;
+                $userAnswer = isset($answers[$q->id]) ? $answers[$q->id] : null;
 
-                // Normalisasi: decode JSON string jika perlu
-                if (is_string($userAnswer) && in_array($userAnswer[0] ?? '', ['{', '['])) {
-                    $userAnswer = json_decode($userAnswer, true) ?? $userAnswer;
+                // A. Pastikan format JSON string di-decode ke Array dengan aman
+                if (is_string($userAnswer) && (strpos(trim($userAnswer), '{') === 0 || strpos(trim($userAnswer), '[') === 0)) {
+                    $decoded = json_decode($userAnswer, true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $userAnswer = $decoded;
+                    }
                 }
-
-                // Normalisasi: object → array
                 if (is_object($userAnswer)) {
                     $userAnswer = (array) $userAnswer;
                 }
 
-                // Cek tidak dijawab
+                // B. Hitung sebagai "Tidak Dijawab" jika kosong
                 if ($userAnswer === null || $userAnswer === '' || (is_array($userAnswer) && empty($userAnswer))) {
                     $unansweredCount++;
 
                     continue;
                 }
 
-                $poin = 0;
-
+                // C. Logika Koreksi Berdasarkan Tipe
                 if ($q->type === 'single_choice') {
-                    $correctOption = $q->options->firstWhere('is_correct', true);
-                    if ($correctOption && $userAnswer == $correctOption->id) {
-                        $poin = 1;
-                    }
-
-                } elseif ($q->type === 'complex_choice') {
-                    $correctIds = $q->options->where('is_correct', true)->pluck('id')->sort()->values()->toArray();
-                    $userIds = is_array($userAnswer) ? $userAnswer : [];
-                    sort($userIds);
-                    if ($correctIds == $userIds) {
-                        $poin = 1;
-                    }
-
-                } elseif (in_array($q->type, ['true_false', 'true_false_multi'])) {
-                    // Poin parsial: per opsi yang benar
-                    $totalOptions = $q->options->count();
-                    $correctMatches = 0;
-                    $userAnswers = is_array($userAnswer) ? $userAnswer : [];
-
+                    $correctOptionId = null;
                     foreach ($q->options as $opt) {
-                        $expected = $opt->is_correct ? 'benar' : 'salah';
-                        $userValue = isset($userAnswers[$opt->id]) ? strtolower(trim((string) $userAnswers[$opt->id])) : null;
-                        if ($userValue === $expected) {
-                            $correctMatches++;
+                        if (filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN)) {
+                            $correctOptionId = (string) $opt->id;
+                            break;
                         }
                     }
 
-                    if ($totalOptions > 0) {
-                        $poin = $correctMatches / $totalOptions;
+                    if ($correctOptionId !== null && (string) $userAnswer === $correctOptionId) {
+                        $correctCount++;
+                    } else {
+                        $wrongCount++;
                     }
+                } elseif ($q->type === 'true_false' && is_array($userAnswer)) {
+                    $isAllCorrect = true;
+                    foreach ($q->options as $opt) {
+                        $isOptCorrect = filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN);
+                        $expectedAnswer = $isOptCorrect ? 'benar' : 'salah';
 
-                } elseif ($q->type === 'matching') {
-                    // Poin parsial: per pasangan yang benar
-                    $totalPairs = $q->matches->count();
-                    $correctPairs = 0;
-                    $userAnswers = is_array($userAnswer) ? $userAnswer : [];
+                        $optId = (string) $opt->id;
+                        $givenAnswer = isset($userAnswer[$optId]) ? strtolower(trim((string) $userAnswer[$optId])) : null;
 
-                    if ($totalPairs > 0) {
-                        foreach ($q->matches as $match) {
-                            if (isset($userAnswers[$match->id]) && $userAnswers[$match->id] == $match->correct_target_id) {
-                                $correctPairs++;
-                            }
+                        if ($givenAnswer !== $expectedAnswer) {
+                            $isAllCorrect = false;
+                            break;
                         }
-                        $poin = $correctPairs / $totalPairs;
+                    }
+                    $isAllCorrect ? $correctCount++ : $wrongCount++;
+                } elseif ($q->type === 'complex_choice' && is_array($userAnswer)) {
+                    $correctOptionIds = [];
+                    foreach ($q->options as $opt) {
+                        if (filter_var($opt->is_correct, FILTER_VALIDATE_BOOLEAN)) {
+                            $correctOptionIds[] = (string) $opt->id;
+                        }
                     }
 
+                    $userStr = array_map('strval', array_values($userAnswer));
+
+                    sort($correctOptionIds);
+                    sort($userStr);
+
+                    if ($correctOptionIds === $userStr) {
+                        $correctCount++;
+                    } else {
+                        $wrongCount++;
+                    }
+                } elseif ($q->type === 'matching' && is_array($userAnswer)) {
+                    $isAllCorrect = true;
+                    foreach ($q->matches as $match) {
+                        $mId = (string) $match->id;
+                        $answeredTarget = isset($userAnswer[$mId]) ? (string) $userAnswer[$mId] : null;
+
+                        if ($answeredTarget !== $mId) {
+                            $isAllCorrect = false;
+                            break;
+                        }
+                    }
+                    $isAllCorrect ? $correctCount++ : $wrongCount++;
                 } elseif ($q->type === 'essay' && is_string($userAnswer)) {
                     $cleanUser = preg_replace('/\s+/', ' ', trim(strip_tags($userAnswer)));
 
@@ -338,17 +352,17 @@ class PublicExamController extends Controller
                         });
 
                     $isCorrect ? $correctCount++ : $wrongCount++;
+                } else {
+                    $wrongCount++;
                 }
-
-                $totalScore += $poin;
-
-                // Untuk kolom correct/wrong: threshold poin penuh = 1
-                $poin === 1 ? $correctCount++ : $wrongCount++;
             }
 
-            $score = $totalQuestions > 0 ? round(($totalScore / $totalQuestions) * 100, 2) : 0;
+            // Hitung nilai akhir menggunakan jumlah jawaban benar saja
+            $score = $totalQuestions > 0 ? round(($correctCount / $totalQuestions) * 100) : 0;
+
             $durationSeconds = Carbon::parse($state['finished_at'])->diffInSeconds(Carbon::parse($state['started_at']));
             $userId = auth()->check() ? auth()->id() : null;
+
             PublicExamResult::create([
                 'exam_id' => $exam->id,
                 'nama_peserta' => $userData['nama_peserta'],
