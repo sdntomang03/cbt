@@ -49,16 +49,11 @@
                     @else
                     <div></div>
                     @endif
-
-                    {{-- Tombol Selesai (Fitur Gamifikasi) --}}
-                    <form action="#" method="POST">
-                        @csrf
-                        <button type="button"
-                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-2">
-                            <i class="fas fa-check-circle"></i> Tandai Selesai (+{{ $module->reward_points }} Poin)
-                        </button>
-                    </form>
-                </div>
+                    <div class="text-sm text-slate-500">
+                        <span>Ditulis oleh <strong>{{ $module->author->name }}</strong></span>
+                        <span class="mx-2">|</span>
+                        <span>Diterbitkan pada {{ $module->created_at->format('d M Y') }}</span>
+                    </div>
             </article>
         </div>
     </div>
