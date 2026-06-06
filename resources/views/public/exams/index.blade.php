@@ -238,4 +238,42 @@
 
 
     </div>
+    {{-- ========================================== --}}
+    {{-- NOTIFIKASI TOAST SEDERHANA (ALPINE.JS) --}}
+    {{-- ========================================== --}}
+    @if(session('success') || session('error'))
+    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)" {{-- Otomatis hilang dalam
+        5 detik --}} x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 translate-y-10" x-transition:enter-end="opacity-100 translate-y-0"
+        x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0"
+        x-transition:leave-end="opacity-0 translate-y-10"
+        class="fixed bottom-6 right-6 z-[100] max-w-sm w-full bg-white shadow-2xl rounded-2xl border-l-4 p-4 flex items-start gap-4 {{ session('success') ? 'border-emerald-500' : 'border-rose-500' }}"
+        x-cloak>
+
+        {{-- Ikon --}}
+        <div class="flex-shrink-0 mt-0.5">
+            @if(session('success'))
+            <i class="fas fa-check-circle text-emerald-500 text-xl"></i>
+            @else
+            <i class="fas fa-exclamation-circle text-rose-500 text-xl"></i>
+            @endif
+        </div>
+
+        {{-- Pesan Teks --}}
+        <div class="flex-1">
+            <h3 class="text-sm font-bold text-slate-800">
+                {{ session('success') ? 'Berhasil!' : 'Akses Ditolak!' }}
+            </h3>
+            <p class="text-sm text-slate-500 mt-1 leading-snug">
+                {{ session('success') ?? session('error') }}
+            </p>
+        </div>
+
+        {{-- Tombol Tutup Manual --}}
+        <button @click="show = false" class="text-slate-400 hover:text-slate-600 transition-colors p-1">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    @endif
+    {{-- ========================================== --}}
 </x-public-layout>
