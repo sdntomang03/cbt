@@ -1,27 +1,7 @@
-<x-public-layout>
-    {{-- MENGUBAH TAG TITLE BROWSER --}}
-    @section('title', $exam->title . ' - CBT Pro')
+<x-public-layout :pageTitle="$exam->title . ' - CBT Pro'"
+    :metaDescription="$exam->meta_description ?? 'Simulasi ujian online di CBT Pro.'"
+    :metaKeywords="$exam->meta_keywords ?? null" :metaImage="$exam->thumbnail ?? null">
 
-    {{-- MENYUNTIKKAN META SEO & OPEN GRAPH (UNTUK WHATSAPP/FACEBOOK) --}}
-    @push('meta')
-    <meta name="description" content="{{ $exam->meta_description ?? 'Simulasi ujian online di CBT Pro.' }}">
-    @if($exam->meta_keywords)
-    <meta name="keywords" content="{{ $exam->meta_keywords }}">
-    @endif
-
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="{{ $exam->title }}">
-    <meta property="og:description" content="{{ $exam->meta_description ?? 'Simulasi ujian online di CBT Pro.' }}">
-    <meta property="og:url" content="{{ url()->current() }}">
-
-    @if($exam->thumbnail)
-    <meta property="og:image" content="{{ asset('storage/' . $exam->thumbnail) }}">
-    @endif
-
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-    @endpush
 
     <div class="bg-slate-50 min-h-screen pb-20">
 
@@ -31,8 +11,6 @@
             <div class="absolute inset-0 bg-cover bg-center opacity-20 filter blur-sm"
                 style="background-image: url('{{ asset('storage/' . $exam->thumbnail) }}')"></div>
             @else
-            <div class="absolute inset-0 bg-gradient-to-r from-indigo-800 to-slate-900 opacity-90"></div>
-            @endif
 
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
                 <span
@@ -83,7 +61,8 @@
                                 <li>Berdoalah sebelum mengerjakan.</li>
                                 <li>Perhatikan batas waktu yang tersedia.</li>
                                 <li>Jika menggunakan Sensor Layar, dilarang berpindah <em>tab</em> atau mengecilkan
-                                    <em>browser</em>.</li>
+                                    <em>browser</em>.
+                                </li>
                             </ul>
                             @endif
                         </div>
