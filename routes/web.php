@@ -33,7 +33,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
-
+Route::get('/ranking-nasional', [PublicExamController::class, 'nationalRanking'])->name('public.ranking.nasional');
 // ==================================================================
 // ROUTE DASHBOARD (PINTU GERBANG)
 // ==================================================================
