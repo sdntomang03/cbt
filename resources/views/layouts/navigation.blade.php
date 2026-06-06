@@ -152,6 +152,11 @@
         <span class="w-6 text-center text-xl">📖</span>
         <span>Kawan Baca</span>
     </a>
+    <a href="{{ route('public.exams.index') }}"
+        class="{{ $navClass }} {{ request()->routeIs('public.exams.*') ? $activeClass : $inactiveClass }}">
+        <span class="w-6 text-center text-xl">📖</span>
+        <span>Belajar TKA</span>
+    </a>
     @endcan
 
 </nav>
