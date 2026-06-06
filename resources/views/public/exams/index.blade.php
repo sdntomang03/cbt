@@ -101,10 +101,17 @@
                         class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-2xl">
                         <i class="fas fa-file-signature"></i>
                     </div>
+                    @if($exam->is_premium)
+                    <span
+                        class="bg-amber-100 text-amber-700 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 border border-amber-300 shadow-sm">
+                        <i class="fas fa-crown text-amber-500"></i> Premium
+                    </span>
+                    @else
                     <span
                         class="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 border border-emerald-200">
-                        <i class="fas fa-globe text-emerald-500"></i> Terbuka
+                        <i class="fas fa-globe text-emerald-500"></i> Gratis
                     </span>
+                    @endif
                 </div>
 
                 <div class="flex-1 relative z-10">

@@ -125,11 +125,38 @@
                             </form>
                         </div>
                         @else
+                        @php
+                        $isPremiumLocked = $exam->is_premium && (!auth()->check() ||
+                        empty(auth()->user()->premium_until) ||
+                        \Carbon\Carbon::parse(auth()->user()->premium_until)->isPast());
+                        @endphp
+
+                        @if($isPremiumLocked)
+                        <div class="bg-rose-50 border border-rose-200 p-4 rounded-xl mb-4 text-center">
+                            <i class="fas fa-lock text-rose-500 text-2xl mb-2"></i>
+                            <h4 class="font-bold text-rose-700 text-sm mb-1">Akses Terkunci</h4>
+                            <p class="text-xs text-rose-600">Ujian ini khusus member Premium yang aktif.</p>
+                        </div>
+
+                        @if(!auth()->check())
+                        <a href="{{ route('login') }}"
+                            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-4 rounded-xl text-sm text-center transition-all flex items-center justify-center gap-2 shadow-md">
+                            Login Akun <i class="fas fa-sign-in-alt"></i>
+                        </a>
+                        @else
+                        {{-- Ganti rute '#' dengan rute halaman pembayaran/upgrade paket jika ada --}}
+                        <a href="#"
+                            class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 px-4 rounded-xl text-sm text-center transition-all flex items-center justify-center gap-2 shadow-md">
+                            Upgrade Premium <i class="fas fa-crown"></i>
+                        </a>
+                        @endif
+                        @else
                         <a href="{{ route('public.exams.verify', $exam) }}"
                             class="w-full bg-slate-900 hover:bg-indigo-600 text-white font-bold py-4 px-4 rounded-xl text-sm text-center transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2 group">
                             Mulai Kerjakan <i
                                 class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
                         </a>
+                        @endif
                         @endif
 
                     </div>

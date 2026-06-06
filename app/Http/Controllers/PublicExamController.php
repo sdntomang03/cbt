@@ -59,6 +59,16 @@ class PublicExamController extends Controller
     {
         abort_if(! $exam->is_public, 403, 'AKSES DITOLAK: Ujian ini hanya untuk siswa internal.');
 
+        // Proteksi Lapis Ketiga (Jika user bypass URL verifikasi)
+        if ($exam->is_premium) {
+            if (! auth()->check() || empty(auth()->user()->premium_until) || Carbon::parse(auth()->user()->premium_until)->isPast()) {
+                session()->forget('public_user_'.$exam->id);
+
+                return redirect()->route('public.exams.index')
+                    ->with('error', 'Akses ditolak. Ujian ini memerlukan status Premium aktif.');
+            }
+        }
+
         if (! session()->has('public_user_'.$exam->id)) {
             return redirect()->route('public.exams.verify', $exam)
                 ->with('error', 'Silakan isi data diri Anda terlebih dahulu.');
@@ -518,11 +528,29 @@ class PublicExamController extends Controller
     {
         abort_if(! $exam->is_public, 403);
 
+        // ========================================================
+        // LOGIKA CEGATAN PREMIUM
+        // ========================================================
+        if ($exam->is_premium) {
+            // 1. Jika belum login
+            if (! auth()->check()) {
+                return redirect()->route('login')
+                    ->with('error', 'Akses ditolak. Ujian ini eksklusif untuk member Premium. Silakan login.');
+            }
+
+            // 2. Jika sudah login, tapi masa aktif premium habis/null
+            $user = auth()->user();
+            if (empty($user->premium_until) || Carbon::parse($user->premium_until)->isPast()) {
+                return redirect()->route('public.exams.index')
+                    ->with('error', 'Akses ditolak. Masa aktif Premium Anda telah habis atau Anda belum berlangganan.');
+            }
+        }
+        // ========================================================
+
         if (session()->has('public_user_'.$exam->id)) {
             return redirect()->route('public.exams.show', $exam);
         }
 
-        // Generate token acak & simpan di session
         $token = strtoupper(Str::random(6));
         session()->put('exam_token_'.$exam->id, $token);
 
@@ -532,6 +560,14 @@ class PublicExamController extends Controller
     public function processVerify(Request $request, Exam $exam)
     {
         abort_if(! $exam->is_public, 403);
+
+        // Proteksi Ganda di proses POST
+        if ($exam->is_premium) {
+            if (! auth()->check() || empty(auth()->user()->premium_until) || Carbon::parse(auth()->user()->premium_until)->isPast()) {
+                return redirect()->route('public.exams.index')
+                    ->with('error', 'Akses ditolak. Masa aktif Premium Anda tidak valid.');
+            }
+        }
 
         $request->validate([
             'nama_peserta' => 'required|string|max:100',
