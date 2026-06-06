@@ -14,6 +14,7 @@ use App\Http\Controllers\ExamController;
 use App\Http\Controllers\ImageUploadController;
 use App\Http\Controllers\KawanBacaController;
 use App\Http\Controllers\KawanHitungController;
+use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\ProctorController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicExamController;
@@ -153,6 +154,9 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
 
         // --- PERBAIKAN 3: Perbaikan Nama Route agar tidak ganda ---
         Route::post('/users/{user}/update-role', [UserController::class, 'updateRole'])->name('users.update_role');
+
+        Route::resource('/modules', ModuleController::class)->names('modules');
+
     });
 
 // ==================================================================
@@ -248,6 +252,9 @@ Route::group(['prefix' => 'tryout', 'as' => 'public.exams.'], function () {
         ->name('ranking');
     Route::get('/detail/{slug}', [PublicExamController::class, 'detail'])->name('detail');
 });
+
+Route::get('/materi-belajar', [ModuleController::class, 'studentIndex'])->name('public.modules.index');
+Route::get('/materi-belajar/{slug}', [ModuleController::class, 'studentShow'])->name('public.modules.show');
 
 Route::get('/sitemap.xml', [SitemapController::class, 'index']);
 require __DIR__.'/auth.php';
