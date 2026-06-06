@@ -10,20 +10,24 @@
     <link rel="canonical" href="{{ url()->current() }}">
     @endpush
 
-    {{-- HERO / HEADER SECTION --}}
+
     <div class="w-full bg-slate-900 relative overflow-hidden pt-16 pb-24">
         <div class="absolute inset-0 bg-gradient-to-r from-indigo-800 to-slate-900 opacity-90"></div>
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
             <span
                 class="inline-block px-4 py-1.5 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-black tracking-widest uppercase mb-4 border border-indigo-400/30">
-                <i class="fas fa-list-ul mr-1"></i> Simulasi TKA SD
+                <i class="fas fa-laptop-code mr-1"></i> Tes Kemampuan Akademik
             </span>
+
+
             <h1 class="text-4xl md:text-5xl font-black text-white tracking-tight mb-4">
-                Daftar Try Out & Simulasi
+                Kumpulan Simulasi Try Out TKA SD
             </h1>
+
             <p class="text-lg text-slate-300 max-w-2xl mx-auto font-medium">
-                Pilih dan ikuti simulasi ujian atau Try Out yang tersedia di bawah ini untuk mengukur kemampuan Anda.
+                Pilih dan ikuti berbagai <strong>simulasi try out TKA SD</strong> secara online di bawah ini. Ukur
+                kemampuan logika, numerasi, dan literasi Anda untuk persiapan ujian yang sesungguhnya.
             </p>
         </div>
     </div>
@@ -166,64 +170,65 @@
 
         @endif
 
-        {{-- ========================================== --}}
-        {{-- ARTIKEL SEO: SIMULASI TRYOUT TKA SD --}}
-        {{-- ========================================== --}}
+
         <article class="mt-20 bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8 sm:p-12 overflow-hidden">
             <div class="max-w-4xl mx-auto">
                 <header class="mb-8">
                     <h2 class="text-3xl font-black text-slate-800 mb-4 tracking-tight">
-                        Mengapa Simulasi Tryout TKA SD Sangat Penting?
+                        Mengapa Simulasi Try Out TKA SD Sangat Penting?
                     </h2>
                     <div class="w-20 h-1.5 bg-indigo-500 rounded-full"></div>
                 </header>
 
                 <div class="space-y-6 text-slate-600 leading-relaxed">
                     <p>
-                        Menghadapi <strong>Tes Kemampuan Akademik (TKA)</strong> seringkali menjadi momen yang
-                        menegangkan bagi siswa Sekolah Dasar (SD), terutama bagi mereka yang berada di kelas 6. TKA
-                        bukan sekadar ujian biasa; tes ini dirancang untuk mengukur tingkat pemahaman, logika, dan
-                        literasi akademik siswa secara mendalam sebagai bekal menuju jenjang pendidikan selanjutnya.
+                        Menghadapi ujian kelulusan sering kali menjadi momen yang menegangkan bagi siswa kelas 6. Oleh
+                        karena itu, mengikuti <strong>simulasi try out TKA SD</strong> (Tes Kemampuan Akademik) menjadi
+                        langkah persiapan yang sangat krusial. TKA bukanlah sekadar ujian biasa; tes ini dirancang
+                        secara khusus untuk mengukur tingkat pemahaman logika, numerasi, dan literasi akademik siswa
+                        secara mendalam sebagai bekal menuju jenjang pendidikan SMP.
                     </p>
                     <p>
-                        Untuk membantu siswa mempersiapkan diri secara optimal, CBT Pro menghadirkan <strong>Simulasi
-                            Tryout TKA SD Online</strong> secara gratis. Melalui platform ini, siswa dapat merasakan
-                        pengalaman ujian yang sesungguhnya dengan format <em>Computer Based Test</em> (CBT) yang kini
-                        menjadi standar evaluasi pendidikan modern.
+                        Untuk membantu siswa mencapai nilai maksimal, CBT Pro menghadirkan platform <strong>simulasi try
+                            out TKA SD</strong> online secara gratis. Melalui layanan pendidikan ini, siswa dapat
+                        merasakan pengalaman ujian yang sesungguhnya dengan format <em>Computer Based Test</em> (CBT)
+                        yang kini telah menjadi standar evaluasi pendidikan nasional.
                     </p>
 
-                    <h3 class="text-xl font-bold text-slate-800 mt-8 mb-3">Manfaat Mengikuti Simulasi Tryout di CBT Pro
+                    <h3 class="text-xl font-bold text-slate-800 mt-8 mb-3">
+                        Manfaat Mengikuti Simulasi Try Out TKA SD di CBT Pro
                     </h3>
                     <ul class="list-disc ml-5 space-y-3 marker:text-indigo-500">
                         <li><strong>Adaptasi Teknologi CBT:</strong> Siswa menjadi lebih terbiasa dan tidak gagap
-                            teknologi saat menghadapi antarmuka ujian berbasis komputer yang sebenarnya.</li>
-                        <li><strong>Manajemen Waktu:</strong> Fitur <em>timer</em> yang berjalan *real-time* melatih
-                            siswa untuk mengalokasikan waktu dengan bijak pada setiap butir soal.</li>
-                        <li><strong>Evaluasi Instan:</strong> Setelah menyelesaikan tryout, sistem akan langsung
-                            menampilkan skor dan hasil evaluasi, memungkinkan siswa mengetahui area mana yang perlu
-                            ditingkatkan.</li>
-                        <li><strong>Mengurangi Kecemasan:</strong> Pengalaman simulasi yang berulang-ulang terbukti
-                            secara psikologis mampu menurunkan tingkat stres dan kepanikan anak saat hari ujian tiba.
+                            teknologi saat mengerjakan soal-soal <strong>try out TKA SD</strong> berbasis komputer
+                            maupun <em>smartphone</em>.</li>
+                        <li><strong>Manajemen Waktu yang Akurat:</strong> Fitur <em>timer</em> yang berjalan
+                            <em>real-time</em> melatih siswa untuk mengalokasikan waktu dengan bijak saat memecahkan
+                            soal di <strong>simulasi try out TKA SD</strong>.
                         </li>
-                        <li><strong>Ranking Nasional:</strong> Siswa yang telah melaksanakan tryout dapat melihat
-                            peringkatnya secara nasional, memberikan motivasi tambahan untuk
-                            belajar lebih giat dan bersaing secara sehat dengan teman-teman sebayanya di seluruh
-                            Indonesia.
-                        </li>
+                        <li><strong>Evaluasi Skor Instan:</strong> Setelah menyelesaikan simulasi, sistem akan langsung
+                            menampilkan skor akhir. Fitur ini memudahkan siswa mengetahui materi TKA mana yang sudah
+                            dikuasai dan yang masih perlu ditingkatkan.</li>
+                        <li><strong>Mengurangi Kecemasan Ujian:</strong> Mengerjakan <strong>simulasi try out TKA
+                                SD</strong> secara rutin terbukti secara psikologis mampu menurunkan tingkat stres dan
+                            kepanikan anak saat hari ujian sebenarnya tiba.</li>
+                        <li><strong>Papan Peringkat Nasional:</strong> Siswa yang telah melaksanakan try out dapat
+                            melihat peringkatnya secara nasional. Hal ini memberikan motivasi tambahan untuk belajar
+                            lebih giat dan bersaing secara sehat dengan teman-teman sebayanya di seluruh Indonesia.</li>
                     </ul>
 
                     <div class="bg-indigo-50 border-l-4 border-indigo-500 p-5 rounded-r-xl mt-8">
                         <p class="text-indigo-900 font-medium m-0">
-                            <i class="fas fa-lightbulb text-indigo-500 mr-2"></i> <strong>Tips Lulus:</strong> Pastikan
-                            koneksi internet Anda stabil sebelum menekan tombol mulai, siapkan alat tulis untuk
-                            coret-coretan berhitung, dan bacalah setiap soal literasi dengan cermat dan tenang. Selamat
-                            belajar dan semoga sukses!
+                            <i class="fas fa-lightbulb text-indigo-500 mr-2"></i> <strong>Tips Sukses:</strong> Pastikan
+                            koneksi internet Anda stabil sebelum menekan tombol mulai <strong>simulasi try out TKA
+                                SD</strong>, siapkan kertas buram untuk coret-coretan berhitung, dan bacalah setiap soal
+                            literasi dengan cermat serta tenang. Selamat berlatih dan raih peringkat terbaikmu!
                         </p>
                     </div>
                 </div>
             </div>
         </article>
-        {{-- ========================================== --}}
+
 
     </div>
 </x-public-layout>
