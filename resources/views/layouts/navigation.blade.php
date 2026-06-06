@@ -131,30 +131,29 @@
         <span>Ruang Ujian</span>
     </a>
 
-
     <a href="{{ route('student.math.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('student.math.*') ? $activeClass : $inactiveClass }}">
-        <i class="fas fa-superscript w-6 text-center text-lg"></i>
+        <i class="fas fa-calculator w-6 text-center text-lg"></i>
         <span>Latihan Hitung</span>
     </a>
-
 
     <div class="text-xs font-black text-slate-400 uppercase tracking-widest mt-8 mb-3 px-4">Modul Interaktif</div>
 
     <a href="{{ route('hitung.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('hitung.*') ? $activeClass : $inactiveClass }}">
-        <span class="w-6 text-center text-xl">🧮</span>
+        <i class="fas fa-abacus w-6 text-center text-lg"></i>
         <span>Kawan Hitung</span>
     </a>
 
     <a href="{{ route('baca.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('baca.*') ? $activeClass : $inactiveClass }}">
-        <span class="w-6 text-center text-xl">📖</span>
+        <i class="fas fa-book-reader w-6 text-center text-lg"></i>
         <span>Kawan Baca</span>
     </a>
+
     <a href="{{ route('public.exams.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('public.exams.*') ? $activeClass : $inactiveClass }}">
-        <span class="w-6 text-center text-xl">📖</span>
+        <i class="fas fa-graduation-cap w-6 text-center text-lg"></i>
         <span>Belajar TKA</span>
     </a>
     @endcan
