@@ -1,3 +1,9 @@
+@props([
+'pageTitle' => null,
+'metaDescription' => null,
+'metaKeywords' => null,
+'metaImage' => null
+])
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
