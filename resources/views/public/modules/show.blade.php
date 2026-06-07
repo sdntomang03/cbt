@@ -2,10 +2,183 @@
     :metaDescription="$module->description ?? 'Modul pembelajaran interaktif CBT Pro.'"
     :metaImage="$module->thumbnail ?? null">
 
+    {{-- ========================================== --}}
+    {{-- STYLE: Prose Fallback + Video Fix --}}
+    {{-- ========================================== --}}
+    <style>
+        /* ── Video responsive (pure CSS, tanpa plugin Tailwind) ── */
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            /* 16:9 ratio */
+            height: 0;
+            overflow: hidden;
+            border-radius: 1rem;
+            background: #0f172a;
+        }
+
+        .video-wrapper iframe {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+
+        /* ── Prose fallback (jika @tailwindcss/typography belum aktif) ── */
+        .module-content {
+            color: #475569;
+            font-size: 1.0625rem;
+            line-height: 1.85;
+        }
+
+        .module-content h1,
+        .module-content h2,
+        .module-content h3,
+        .module-content h4 {
+            color: #1e293b;
+            font-weight: 800;
+            margin-top: 2em;
+            margin-bottom: 0.75em;
+            line-height: 1.3;
+        }
+
+        .module-content h1 {
+            font-size: 1.875rem;
+        }
+
+        .module-content h2 {
+            font-size: 1.5rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.4em;
+        }
+
+        .module-content h3 {
+            font-size: 1.25rem;
+        }
+
+        .module-content h4 {
+            font-size: 1.0625rem;
+        }
+
+        .module-content p {
+            margin-top: 0;
+            margin-bottom: 1.25em;
+        }
+
+        .module-content a {
+            color: #4f46e5;
+            text-decoration: underline;
+        }
+
+        .module-content a:hover {
+            color: #4338ca;
+        }
+
+        .module-content strong {
+            color: #1e293b;
+            font-weight: 700;
+        }
+
+        .module-content em {
+            font-style: italic;
+        }
+
+        .module-content ul,
+        .module-content ol {
+            padding-left: 1.75em;
+            margin-bottom: 1.25em;
+        }
+
+        .module-content ul {
+            list-style-type: disc;
+        }
+
+        .module-content ol {
+            list-style-type: decimal;
+        }
+
+        .module-content li {
+            margin-bottom: 0.4em;
+        }
+
+        .module-content blockquote {
+            border-left: 4px solid #818cf8;
+            padding: 0.5em 1.25em;
+            margin: 1.5em 0;
+            background: #eef2ff;
+            border-radius: 0 0.5rem 0.5rem 0;
+            color: #4338ca;
+            font-style: italic;
+        }
+
+        .module-content pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1.25em;
+            border-radius: 0.75rem;
+            overflow-x: auto;
+            margin-bottom: 1.25em;
+            font-size: 0.9em;
+        }
+
+        .module-content code {
+            background: #f1f5f9;
+            color: #e11d48;
+            padding: 0.15em 0.4em;
+            border-radius: 0.35em;
+            font-size: 0.9em;
+        }
+
+        .module-content pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        .module-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5em;
+            font-size: 0.9375rem;
+        }
+
+        .module-content th,
+        .module-content td {
+            border: 1px solid #e2e8f0;
+            padding: 0.6em 0.9em;
+            text-align: left;
+        }
+
+        .module-content th {
+            background: #f8fafc;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .module-content tr:nth-child(even) td {
+            background: #f8fafc;
+        }
+
+        .module-content img {
+            max-width: 100%;
+            border-radius: 0.75rem;
+            margin: 1.5em auto;
+            display: block;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, .08);
+        }
+
+        /* Quill formula */
+        .module-content .ql-formula {
+            display: inline-block;
+        }
+    </style>
+
     <div class="bg-slate-50 min-h-screen pb-20">
 
         {{-- ========================================== --}}
-        {{-- HERO SECTION (Thumbnail & Judul) --}}
+        {{-- HERO SECTION --}}
         {{-- ========================================== --}}
         <div class="w-full bg-slate-900 relative overflow-hidden pt-20 pb-24">
             @if($module->thumbnail)
@@ -31,12 +204,12 @@
         </div>
 
         {{-- ========================================== --}}
-        {{-- KONTEN UTAMA & SIDEBAR (2 KOLOM) --}}
+        {{-- KONTEN UTAMA & SIDEBAR --}}
         {{-- ========================================== --}}
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-20">
             <div class="flex flex-col lg:flex-row gap-8">
 
-                {{-- KIRI: Konten Artikel (Materi/Panduan) --}}
+                {{-- KIRI: Konten Artikel --}}
                 <div class="lg:w-2/3">
                     <article
                         class="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8 sm:p-12 overflow-hidden">
@@ -52,26 +225,24 @@
                             </div>
                         </header>
 
-                        {{-- Frame Video Pembuat (Jika Ada) --}}
+                        {{-- ── FIX VIDEO: gunakan .video-wrapper ── --}}
                         @if($module->video_url)
-                        <div class="aspect-w-16 aspect-h-9 bg-slate-900 rounded-2xl overflow-hidden mb-10 shadow-md">
-                            <iframe src="{{ $module->video_url }}" frameborder="0"
+                        <div class="video-wrapper mb-10 shadow-md">
+                            <iframe src="{{ $module->video_url }}"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowfullscreen class="w-full h-[350px] sm:h-[400px]"></iframe>
+                                allowfullscreen></iframe>
                         </div>
                         @endif
 
-                        {{-- ============================================== --}}
-                        {{-- KONTEN MATERI (DENGAN PROSE TAILWIND) --}}
-                        {{-- ============================================== --}}
-                        <div class="prose prose-indigo prose-lg max-w-none text-slate-600">
+                        {{-- ── FIX PROSE: gunakan .module-content ── --}}
+                        <div class="module-content prose prose-indigo prose-lg max-w-none">
                             {!! $module->content !!}
                         </div>
 
                     </article>
                 </div>
 
-                {{-- KANAN: Sidebar Statistik & Tombol Pintar --}}
+                {{-- KANAN: Sidebar --}}
                 <div class="lg:w-1/3">
                     <div
                         class="bg-white rounded-[2rem] shadow-xl shadow-indigo-500/5 border border-slate-200 p-8 sticky top-28">
@@ -80,36 +251,39 @@
                             Detail Modul
                         </h3>
 
-                        {{-- List Informasi Modul --}}
                         <div class="space-y-4 mb-8">
                             <div
                                 class="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                <div class="flex items-center gap-3 text-slate-600 font-bold"><i
-                                        class="fas fa-book text-blue-500 text-xl w-6"></i> Mapel</div>
+                                <div class="flex items-center gap-3 text-slate-600 font-bold">
+                                    <i class="fas fa-book text-blue-500 text-xl w-6"></i> Mapel
+                                </div>
                                 <div class="font-black text-slate-800">{{ $module->subject->name ?? '-' }}</div>
                             </div>
                             <div
                                 class="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                <div class="flex items-center gap-3 text-slate-600 font-bold"><i
-                                        class="fas fa-layer-group text-orange-500 text-xl w-6"></i> Tingkat</div>
+                                <div class="flex items-center gap-3 text-slate-600 font-bold">
+                                    <i class="fas fa-layer-group text-orange-500 text-xl w-6"></i> Tingkat
+                                </div>
                                 <div class="font-black text-slate-800">{{ $module->level->name ?? '-' }}</div>
                             </div>
                             <div
                                 class="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                <div class="flex items-center gap-3 text-slate-600 font-bold"><i
-                                        class="fas fa-stopwatch text-emerald-500 text-xl w-6"></i> Estimasi</div>
+                                <div class="flex items-center gap-3 text-slate-600 font-bold">
+                                    <i class="fas fa-stopwatch text-emerald-500 text-xl w-6"></i> Estimasi
+                                </div>
                                 <div class="font-black text-slate-800">{{ $module->estimated_time_minutes }} Menit</div>
                             </div>
                             <div
                                 class="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                <div class="flex items-center gap-3 text-slate-600 font-bold"><i
-                                        class="fas fa-user-edit text-purple-500 text-xl w-6"></i> Penulis</div>
-                                <div class="font-black text-slate-800 text-right truncate max-w-[120px]">{{
-                                    $module->author->name ?? 'Admin' }}</div>
+                                <div class="flex items-center gap-3 text-slate-600 font-bold">
+                                    <i class="fas fa-user-edit text-purple-500 text-xl w-6"></i> Penulis
+                                </div>
+                                <div class="font-black text-slate-800 text-right truncate max-w-[120px]">
+                                    {{ $module->author->name ?? 'Admin' }}
+                                </div>
                             </div>
                         </div>
 
-                        {{-- Tombol Aksi --}}
                         <div class="space-y-3">
                             @if($module->document_path)
                             <a href="{{ asset('storage/' . $module->document_path) }}" target="_blank"
@@ -119,7 +293,6 @@
                             </a>
                             @endif
 
-                            {{-- Tombol Klaim Poin (Gamifikasi) --}}
                             <form action="#" method="POST">
                                 @csrf
                                 <button type="submit"
@@ -138,22 +311,22 @@
     </div>
 
     {{-- ========================================== --}}
-    {{-- SCRIPT KATEX UNTUK RENDER RUMUS LATEX --}}
+    {{-- KATEX --}}
     {{-- ========================================== --}}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-
-    {{-- SANGAT PENTING: auto-render.min.js wajib ada agar "renderMathInElement" berfungsi --}}
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            // 1. Render elemen formula bawaan Quill (span dengan class ql-formula)
+            // 1. Render elemen formula bawaan Quill (span.ql-formula)
             document.querySelectorAll('.ql-formula').forEach(el => {
                 const exp = el.getAttribute('data-value');
                 if (exp) {
-                    // Terjemahkan entitas HTML jika editor menyimpannya sebagai &gt; atau &lt;
-                    const decoded = exp.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
+                    const decoded = exp
+                        .replace(/&gt;/g, '>')
+                        .replace(/&lt;/g, '<')
+                        .replace(/&amp;/g, '&');
                     try {
                         window.katex.render(decoded, el, { throwOnError: false });
                     } catch (e) {
@@ -162,12 +335,12 @@
                 }
             });
 
-            // 2. Auto-render jika Admin mengetik kode LaTeX secara manual di dalam teks (menggunakan $$ atau $)
+            // 2. Auto-render LaTeX manual ($$ / $ / \( \[ )
             if (typeof renderMathInElement === 'function') {
                 renderMathInElement(document.body, {
                     delimiters: [
                         { left: '$$', right: '$$', display: true },
-                        { left: '$', right: '$', display: false },
+                        { left: '$',  right: '$',  display: false },
                         { left: '\\(', right: '\\)', display: false },
                         { left: '\\[', right: '\\]', display: true }
                     ],
