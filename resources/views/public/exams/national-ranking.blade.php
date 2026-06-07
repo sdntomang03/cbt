@@ -248,7 +248,7 @@
                 </div>
 
                 <div class="flex flex-col divide-y divide-slate-100">
-                    @foreach($topUsers->skip(3) as $index => $user)
+                    @foreach($topUsers->skip(3)->values() as $index => $user)
                     @php
                     $rank = $index + 4;
                     $isCurrentUser = auth()->check() && auth()->id() === $user->id;
