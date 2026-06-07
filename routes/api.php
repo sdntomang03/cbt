@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\ApiAuthController;
 use App\Http\Controllers\Api\ApiPublicExamController;
 use App\Http\Controllers\Api\ApiStudentExamController;
+use App\Http\Controllers\Api\StudentModuleController;
 use Illuminate\Support\Facades\Route;
 
 // =========================================================
@@ -62,6 +63,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/math-exams/{id}/answer', [ApiStudentExamController::class, 'mathSaveAnswer']);
         Route::post('/math-exams/{id}/finish', [ApiStudentExamController::class, 'mathFinish']);
         Route::get('/math-exams/{id}/result', [ApiStudentExamController::class, 'mathResult']);
-    });
 
+    });
+    Route::get('/modules', [StudentModuleController::class, 'index']);
+
+    Route::get('/modules/{slug}', [StudentModuleController::class, 'show']);
 });
