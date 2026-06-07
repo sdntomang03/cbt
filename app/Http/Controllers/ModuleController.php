@@ -158,13 +158,27 @@ class ModuleController extends Controller
 
     public function studentIndex(Request $request)
     {
-        $modules = Module::where('status', 'published')
+        $query = Module::where('status', 'published')
             ->where('is_public', true)
-            ->with(['subject', 'level'])
-            ->latest()
-            ->paginate(12);
+            ->with(['subject', 'level']);
 
-        return view('public.modules.index', compact('modules'));
+        if ($request->filled('subject_id')) {
+            $query->where('subject_id', $request->subject_id);
+        }
+
+        if ($request->filled('level_id')) {
+            $query->where('level_id', $request->level_id);
+        }
+
+        if ($request->filled('search')) {
+            $query->where('title', 'like', '%'.$request->search.'%');
+        }
+
+        $modules = $query->latest()->paginate(12)->withQueryString();
+        $subjects = Subject::orderBy('name')->get();
+        $levels = Level::orderBy('name')->get();
+
+        return view('public.modules.index', compact('modules', 'subjects', 'levels'));
     }
 
     public function studentShow($slug)

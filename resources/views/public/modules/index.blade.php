@@ -15,6 +15,109 @@
     </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-20 pb-20">
+
+        {{-- ========================================== --}}
+        {{-- PANEL FILTER --}}
+        {{-- ========================================== --}}
+        <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-6 mb-8">
+            <form method="GET" action="{{ route('public.modules.index') }}"
+                class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
+
+                {{-- Cari Judul --}}
+                <div class="flex-1">
+                    <label class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-1.5">
+                        <i class="fas fa-search mr-1"></i> Cari Modul
+                    </label>
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Ketik judul modul..."
+                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                </div>
+
+                {{-- Filter Mata Pelajaran --}}
+                <div class="sm:w-52">
+                    <label class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-1.5">
+                        <i class="fas fa-book mr-1"></i> Mata Pelajaran
+                    </label>
+                    <select name="subject_id"
+                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white">
+                        <option value="">Semua Mapel</option>
+                        @foreach($subjects as $subject)
+                        <option value="{{ $subject->id }}" {{ request('subject_id')==$subject->id ? 'selected' : '' }}>
+                            {{ $subject->name }}
+                        </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Filter Kelas/Tingkat --}}
+                <div class="sm:w-44">
+                    <label class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-1.5">
+                        <i class="fas fa-layer-group mr-1"></i> Kelas
+                    </label>
+                    <select name="level_id"
+                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white">
+                        <option value="">Semua Kelas</option>
+                        @foreach($levels as $level)
+                        <option value="{{ $level->id }}" {{ request('level_id')==$level->id ? 'selected' : '' }}>
+                            {{ $level->name }}
+                        </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Tombol --}}
+                <div class="flex gap-2 sm:pb-0">
+                    <button type="submit"
+                        class="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    @if(request()->hasAny(['search', 'subject_id', 'level_id']))
+                    <a href="{{ route('public.modules.index') }}"
+                        class="flex-1 sm:flex-none bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold px-4 py-2.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+                        <i class="fas fa-times"></i> Reset
+                    </a>
+                    @endif
+                </div>
+            </form>
+
+            {{-- Info hasil filter --}}
+            @if(request()->hasAny(['search', 'subject_id', 'level_id']))
+            <div class="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                <span class="text-xs font-bold text-slate-400">Hasil filter:</span>
+                <span class="text-xs font-black text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
+                    {{ $modules->total() }} modul ditemukan
+                </span>
+                @if(request('search'))
+                <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+                    Judul: "{{ request('search') }}"
+                </span>
+                @endif
+                @if(request('subject_id'))
+                <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+                    Mapel: {{ $subjects->firstWhere('id', request('subject_id'))?->name }}
+                </span>
+                @endif
+                @if(request('level_id'))
+                <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+                    Kelas: {{ $levels->firstWhere('id', request('level_id'))?->name }}
+                </span>
+                @endif
+            </div>
+            @endif
+        </div>
+
+        {{-- ========================================== --}}
+        {{-- GRID MODUL --}}
+        {{-- ========================================== --}}
+        @if($modules->isEmpty())
+        <div class="text-center py-24 bg-white rounded-[2rem] border border-slate-200">
+            <i class="fas fa-search text-5xl text-slate-200 mb-4"></i>
+            <p class="text-slate-500 font-bold text-lg">Tidak ada modul yang sesuai filter.</p>
+            <a href="{{ route('public.modules.index') }}"
+                class="inline-block mt-4 text-sm font-bold text-blue-600 hover:underline">
+                Tampilkan semua modul
+            </a>
+        </div>
+        @else
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             @foreach($modules as $module)
             <a href="{{ route('public.modules.show', $module->slug) }}"
@@ -44,11 +147,13 @@
                 <div class="p-6 flex-1 flex flex-col">
                     <div class="flex flex-wrap gap-2 mb-3">
                         <span
-                            class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100">{{
-                            $module->subject->name }}</span>
+                            class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100">
+                            {{ $module->subject->name }}
+                        </span>
                         <span
-                            class="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-lg border border-orange-100">{{
-                            $module->level->name }}</span>
+                            class="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-lg border border-orange-100">
+                            {{ $module->level->name }}
+                        </span>
                     </div>
 
                     <h2
@@ -70,6 +175,8 @@
             </a>
             @endforeach
         </div>
+
         <div class="mt-8">{{ $modules->links() }}</div>
+        @endif
     </div>
 </x-public-layout>
