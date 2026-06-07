@@ -130,6 +130,29 @@ class ModuleController extends Controller
     }
 
     // ========================================================
+    // UPLOAD GAMBAR DARI QUILL EDITOR
+    // ========================================================
+    public function uploadImage(Request $request)
+    {
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        ]);
+
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            // Simpan gambar ke storage public/modules/images
+            $path = $file->store('modules/images', 'public');
+
+            // Kembalikan URL gambar agar bisa dirender oleh Quill Editor
+            return response()->json([
+                'url' => asset('storage/'.$path),
+            ]);
+        }
+
+        return response()->json(['message' => 'Gagal mengupload gambar'], 400);
+    }
+
+    // ========================================================
     // SISI SISWA / PUBLIK
     // ========================================================
 

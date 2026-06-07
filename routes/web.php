@@ -155,6 +155,7 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         // --- PERBAIKAN 3: Perbaikan Nama Route agar tidak ganda ---
         Route::post('/users/{user}/update-role', [UserController::class, 'updateRole'])->name('users.update_role');
 
+        Route::post('/modules/upload-image', [ModuleController::class, 'uploadImage'])->name('modules.upload-image');
         Route::resource('/modules', ModuleController::class)->names('modules');
 
     });
