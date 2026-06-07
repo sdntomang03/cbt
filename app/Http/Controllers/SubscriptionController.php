@@ -66,6 +66,13 @@ class SubscriptionController extends Controller
                 'first_name' => $user->name,
                 'email' => $user->email ?? 'no-email@test.com',
             ],
+            // 🔥 TAMBAHKAN BLOK CALLBACKS INI
+            'callbacks' => [
+                'finish' => 'sahabatkreasianak://payment/success',
+                'unfinish' => 'sahabatkreasianak://payment/unfinish',
+                'error' => 'sahabatkreasianak://payment/error',
+            ],
+
         ];
 
         try {
