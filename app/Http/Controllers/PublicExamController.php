@@ -585,7 +585,7 @@ class PublicExamController extends Controller
         // Pastikan Anda memanggil model User di atas file: use App\Models\User;
         $topUsers = User::where('total_poin', '>', 0)
             ->orderBy('total_poin', 'desc')
-            ->take(100)
+            ->take(10)
             ->get();
 
         $currentUserRank = null;
