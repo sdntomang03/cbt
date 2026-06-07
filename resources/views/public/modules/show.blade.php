@@ -335,14 +335,7 @@
                             </a>
                             @endif
 
-                            <form action="#" method="POST">
-                                @csrf
-                                <button type="submit"
-                                    class="w-full bg-slate-900 hover:bg-blue-600 text-white font-bold py-4 px-4 rounded-xl text-sm text-center transition-all flex items-center justify-center gap-2 shadow-md group">
-                                    <i class="fas fa-check-circle group-hover:scale-110 transition-transform"></i>
-                                    Tandai Selesai (+{{ $module->reward_points }} Poin)
-                                </button>
-                            </form>
+
                         </div>
 
                     </div>
