@@ -53,8 +53,8 @@ class ModuleController extends Controller
 
         $validated['slug'] = Str::slug($request->title).'-'.Str::random(5);
         $validated['author_id'] = auth()->id();
-        $validated['is_public'] = $request->has('is_public');
-        $validated['is_premium'] = $request->has('is_premium');
+        $validated['is_public'] = $request->boolean('is_public');
+        $validated['is_premium'] = $request->boolean('is_premium');
 
         if ($request->hasFile('thumbnail')) {
             $validated['thumbnail'] = $request->file('thumbnail')->store('modules/thumbnails', 'public');
@@ -93,8 +93,8 @@ class ModuleController extends Controller
             'reward_points' => 'integer|min:0',
         ]);
 
-        $validated['is_public'] = $request->has('is_public');
-        $validated['is_premium'] = $request->has('is_premium');
+        $validated['is_public'] = $request->boolean('is_public');
+        $validated['is_premium'] = $request->boolean('is_premium');
 
         if ($request->hasFile('thumbnail')) {
             if ($module->thumbnail) {
