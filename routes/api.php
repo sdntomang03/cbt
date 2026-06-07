@@ -67,5 +67,5 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::get('/modules', [StudentModuleController::class, 'index']);
 
-    Route::get('/modules/{slug}', [StudentModuleController::class, 'show']);
+    Route::get('/student/modules/{slug}', [StudentModuleController::class, 'show']);
 });
