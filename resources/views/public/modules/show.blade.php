@@ -57,4 +57,26 @@
             </article>
         </div>
     </div>
+
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Cari semua elemen yang dihasilkan oleh tombol Formula Quill
+            const formulas = document.querySelectorAll('.ql-formula');
+
+            formulas.forEach(function(el) {
+                const mathExpression = el.getAttribute('data-value');
+                if (mathExpression) {
+                    // Render string LaTeX menjadi elemen visual matematika
+                    katex.render(mathExpression, el, {
+                        throwOnError: false,
+                        displayMode: false // Ubah ke true jika ingin rumus di tengah baris
+                    });
+                }
+            });
+        });
+    </script>
 </x-public-layout>
