@@ -96,6 +96,14 @@
     </a>
     @endcan
 
+    @can('view modules')
+    <a href="{{ route('admin.modules.index') }}"
+        class="{{ $navClass }} {{ request()->routeIs('admin.modules.*') ? $activeClass : $inactiveClass }}">
+        <i class="fas fa-book w-6 text-center text-lg"></i>
+        <span>Modul Interaktif</span>
+    </a>
+    @endcan
+
     @can('manage exam sessions')
     <a href="{{ route('admin.exam-sessions.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('admin.exam-sessions.*') ? $activeClass : $inactiveClass }}">
