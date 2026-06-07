@@ -225,13 +225,55 @@
                             </div>
                         </header>
 
-                        {{-- ── FIX VIDEO: gunakan .video-wrapper ── --}}
+                        {{-- ── FIX VIDEO: konversi URL YouTube ke embed ── --}}
                         @if($module->video_url)
+                        @php
+                        /**
+                        * Konversi berbagai format URL YouTube ke embed URL.
+                        * Format yang didukung:
+                        * https://www.youtube.com/watch?v=VIDEO_ID
+                        * https://youtu.be/VIDEO_ID
+                        * https://www.youtube.com/live/VIDEO_ID
+                        * https://www.youtube.com/shorts/VIDEO_ID
+                        * https://www.youtube.com/embed/VIDEO_ID (sudah embed, langsung pakai)
+                        */
+                        $videoId = null;
+                        $videoUrl = trim($module->video_url);
+                        $parsed = parse_url($videoUrl);
+                        $host = strtolower($parsed['host'] ?? '');
+                        $path = $parsed['path'] ?? '';
+
+                        if (str_contains($host, 'youtube.com')) {
+                        if (str_starts_with($path, '/embed/')) {
+                        // Sudah dalam format embed — pakai langsung
+                        $embedUrl = $videoUrl;
+                        } elseif (str_starts_with($path, '/shorts/')) {
+                        $videoId = trim(explode('/', $path)[2] ?? '');
+                        } elseif (str_starts_with($path, '/live/')) {
+                        $videoId = trim(explode('/', $path)[2] ?? '');
+                        } else {
+                        // /watch?v=VIDEO_ID
+                        parse_str($parsed['query'] ?? '', $query);
+                        $videoId = $query['v'] ?? null;
+                        }
+                        } elseif (str_contains($host, 'youtu.be')) {
+                        $videoId = ltrim($path, '/');
+                        }
+
+                        if (!isset($embedUrl)) {
+                        $embedUrl = $videoId
+                        ? 'https://www.youtube-nocookie.com/embed/' . $videoId . '?rel=0&modestbranding=1'
+                        : null;
+                        }
+                        @endphp
+
+                        @if($embedUrl)
                         <div class="video-wrapper mb-10 shadow-md">
-                            <iframe src="{{ $module->video_url }}"
+                            <iframe src="{{ $embedUrl }}"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowfullscreen></iframe>
+                                allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
                         </div>
+                        @endif
                         @endif
 
                         {{-- ── FIX PROSE: gunakan .module-content ── --}}
