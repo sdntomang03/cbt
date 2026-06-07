@@ -14,7 +14,8 @@ class SubscriptionController extends Controller
     public function __construct()
     {
         // Panggil dari config, BUKAN dari env()
-        Config::$serverKey = config('services.midtrans.server_key');
+        // Config::$serverKey = config('services.midtrans.server_key');
+        $serverKey = 'Mid-server-itxrFlH-Q5M2mDIcnYcgyZHa';
         Config::$isProduction = config('services.midtrans.is_production');
         Config::$isSanitized = true;
         Config::$is3ds = true;
@@ -28,10 +29,27 @@ class SubscriptionController extends Controller
             'amount' => 'required|integer',
         ]);
 
-        $user = auth()->user();
-        $orderId = 'PRO-'.time().'-'.$user->id; // ID Unik
+        // 1. CARI SERVER KEY (Coba dari config, jika gagal coba dari env)
+        $serverKey = config('services.midtrans.server_key') ?? env('MIDTRANS_SERVER_KEY');
 
-        // Simpan transaksi berstatus Pending
+        // 🔥 DETEKTOR ERROR: Jika masih kosong, hentikan dan beri tahu Flutter!
+        if (empty($serverKey)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'SERVER KEY KOSONG! Laravel gagal membaca file .env Anda. Pastikan MIDTRANS_SERVER_KEY sudah ditulis dengan benar di .env',
+            ], 500);
+        }
+
+        // 2. TERAPKAN KONFIGURASI TEPAT SEBELUM MEMANGGIL MIDTRANS
+        Config::$serverKey = $serverKey;
+        Config::$isProduction = false; // Paksa ke false karena kita pakai Sandbox
+        Config::$isSanitized = true;
+        Config::$is3ds = true;
+
+        $user = auth()->user();
+        $orderId = 'PRO-'.time().'-'.$user->id;
+
+        // Simpan transaksi
         $transaction = Transaction::create([
             'user_id' => $user->id,
             'order_id' => $orderId,
@@ -39,7 +57,6 @@ class SubscriptionController extends Controller
             'amount' => $request->amount,
         ]);
 
-        // Minta Snap Token ke Midtrans
         $params = [
             'transaction_details' => [
                 'order_id' => $orderId,
@@ -62,7 +79,10 @@ class SubscriptionController extends Controller
                 'redirect_url' => $snapUrl,
             ]);
         } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal membuat tagihan Midtrans: '.$e->getMessage(),
+            ], 500);
         }
     }
 
