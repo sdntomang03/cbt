@@ -13,9 +13,9 @@ class SubscriptionController extends Controller
 {
     public function __construct()
     {
-        // Konfigurasi Midtrans
-        Config::$serverKey = env('MIDTRANS_SERVER_KEY');
-        Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
+        // Panggil dari config, BUKAN dari env()
+        Config::$serverKey = config('services.midtrans.server_key');
+        Config::$isProduction = config('services.midtrans.is_production');
         Config::$isSanitized = true;
         Config::$is3ds = true;
     }
