@@ -142,6 +142,10 @@
                         class="text-sm font-bold transition-all py-7 border-b-2 {{ request()->routeIs('public.exams.*') ? 'text-indigo-600 border-indigo-600 font-black' : 'text-slate-500 border-transparent hover:text-indigo-600' }}">
                         Tryout
                     </a>
+                    <a href="{{ route('public.modules.index') }}"
+                        class="text-sm font-bold transition-all py-7 border-b-2 {{ request()->routeIs('public.modules.*') ? 'text-indigo-600 border-indigo-600 font-black' : 'text-slate-500 border-transparent hover:text-indigo-600' }}">
+                        Modul Belajar
+                    </a>
 
                     {{-- Menu Ranking Nasional --}}
                     <a href="{{ route('public.ranking.nasional') }}"
