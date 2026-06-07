@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\ApiAuthController;
 use App\Http\Controllers\Api\ApiPublicExamController;
 use App\Http\Controllers\Api\ApiStudentExamController;
 use App\Http\Controllers\Api\StudentModuleController;
+use App\Http\Controllers\SubscriptionController;
 use Illuminate\Support\Facades\Route;
 
 // =========================================================
@@ -69,3 +70,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/modules/{slug}', [StudentModuleController::class, 'show']);
 });
+
+// Rute yang butuh Login (Dari Aplikasi)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/subscription/checkout', [SubscriptionController::class, 'checkout']);
+});
+
+// Rute Webhook (TIDAK BOLEH dikunci Auth, karena dipanggil oleh Server Midtrans)
+Route::post('/webhook/midtrans', [SubscriptionController::class, 'webhook']);
