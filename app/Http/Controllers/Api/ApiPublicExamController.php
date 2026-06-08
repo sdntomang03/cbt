@@ -435,7 +435,7 @@ class ApiPublicExamController extends Controller
             $currentUserData = null;
 
             // Pada API, gunakan $request->user() untuk mendeteksi user yang login lewat token (Sanctum/Passport)
-            $user = $request->user();
+            $user = auth('sanctum')->user();
 
             if ($user) {
                 $currentUserData = [
