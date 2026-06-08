@@ -81,7 +81,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/student/history', [ApiStudentExamController::class, 'history']);
+    Route::get('/student/history', [ApiPublicExamController::class, 'history']);
 });
 
 // Rute Webhook (TIDAK BOLEH dikunci Auth, karena dipanggil oleh Server Midtrans)
