@@ -474,10 +474,8 @@ class ApiPublicExamController extends Controller
 
     public function history(Request $request)
     {
-        // 1. Ubah cara deteksi user mengikuti nationalRanking
         $user = auth('sanctum')->user();
 
-        // 2. Tambahkan pengaman jika user tidak terdeteksi / token salah
         if (! $user) {
             return response()->json([
                 'success' => false,
@@ -486,9 +484,8 @@ class ApiPublicExamController extends Controller
             ], 401);
         }
 
-        // Ambil semua hasil ujian internal milik user ini
-        // Menggunakan $user->name sebagai pencocokan
-        $results = PublicExamResult::where('nama_peserta', $user->name)
+        // UBAH DI SINI: Gunakan 'user_id' disesuaikan dengan $user->id
+        $results = PublicExamResult::where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($res) {
