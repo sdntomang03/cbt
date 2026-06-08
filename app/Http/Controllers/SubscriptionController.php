@@ -154,6 +154,7 @@ class SubscriptionController extends Controller
         return response()->json([
             'is_premium' => (bool) $user->is_premium,
             'premium_until' => $user->premium_until,
+            'total_poin' => $user->total_poin,
             'pending_transactions' => $pendingTransactions,
         ]);
     }
