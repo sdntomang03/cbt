@@ -67,14 +67,9 @@ class User extends Authenticatable implements MustVerifyEmail
      * Membuat kolom virtual 'is_premium' untuk dibaca oleh Flutter.
      * Cukup 1 baris logika!
      */
-    public function getIsPremiumAttribute($value)
+    public function getIsPremiumAttribute(): bool
     {
-        if ($value && $this->premium_until) {
-            if (now()->greaterThan($this->premium_until)) {
-                return false; // Jika masa tenggang habis, tolak status premium
-            }
-        }
-
-        return (bool) $value;
+        // Jika premium_until ada isinya DAN waktunya belum lewat dari hari ini
+        return $this->premium_until && now()->lessThanOrEqualTo($this->premium_until);
     }
 }
