@@ -67,8 +67,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/math-exams/{id}/finish', [ApiStudentExamController::class, 'mathFinish']);
         Route::get('/math-exams/{id}/result', [ApiStudentExamController::class, 'mathResult']);
 
-        Route::get('/history', [ApiStudentExamController::class, 'history']);
-
     });
     Route::get('/modules', [StudentModuleController::class, 'index']);
 
@@ -80,6 +78,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/subscription/checkout', [SubscriptionController::class, 'checkout']);
     Route::get('/subscription/status', [SubscriptionController::class, 'status']);
     Route::post('/subscription/cancel/{orderId}', [SubscriptionController::class, 'cancelPending']);
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/student/history', [ApiStudentExamController::class, 'history']);
 });
 
 // Rute Webhook (TIDAK BOLEH dikunci Auth, karena dipanggil oleh Server Midtrans)
