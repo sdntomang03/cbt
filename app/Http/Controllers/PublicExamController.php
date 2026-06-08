@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Exam;
 use App\Models\PublicExamResult;
 use App\Models\Subject;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -573,5 +574,34 @@ class PublicExamController extends Controller
             'status' => 'success',
             'data' => $rankings,
         ]);
+    }
+
+    /**
+     * Menampilkan Papan Peringkat Nasional (Akumulasi Total Poin)
+     */
+    public function nationalRanking()
+    {
+        // Ambil Top 100 User dengan poin tertinggi (yang poinnya lebih dari 0)
+        // Pastikan Anda memanggil model User di atas file: use App\Models\User;
+        $topUsers = User::where('total_poin', '>', 0)
+            ->orderBy('total_poin', 'desc')
+            ->take(10)
+            ->get();
+
+        $currentUserRank = null;
+        $currentUserData = null;
+
+        // Jika user sedang login, cari peringkat persisnya (meskipun dia di luar Top 100)
+        if (auth()->check()) {
+            $user = auth()->user();
+            $currentUserData = $user;
+
+            // Hitung ada berapa user yang poinnya LEBIH BESAR dari user yang login
+            // Jika ada 50 orang yang lebih besar, berarti user login ranking ke 51
+            $higherScores = User::where('total_poin', '>', $user->total_poin)->count();
+            $currentUserRank = $higherScores + 1;
+        }
+
+        return view('public.exams.national-ranking', compact('topUsers', 'currentUserRank', 'currentUserData'));
     }
 }
