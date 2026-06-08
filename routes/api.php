@@ -67,6 +67,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/math-exams/{id}/finish', [ApiStudentExamController::class, 'mathFinish']);
         Route::get('/math-exams/{id}/result', [ApiStudentExamController::class, 'mathResult']);
 
+        Route::get('/history', [ApiStudentExamController::class, 'history']);
+
     });
     Route::get('/modules', [StudentModuleController::class, 'index']);
 

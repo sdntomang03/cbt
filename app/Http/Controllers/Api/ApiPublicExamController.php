@@ -471,4 +471,32 @@ class ApiPublicExamController extends Controller
             ], 500);
         }
     }
+
+    public function history(Request $request)
+    {
+        $user = $request->user(); // Mengambil data siswa yang login via Sanctum
+
+        // Ambil semua hasil ujian internal milik user ini
+        // Sesuaikan nama tabel/model hasil ujian di database Anda (misal StudentExamResult atau sejenisnya)
+        $results = PublicExamResult::where('nama_peserta', $user->name)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($res) {
+                return [
+                    'id' => $res->id,
+                    'exam_title' => $res->exam->title ?? 'Ujian CBT',
+                    'subject_name' => $res->exam->subject->name ?? 'Umum',
+                    'score' => $res->score,
+                    'correct_count' => $res->correct_count,
+                    'wrong_count' => $res->wrong_count,
+                    'duration' => round($res->duration_seconds / 60),
+                    'date' => Carbon::parse($res->created_at)->format('d-m-Y'),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $results,
+        ], 200);
+    }
 }
