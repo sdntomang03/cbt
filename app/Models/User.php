@@ -31,7 +31,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'premium_until' => 'datetime',    // <--- Konversi ke format Waktu
+            'premium_until' => 'datetime',
         ];
     }
 
@@ -67,9 +67,14 @@ class User extends Authenticatable implements MustVerifyEmail
      * Membuat kolom virtual 'is_premium' untuk dibaca oleh Flutter.
      * Cukup 1 baris logika!
      */
-    public function getIsPremiumAttribute(): bool
+    public function getIsPremiumAttribute($value)
     {
-        // Jika premium_until ada isinya DAN waktunya belum lewat dari hari ini
-        return $this->premium_until && now()->lessThanOrEqualTo($this->premium_until);
+        if ($value && $this->premium_until) {
+            if (now()->greaterThan($this->premium_until)) {
+                return false; // Jika masa tenggang habis, tolak status premium
+            }
+        }
+
+        return (bool) $value;
     }
 }
