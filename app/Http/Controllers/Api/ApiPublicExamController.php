@@ -422,10 +422,6 @@ class ApiPublicExamController extends Controller
 
     public function nationalRanking(Request $request): JsonResponse
     {
-        return response()->json([
-            'header_token' => $request->header('Authorization'),
-            'user_sanctum' => auth('sanctum')->user(),
-        ]);
         try {
             // Ambil Top 100 User dengan poin tertinggi (yang poinnya lebih dari 0)
             // Gunakan select() untuk menghindari kebocoran data sensitif seperti password/token ke API
