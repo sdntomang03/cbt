@@ -474,10 +474,20 @@ class ApiPublicExamController extends Controller
 
     public function history(Request $request)
     {
-        $user = $request->user(); // Mengambil data siswa yang login via Sanctum
+        // 1. Ubah cara deteksi user mengikuti nationalRanking
+        $user = auth('sanctum')->user();
+
+        // 2. Tambahkan pengaman jika user tidak terdeteksi / token salah
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sesi telah berakhir atau Anda belum login.',
+                'data' => []
+            ], 401);
+        }
 
         // Ambil semua hasil ujian internal milik user ini
-        // Sesuaikan nama tabel/model hasil ujian di database Anda (misal StudentExamResult atau sejenisnya)
+        // Menggunakan $user->name sebagai pencocokan
         $results = PublicExamResult::where('nama_peserta', $user->name)
             ->orderBy('created_at', 'desc')
             ->get()
