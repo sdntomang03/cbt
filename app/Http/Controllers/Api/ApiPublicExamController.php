@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\PublicExamResult;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -416,5 +418,57 @@ class ApiPublicExamController extends Controller
             'status' => 'success',
             'data' => $rankings,
         ]);
+    }
+
+    public function nationalRanking(Request $request): JsonResponse
+    {
+        try {
+            // Ambil Top 100 User dengan poin tertinggi (yang poinnya lebih dari 0)
+            // Gunakan select() untuk menghindari kebocoran data sensitif seperti password/token ke API
+            $topUsers = User::select('id', 'name', 'total_poin')
+                ->where('total_poin', '>', 0)
+                ->orderBy('total_poin', 'desc')
+                ->take(100) // Diubah ke 100 sesuai keterangan komentar Anda
+                ->get();
+
+            $currentUserRank = null;
+            $currentUserData = null;
+
+            // Pada API, gunakan $request->user() untuk mendeteksi user yang login lewat token (Sanctum/Passport)
+            $user = $request->user();
+
+            if ($user) {
+                $currentUserData = [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'total_poin' => $user->total_poin,
+                ];
+
+                // Hitung ada berapa user yang poinnya LEBIH BESAR dari user yang login
+                $higherScores = User::where('total_poin', '>', $user->total_poin)->count();
+                $currentUserRank = $higherScores + 1;
+            }
+
+            // Kembalikan standard response JSON
+            return response()->json([
+                'success' => true,
+                'message' => 'Berhasil mengambil data peringkat nasional.',
+                'data' => [
+                    'top_users' => $topUsers,
+                    'current_user' => [
+                        'rank' => $currentUserRank,
+                        'data' => $currentUserData,
+                    ],
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+            // Penanganan jika terjadi error sistem
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengambil data peringkat.',
+                'error' => $e->getMessage(), // Sembunyikan baris ini saat aplikasi sudah live/production
+            ], 500);
+        }
     }
 }
