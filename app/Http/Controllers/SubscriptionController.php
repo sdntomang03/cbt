@@ -137,4 +137,44 @@ class SubscriptionController extends Controller
 
         return response()->json(['message' => 'OK']);
     }
+
+    // ==========================================
+    // 3. CEK STATUS PREMIUM & TAGIHAN TERTUNDA
+    // ==========================================
+    public function status(Request $request)
+    {
+        $user = auth()->user();
+
+        // Cari semua transaksi yang statusnya masih 'pending'
+        $pendingTransactions = Transaction::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'is_premium' => (bool) $user->is_premium,
+            'premium_until' => $user->premium_until,
+            'pending_transactions' => $pendingTransactions,
+        ]);
+    }
+
+    // ==========================================
+    // 4. BATALKAN TAGIHAN TERTUNDA
+    // ==========================================
+    public function cancelPending($orderId)
+    {
+        $user = auth()->user();
+        $transaction = Transaction::where('order_id', $orderId)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if ($transaction) {
+            // Ubah status di database lokal menjadi canceled
+            $transaction->update(['status' => 'canceled']);
+
+            return response()->json(['status' => 'success', 'message' => 'Tagihan berhasil dibatalkan.']);
+        }
+
+        return response()->json(['status' => 'error', 'message' => 'Tagihan tidak ditemukan.'], 404);
+    }
 }

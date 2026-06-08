@@ -74,6 +74,8 @@ Route::middleware('auth:sanctum')->group(function () {
 // Rute yang butuh Login (Dari Aplikasi)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/subscription/checkout', [SubscriptionController::class, 'checkout']);
+    Route::get('/subscription/status', [SubscriptionController::class, 'status']);
+    Route::post('/subscription/cancel/{orderId}', [SubscriptionController::class, 'cancelPending']);
 });
 
 // Rute Webhook (TIDAK BOLEH dikunci Auth, karena dipanggil oleh Server Midtrans)
