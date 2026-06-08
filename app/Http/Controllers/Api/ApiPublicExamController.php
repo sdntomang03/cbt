@@ -478,11 +478,11 @@ class ApiPublicExamController extends Controller
         $user = auth('sanctum')->user();
 
         // 2. Tambahkan pengaman jika user tidak terdeteksi / token salah
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'success' => false,
                 'message' => 'Sesi telah berakhir atau Anda belum login.',
-                'data' => []
+                'data' => [],
             ], 401);
         }
 
