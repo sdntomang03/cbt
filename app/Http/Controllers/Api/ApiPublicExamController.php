@@ -5,9 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\PublicExamResult;
-use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -418,54 +416,5 @@ class ApiPublicExamController extends Controller
             'status' => 'success',
             'data' => $rankings,
         ]);
-    }
-
-   public function nationalRanking(Request $request): JsonResponse
-{
-    try {
-        // Ambil Top 100 User dengan poin tertinggi (yang poinnya lebih dari 0)
-        // Pilih kolom yang diperlukan saja (hindari mengirim password/token ke API)
-        $topUsers = User::select('id', 'name', 'total_poin')
-            ->where('total_poin', '>', 0)
-            ->orderBy('total_poin', 'desc')
-            ->take(100)
-            ->get();
-
-        $currentUserRank = null;
-        $currentUserData = null;
-
-        // Ambil data user yang sedang login via token API (misal: Sanctum)
-        $user = $request->user();
-
-        if ($user) {
-            $currentUserData = [
-                'id' => $user->id,
-                'name' => $user->name,
-                'total_poin' => $user->total_poin
-            ];
-
-            // Hitung ada berapa user yang poinnya LEBIH BESAR dari user yang login
-            $higherScores = User::where('total_poin', '>', $user->total_poin)->count();
-            $currentUserRank = $higherScores + 1;
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Berhasil mengambil data ranking nasional.',
-            'data' => [
-                'top_users' => $topUsers,
-                'current_user' => [
-                    'rank' => $currentUserRank,
-                    'data' => $currentUserData,
-                ]
-            ]
-        ], 200);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Terjadi kesalahan saat mengambil data ranking.',
-            'error'   => $e->getMessage()
-        ], 500);
     }
 }
