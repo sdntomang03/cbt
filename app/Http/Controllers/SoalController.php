@@ -327,7 +327,7 @@ class SoalController extends Controller
 
     public function uploadImage(Request $request)
     {
-        $manager = new ImageManager(new Driver);
+        $manager = ImageManager::usingDriver(Driver::class);
 
         // 1. FILE FISIK (Misal: dari Snipping Tool / Upload Manual)
         if ($request->hasFile('image')) {
