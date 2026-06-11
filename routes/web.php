@@ -15,6 +15,7 @@ use App\Http\Controllers\ImageUploadController;
 use App\Http\Controllers\KawanBacaController;
 use App\Http\Controllers\KawanHitungController;
 use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\OfflineDatabaseController;
 use App\Http\Controllers\ProctorController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicExamController;
@@ -157,7 +158,7 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
 
         Route::post('/modules/upload-image', [ModuleController::class, 'uploadImage'])->name('modules.upload-image');
         Route::resource('/modules', ModuleController::class)->names('modules');
-
+        Route::get('/export-offline-db', [OfflineDatabaseController::class, 'generate'])->name('export.db');
     });
 
 // ==================================================================
