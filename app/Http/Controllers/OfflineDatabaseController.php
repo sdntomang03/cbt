@@ -43,25 +43,39 @@ class OfflineDatabaseController extends Controller
             // Fungsi ini akan mencari link /storage/ di dalam JSON,
             // mengcopy gambar ke folder temporary, dan mengubah linknya ke asset: flutter
             $processImagesAndUrls = function ($dataArray) use ($imagesFolder) {
-                // Encode ke JSON tanpa escape slash agar mudah di-regex
+                // Encode ke JSON tanpa escape slash
                 $jsonString = json_encode($dataArray, JSON_UNESCAPED_SLASHES);
 
-                // Cari string yang mengandung URL storage gambar, misal: "https://domain.com/storage/soal_images/abc.png"
-                // atau "/storage/soal_images/abc.png"
-                $jsonString = preg_replace_callback('/"(?:https?:\/\/[^"]+)?\/storage\/([^"]+)"/', function ($matches) use ($imagesFolder) {
-                    $relativePath = $matches[1]; // misal: soal_images/abc.png
-                    $serverPath = storage_path('app/public/'.$relativePath);
+                // Regex BARU: Abaikan tanda kutip. Langsung cari URL yang mengandung "/storage/"
+                // dan diakhiri dengan ekstensi gambar (.png, .jpg, .webp, dll)
+                $pattern = '/(?:https?:\/\/[a-zA-Z0-9\-\.]+)?\/storage\/([a-zA-Z0-9_\-\/]+\.(?:png|jpg|jpeg|webp|gif|svg))/i';
+
+                $jsonString = preg_replace_callback($pattern, function ($matches) use ($imagesFolder) {
+                    // $matches[1] berisi path setelah kata /storage/, contoh: "soal_images/NaBk8O...webp"
+                    $relativePath = $matches[1];
                     $filename = basename($relativePath);
 
-                    // Jika gambar fisik ada di server Laravel, copy ke folder zip
-                    if (File::exists($serverPath)) {
-                        File::copy($serverPath, $imagesFolder.'/'.$filename);
+                    // Cek dua kemungkinan lokasi fisik file di Laravel
+                    $serverPath1 = storage_path('app/public/'.$relativePath);
+                    $serverPath2 = public_path('storage/'.$relativePath);
 
-                        // Kembalikan format URL asset untuk Flutter
-                        return '"asset:assets/images/offline/'.$filename.'"';
+                    $actualPath = null;
+                    if (File::exists($serverPath1)) {
+                        $actualPath = $serverPath1;
+                    } elseif (File::exists($serverPath2)) {
+                        $actualPath = $serverPath2;
                     }
 
-                    // Jika gambar tidak ditemukan, biarkan seperti semula
+                    // Jika gambar fisiknya KETEMU di server
+                    if ($actualPath) {
+                        // Salin ke folder ZIP
+                        File::copy($actualPath, $imagesFolder.'/'.$filename);
+
+                        // Ubah URL di dalam JSON menjadi format asset lokal Flutter
+                        return 'asset:assets/images/offline/'.$filename;
+                    }
+
+                    // Jika gambar tidak ditemukan fisiknya, biarkan URL aslinya
                     return $matches[0];
                 }, $jsonString);
 
