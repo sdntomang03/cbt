@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Exam;
+use App\Models\Module;
 use Illuminate\Support\Facades\File;
 use PDO;
 use ZipArchive;
@@ -115,8 +116,58 @@ class OfflineDatabaseController extends Controller
                 $stmt->execute(['exam_detail_'.$exam->id, $detailJson, $now]);
             }
 
+            // ========================================================
+            // Modul
+            $publicModules = Module::where('status', 'published')
+                ->where('is_public', true)
+                ->with(['subject:id,name', 'level:id,name'])
+                ->latest()
+                ->paginate(12);
+
+            $modulesData = ['success' => true, 'data' => $publicModules];
+            $stmt->execute(['modules_list', json_encode($modulesData), $now]);
+
+            // B. Detail Modul (Beserta PDF dan Gambar)
+            $allModules = Module::where('status', 'published')->where('is_public', true)
+                ->with(['subject:id,name', 'level:id,name', 'author:id,name'])
+                ->get();
+
+            foreach ($allModules as $module) {
+                // Proses gambar di dalam HTML konten modul
+                $moduleData = ['success' => true, 'data' => $module];
+                $moduleJson = $processImagesAndUrls($moduleData);
+
+                // Jika modul memiliki lampiran PDF, salin fisik PDF-nya ke folder ZIP
+                if ($module->document_path) {
+                    $pdfServerPath1 = storage_path('app/public/'.$module->document_path);
+                    $pdfServerPath2 = public_path('storage/'.$module->document_path);
+
+                    $actualPdfPath = null;
+                    if (File::exists($pdfServerPath1)) {
+                        $actualPdfPath = $pdfServerPath1;
+                    } elseif (File::exists($pdfServerPath2)) {
+                        $actualPdfPath = $pdfServerPath2;
+                    }
+
+                    if ($actualPdfPath) {
+                        $pdfFilename = basename($module->document_path);
+                        // Copy ke folder images/offline
+                        File::copy($actualPdfPath, $imagesFolder.'/'.$pdfFilename);
+
+                        // Ubah JSON agar Flutter mengarah ke asset lokal
+                        $moduleJson = str_replace(
+                            $module->document_path,
+                            'asset:assets/images/offline/'.$pdfFilename,
+                            $moduleJson
+                        );
+                    }
+                }
+
+                $stmt->execute(['module_detail_'.$module->slug, $moduleJson, $now]);
+            }
+
             // =========================================================
-            // 6. BUNGKUS KE DALAM FILE ZIP
+            // 7. BUNGKUS KE DALAM FILE ZIP
             // =========================================================
             $pdo = null; // Tutup koneksi DB
 
