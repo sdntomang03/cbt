@@ -22,7 +22,7 @@ class ApiPublicExamController extends Controller
             ->whereHas('examType', fn ($q) => $q->where('name', 'TKA'))
             ->with(['subject', 'level', 'examType'])
             ->latest()
-            ->paginate(9);
+            ->paginate(3);
 
         return response()->json(['success' => true, 'data' => ['exams' => $publicExams]]);
     }
