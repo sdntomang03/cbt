@@ -217,9 +217,9 @@
                     <i class="fas fa-arrow-right transition-transform duration-300 group-hover:translate-x-1.5"></i>
                 </a>
                 @else
-                <a href="{{ route('register') }}"
+                <a href="{{ route('login') }}"
                     class="group w-full sm:w-auto px-8 py-4 rounded-2xl bg-white text-slate-700 hover:text-indigo-700 border-2 border-slate-200 hover:border-indigo-200 hover:bg-indigo-50 font-bold flex items-center justify-center gap-3 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/50">
-                    Daftar Akun Siswa
+                    Login Akun Siswa
                     <i
                         class="fas fa-user-plus text-slate-400 group-hover:text-indigo-500 transition-colors duration-300"></i>
                 </a>
