@@ -61,20 +61,8 @@
         </div>
     </div>
 
-    <div class="min-h-screen py-10" x-data="{
-        filterTab: 'pending', // Default: Belum dilaksanakan
-        searchQuery: '',
-
-        // Cek apakah ada baris yang tampil (untuk empty state)
-        hasVisibleRows() {
-            let count = 0;
-            const rows = document.querySelectorAll('.exam-row');
-            rows.forEach(row => {
-                if(row.style.display !== 'none') count++;
-            });
-            return count > 0;
-        }
-    }">
+    {{-- Main App / Alpine Datatable Logic --}}
+    <div class="min-h-screen py-10" x-data="datatableManager()">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
             {{-- Banner Welcome --}}
@@ -98,30 +86,28 @@
                             Auth::user()->name }}!</h1>
                         <p class="text-indigo-100 font-medium max-w-xl text-sm md:text-lg leading-relaxed opacity-90">
                             Siap untuk menguji kemampuanmu? Pastikan koneksi internet stabil dan kerjakan dengan jujur
-                            ya![cite: 3]
+                            ya!
                         </p>
                     </div>
 
                     <div class="flex gap-4 shrink-0">
                         <div
                             class="bg-white/10 backdrop-blur-md rounded-2xl p-5 text-center border border-white/20 min-w-[100px]">
-                            <span class="block text-3xl font-black mb-1">{{ $mySessions->where('is_open', true)->count()
-                                }}[cite: 3]</span>
-                            <span class="text-[10px] font-bold text-indigo-200 uppercase tracking-wider">Tersedia[cite:
-                                3]</span>
+                            <span class="block text-3xl font-black mb-1">{{ collect($mySessions)->where('is_open',
+                                true)->count() }}</span>
+                            <span class="text-[10px] font-bold text-indigo-200 uppercase tracking-wider">Tersedia</span>
                         </div>
                         <div
                             class="bg-white/10 backdrop-blur-md rounded-2xl p-5 text-center border border-white/20 min-w-[100px]">
-                            <span class="block text-3xl font-black mb-1">{{ $mySessions->where('user_status',
-                                'completed')->count() }}[cite: 3]</span>
-                            <span class="text-[10px] font-bold text-indigo-200 uppercase tracking-wider">Selesai[cite:
-                                3]</span>
+                            <span class="block text-3xl font-black mb-1">{{ collect($mySessions)->where('user_status',
+                                'completed')->count() }}</span>
+                            <span class="text-[10px] font-bold text-indigo-200 uppercase tracking-wider">Selesai</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {{-- Datatable Toolbar (Tab Filter & Search) --}}
+            {{-- Datatable Toolbar --}}
             <div
                 class="bg-white p-4 rounded-t-[2rem] border border-slate-200 border-b-0 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 mt-8">
 
@@ -139,13 +125,23 @@
                     </button>
                 </div>
 
-                {{-- Search Box --}}
-                <div class="relative w-full md:w-72">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-search text-slate-400"></i>
+                {{-- Search Box & Page Length --}}
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <select x-model="perPage"
+                        class="bg-slate-50 border-slate-200 text-slate-600 text-sm rounded-xl focus:ring-indigo-500 py-2.5 font-bold">
+                        <option value="5">5 Baris</option>
+                        <option value="10">10 Baris</option>
+                        <option value="20">20 Baris</option>
+                        <option value="50">50 Baris</option>
+                    </select>
+
+                    <div class="relative flex-1 md:w-64">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-slate-400"></i>
+                        </div>
+                        <input type="text" x-model="searchQuery" placeholder="Cari ujian..."
+                            class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-medium text-slate-700">
                     </div>
-                    <input type="text" x-model="searchQuery" placeholder="Cari nama ujian atau sesi..."
-                        class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-medium text-slate-700">
                 </div>
             </div>
 
@@ -164,69 +160,74 @@
                                 <th class="px-6 py-4 text-right rounded-tr-[2rem]">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100 text-sm font-medium text-slate-700 relative">
+                        <tbody class="divide-y divide-slate-100 text-sm font-medium text-slate-700">
+
                             @forelse($mySessions as $session)
-                            <tr class="hover:bg-slate-50/50 transition-colors exam-row" x-show="
-                                        (filterTab === 'completed' ? '{{ $session->user_status }}' === 'completed' : '{{ $session->user_status }}' !== 'completed') &&
-                                        ('{{ strtolower($session->session_name . ' ' . ($session->exam->title ?? '')) }}'.includes(searchQuery.toLowerCase()))
-                                    ">
-                                {{-- Kolom 1: Informasi Ujian --}}
+                            {{--
+                            Menambahkan Data Attributes (data-status, data-search)
+                            agar AlpineJS mudah memproses Paging & Filter tanpa string kotor
+                            --}}
+                            <tr class="hover:bg-slate-50/50 transition-colors exam-row"
+                                data-status="{{ $session->user_status }}"
+                                data-search="{{ strtolower($session->session_name . ' ' . ($session->exam->title ?? '')) }}"
+                                style="display: none;">
+                                {{-- Kolom 1 --}}
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col gap-1.5">
                                         <span
                                             class="inline-flex max-w-max bg-slate-100 text-slate-600 text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider">
-                                            {{ $session->session_name }}[cite: 3]
+                                            {{ $session->session_name }}
                                         </span>
                                         <span
                                             class="font-black text-slate-800 text-base max-w-xs truncate whitespace-normal leading-tight">
-                                            {{ $session->exam?->title ?? 'Ujian Tidak Tersedia (Dihapus)' }}[cite: 3]
+                                            {{ $session->exam?->title ?? 'Ujian Tidak Tersedia (Dihapus)' }}
                                         </span>
                                     </div>
                                 </td>
 
-                                {{-- Kolom 2: Jadwal --}}
+                                {{-- Kolom 2 --}}
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col gap-1">
                                         <div class="flex items-center gap-2 text-emerald-600">
                                             <i class="fas fa-play-circle text-xs"></i>
                                             <span class="font-bold text-xs">{{
                                                 \Carbon\Carbon::parse($session->start_time)->translatedFormat('d M Y,
-                                                H:i') }}[cite: 3]</span>
+                                                H:i') }}</span>
                                         </div>
                                         <div class="flex items-center gap-2 text-rose-500">
                                             <i class="fas fa-stop-circle text-xs"></i>
                                             <span class="font-bold text-xs">{{
                                                 \Carbon\Carbon::parse($session->end_time)->translatedFormat('d M Y,
-                                                H:i') }}[cite: 3]</span>
+                                                H:i') }}</span>
                                         </div>
                                     </div>
                                 </td>
 
-                                {{-- Kolom 3: Durasi & Soal --}}
+                                {{-- Kolom 3 --}}
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col gap-1 text-slate-500">
                                         <span class="flex items-center gap-2">
                                             <i class="fas fa-stopwatch w-4 text-center"></i> {{
-                                            $session->exam?->duration_minutes ?? 0 }} Menit[cite: 3]
+                                            $session->exam?->duration_minutes ?? 0 }} Menit
                                         </span>
                                         <span class="flex items-center gap-2">
                                             <i class="fas fa-file-alt w-4 text-center"></i> {{
-                                            $session->exam->questions_count ?? 0 }} Soal[cite: 3]
+                                            $session->exam->questions_count ?? 0 }} Soal
                                         </span>
                                     </div>
                                 </td>
 
-                                {{-- Kolom 4: Status --}}
+                                {{-- Kolom 4 --}}
                                 <td class="px-6 py-4 text-center">
                                     @if($session->user_status == 'completed')
                                     <span
                                         class="inline-flex bg-emerald-50 text-emerald-600 text-[10px] font-black px-3 py-1.5 rounded-full border border-emerald-100 items-center gap-1.5 uppercase">
-                                        <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Selesai[cite: 3]
+                                        <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Selesai
                                     </span>
                                     @elseif(isset($session->pivot) && $session->pivot->is_locked)
                                     <span
                                         class="inline-flex bg-rose-50 text-rose-600 text-[10px] font-black px-3 py-1.5 rounded-full border border-rose-100 items-center gap-1.5 uppercase">
-                                        <i class="fas fa-lock"></i> Dikunci[cite: 3]
+                                        <i class="fas fa-lock"></i> Dikunci
                                     </span>
                                     @elseif($session->is_open)
                                     <span
@@ -237,7 +238,7 @@
                                             <span
                                                 class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
                                         </span>
-                                        Tersedia[cite: 3]
+                                        Tersedia
                                     </span>
                                     @else
                                     <span
@@ -247,25 +248,25 @@
                                     @endif
                                 </td>
 
-                                {{-- Kolom 5: Nilai --}}
+                                {{-- Kolom 5 --}}
                                 <td class="px-6 py-4 text-center">
                                     @if($session->user_status == 'completed')
                                     <div
                                         class="inline-flex items-center justify-center min-w-[3rem] px-3 py-1.5 bg-slate-900 text-white rounded-lg font-black text-sm">
-                                        {{ $session->user_score }}[cite: 3]
+                                        {{ $session->user_score }}
                                     </div>
                                     @else
                                     <span class="text-slate-300 font-bold">-</span>
                                     @endif
                                 </td>
 
-                                {{-- Kolom 6: Aksi --}}
+                                {{-- Kolom 6 --}}
                                 <td class="px-6 py-4 text-right">
                                     @if($session->user_status == 'completed')
                                     @if(isset($exam) ? $exam->show_explanation : $session->exam->show_explanation)
                                     <a href="{{ route('student.exams.explanation', Hashids::encode($session->id)) }}"
                                         class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl font-bold text-xs transition-all border border-indigo-100 shadow-sm">
-                                        <i class="fas fa-lightbulb"></i> Pembahasan[cite: 3]
+                                        <i class="fas fa-lightbulb"></i> Pembahasan
                                     </a>
                                     @else
                                     <span class="text-xs text-slate-400 font-bold italic">Selesai Dikerjakan</span>
@@ -274,19 +275,19 @@
                                     @elseif(isset($session->pivot) && $session->pivot->is_locked)
                                     <button disabled
                                         class="inline-flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-500 rounded-xl font-bold text-xs cursor-not-allowed border border-rose-200">
-                                        <i class="fas fa-ban"></i> Terblokir[cite: 3]
+                                        <i class="fas fa-ban"></i> Terblokir
                                     </button>
 
                                     @elseif($session->is_open)
                                     <a href="{{ route('student.exam.verify.show', $session->exam) }}"
                                         class="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs transition-all shadow-md hover:shadow-lg active:scale-95">
-                                        <i class="fas fa-play"></i> Kerjakan[cite: 3]
+                                        <i class="fas fa-play"></i> Kerjakan
                                     </a>
 
                                     @else
                                     <button disabled
                                         class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-400 rounded-xl font-bold text-xs cursor-not-allowed">
-                                        <i class="fas fa-lock"></i> Ditutup[cite: 3]
+                                        <i class="fas fa-lock"></i> Ditutup
                                     </button>
                                     @endif
                                 </td>
@@ -297,11 +298,11 @@
                                     <div class="flex flex-col items-center justify-center text-slate-400">
                                         <div
                                             class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                                            <i class="fas fa-inbox text-2xl"></i>[cite: 3]
+                                            <i class="fas fa-inbox text-2xl"></i>
                                         </div>
                                         <h3 class="text-lg font-black text-slate-600">Tidak ada jadwal ujian</h3>
                                         <p class="text-sm font-bold mt-1">Belum ada ujian yang ditugaskan kepadamu saat
-                                            ini.</p>[cite: 3]
+                                            ini.</p>
                                     </div>
                                 </td>
                             </tr>
@@ -312,7 +313,7 @@
 
                 {{-- Empty State Alert (Pencarian Tidak Ditemukan / Filter Kosong) --}}
                 @if(count($mySessions) > 0)
-                <div x-cloak x-show="!hasVisibleRows()" class="p-12 text-center bg-slate-50/50">
+                <div x-cloak x-show="visibleCount === 0" class="p-12 text-center bg-slate-50/50">
                     <div
                         class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 text-slate-400 mb-4">
                         <i class="fas fa-search text-2xl"></i>
@@ -322,6 +323,34 @@
                         filter di atas.</p>
                 </div>
                 @endif
+
+                {{-- Bagian Paging (Pagination Controls) --}}
+                <div x-cloak x-show="totalPages > 1"
+                    class="p-4 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="text-sm text-slate-500 font-medium text-center sm:text-left">
+                        Menampilkan halaman <span class="font-bold text-indigo-600" x-text="currentPage"></span>
+                        dari <span class="font-bold text-slate-700" x-text="totalPages"></span>
+                        (Total: <span x-text="visibleCount"></span> Data)
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button @click="prevPage()" :disabled="currentPage === 1"
+                            class="px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-indigo-600 disabled:opacity-50 disabled:hover:text-slate-600 hover:bg-slate-50 font-bold text-sm transition-all shadow-sm">
+                            <i class="fas fa-chevron-left mr-1"></i> Prev
+                        </button>
+                        <button @click="nextPage()" :disabled="currentPage === totalPages"
+                            class="px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-indigo-600 disabled:opacity-50 disabled:hover:text-slate-600 hover:bg-slate-50 font-bold text-sm transition-all shadow-sm">
+                            Next <i class="fas fa-chevron-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Jika Controller diubah menjadi ->paginate(), tampilkan link bawaan Laravel --}}
+                @if(method_exists($mySessions, 'hasPages') && $mySessions->hasPages())
+                <div class="p-4 border-t border-slate-200 bg-slate-50">
+                    {{ $mySessions->links() }}
+                </div>
+                @endif
+
             </div>
 
         </div>
@@ -329,23 +358,98 @@
 
     <script>
         document.addEventListener('alpine:init', () => {
+
+            // Fitur Tabel Dinamis & Pagination
+            Alpine.data('datatableManager', () => ({
+                filterTab: 'pending',
+                searchQuery: '',
+                visibleCount: 1,
+
+                // Variabel Paging
+                currentPage: 1,
+                perPage: 10,
+                totalPages: 1,
+
+                init() {
+                    // Pantau perubahan: Reset ke halaman 1 jika filter atau pencarian diubah
+                    this.$watch('filterTab', () => { this.currentPage = 1; this.updateVisibility(); });
+                    this.$watch('searchQuery', () => { this.currentPage = 1; this.updateVisibility(); });
+                    this.$watch('perPage', () => { this.currentPage = 1; this.updateVisibility(); });
+
+                    // Kalkulasi awal
+                    this.$nextTick(() => this.updateVisibility());
+                },
+
+                updateVisibility() {
+                    this.$nextTick(() => {
+                        const allRows = Array.from(document.querySelectorAll('.exam-row'));
+                        let filteredRows = [];
+
+                        // 1. Filter Data (Tab + Search)
+                        allRows.forEach(row => {
+                            const status = row.dataset.status;
+                            const searchStr = row.dataset.search;
+
+                            const matchesTab = this.filterTab === 'completed' ? (status === 'completed') : (status !== 'completed');
+                            const matchesSearch = searchStr.includes(this.searchQuery.toLowerCase());
+
+                            if (matchesTab && matchesSearch) {
+                                filteredRows.push(row);
+                            } else {
+                                row.style.display = 'none'; // Sembunyikan yang tidak cocok
+                            }
+                        });
+
+                        this.visibleCount = filteredRows.length;
+                        this.totalPages = Math.ceil(this.visibleCount / parseInt(this.perPage)) || 1;
+
+                        // 2. Terapkan Pembagian Halaman (Paging)
+                        const startIdx = (this.currentPage - 1) * parseInt(this.perPage);
+                        const endIdx = startIdx + parseInt(this.perPage);
+
+                        filteredRows.forEach((row, index) => {
+                            if (index >= startIdx && index < endIdx) {
+                                row.style.display = ''; // Tampilkan di halaman aktif
+                            } else {
+                                row.style.display = 'none'; // Sembunyikan di halaman lain
+                            }
+                        });
+                    });
+                },
+
+                nextPage() {
+                    if (this.currentPage < this.totalPages) {
+                        this.currentPage++;
+                        this.updateVisibility();
+                    }
+                },
+
+                prevPage() {
+                    if (this.currentPage > 1) {
+                        this.currentPage--;
+                        this.updateVisibility();
+                    }
+                }
+            }));
+
+            // Fitur Waktu Server
             Alpine.data('serverClock', () => ({
                 timeString: '--:--:--',
                 dateString: 'Memuat Tanggal...',
                 serverTime: null,
 
                 init() {
-                    this.serverTime = new Date('{{ now()->toIso8601String() }}');[cite: 3]
-                    this.updateClock();[cite: 3]
+                    this.serverTime = new Date('{{ now()->toIso8601String() }}');
+                    this.updateClock();
                     setInterval(() => {
-                        this.serverTime.setSeconds(this.serverTime.getSeconds() + 1);[cite: 3]
-                        this.updateClock();[cite: 3]
-                    }, 1000);[cite: 3]
+                        this.serverTime.setSeconds(this.serverTime.getSeconds() + 1);
+                        this.updateClock();
+                    }, 1000);
                 },
 
                 updateClock() {
-                    this.timeString = this.serverTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\./g, ':');[cite: 3]
-                    this.dateString = this.serverTime.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });[cite: 3]
+                    this.timeString = this.serverTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\./g, ':');
+                    this.dateString = this.serverTime.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
                 }
             }));
         });
@@ -360,7 +464,7 @@
                     confirmButtonColor: '#ef4444',
                     background: '#fff',
                     allowOutsideClick: false
-                });[cite: 3]
+                });
             @endif
 
             @if(session('success'))
@@ -372,7 +476,7 @@
                     confirmButtonColor: '#10b981',
                     timer: 4000,
                     timerProgressBar: true
-                });[cite: 3]
+                });
             @endif
 
             @if(session('info'))
@@ -382,7 +486,7 @@
                     text: @json(session('info')),
                     confirmButtonText: 'OK',
                     confirmButtonColor: '#3b82f6'
-                });[cite: 3]
+                });
             @endif
         });
     </script>
