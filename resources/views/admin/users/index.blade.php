@@ -42,7 +42,11 @@
         </div>
     </x-slot>
 
-    <div class="py-8 mx-auto px-4 sm:px-6 lg:px-8 space-y-6" x-data="userManager()">
+    {{--
+    Kontainer utama disesuaikan: Menghapus py-8, mx-auto, px-4, sm:px-6, lg:px-8
+    karena app.blade.php sudah mengatur padding dan max-width pada $slot.
+    --}}
+    <div class="space-y-6 w-full flex-1" x-data="userManager()">
 
         {{-- Alert Success --}}
         @if(session('success'))
