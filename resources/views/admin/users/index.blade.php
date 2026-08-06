@@ -1,16 +1,19 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            {{-- Title Section --}}
             <div class="flex items-center gap-4">
                 <div
                     class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg text-white shrink-0">
                     <i class="fas fa-users text-xl"></i>
                 </div>
                 <div class="min-w-0">
-                    <h2 class="font-black text-xl sm:text-2xl text-slate-800 tracking-tight truncate">Manajemen User
+                    <h2 class="font-black text-xl sm:text-2xl text-slate-800 tracking-tight truncate">
+                        Manajemen User
                     </h2>
-                    <p class="text-xs sm:text-sm text-slate-500 font-bold truncate">Kelola data siswa, guru, operator,
-                        dan admin</p>
+                    <p class="text-xs sm:text-sm text-slate-500 font-bold truncate">
+                        Kelola data siswa, guru, operator, dan admin
+                    </p>
                 </div>
             </div>
 
@@ -100,8 +103,9 @@
                         class="w-full bg-slate-50 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition py-2.5 pl-4 pr-10 font-bold text-slate-600 appearance-none text-sm truncate">
                         <option value="">Semua Sekolah</option>
                         @foreach($schools as $school)
-                        <option value="{{ $school->id }}" {{ request('school_id')==$school->id ? 'selected' : '' }}>{{
-                            $school->name }}</option>
+                        <option value="{{ $school->id }}" {{ request('school_id')==$school->id ? 'selected' : '' }}>
+                            {{ $school->name }}
+                        </option>
                         @endforeach
                     </select>
                     <i
@@ -118,7 +122,9 @@
 
                 <div class="flex gap-2 w-full sm:w-auto shrink-0">
                     <button type="submit"
-                        class="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-slate-800 transition shadow-md flex-1 sm:flex-none text-sm">Cari</button>
+                        class="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-slate-800 transition shadow-md flex-1 sm:flex-none text-sm">
+                        Cari
+                    </button>
 
                     @if(request('search') || request('school_id'))
                     <a href="{{ route('admin.users.index') }}"
@@ -161,8 +167,9 @@
                                 <div class="font-bold text-slate-900 text-base">{{ $user->name }}</div>
                                 <div class="text-xs text-slate-500">{{ $user->email ?? '-' }}</div>
                             </td>
-                            <td class="px-6 py-4 font-mono text-indigo-600 bg-indigo-50/30 rounded">{{ $user->username
-                                }}</td>
+                            <td class="px-6 py-4 font-mono text-indigo-600 bg-indigo-50/30 rounded">
+                                {{ $user->username }}
+                            </td>
                             <td class="px-6 py-4">
                                 <div class="text-xs text-slate-500">{{ $user->school->name ?? '-' }}</div>
                             </td>
@@ -174,11 +181,11 @@
                                     <select x-model="currentRole" @change="updateRole()" :disabled="isLoading"
                                         class="appearance-none px-4 py-1.5 rounded-full text-[10px] font-black cursor-pointer border-2 focus:ring-0 outline-none transition-all text-center w-28 uppercase tracking-widest disabled:opacity-50"
                                         :class="{
-                                            'bg-rose-50 text-rose-600 border-rose-200': currentRole === 'admin',
-                                            'bg-purple-50 text-purple-600 border-purple-200': currentRole === 'operator',
-                                            'bg-blue-50 text-blue-600 border-blue-200': currentRole === 'guru',
-                                            'bg-emerald-50 text-emerald-600 border-emerald-200': currentRole === 'siswa'
-                                        }">
+                                                'bg-rose-50 text-rose-600 border-rose-200': currentRole === 'admin',
+                                                'bg-purple-50 text-purple-600 border-purple-200': currentRole === 'operator',
+                                                'bg-blue-50 text-blue-600 border-blue-200': currentRole === 'guru',
+                                                'bg-emerald-50 text-emerald-600 border-emerald-200': currentRole === 'siswa'
+                                            }">
                                         @foreach($roles as $role)
                                         <option value="{{ $role }}" class="bg-white text-slate-800 uppercase">{{ $role
                                             }}</option>
@@ -186,43 +193,47 @@
                                     </select>
                                     <i class="fas fa-chevron-down absolute right-3 text-[10px] pointer-events-none"
                                         :class="{
-                                            'text-rose-400': currentRole === 'admin',
-                                            'text-purple-400': currentRole === 'operator',
-                                            'text-blue-400': currentRole === 'guru',
-                                            'text-emerald-400': currentRole === 'siswa'
-                                        }"></i>
+                                                'text-rose-400': currentRole === 'admin',
+                                                'text-purple-400': currentRole === 'operator',
+                                                'text-blue-400': currentRole === 'guru',
+                                                'text-emerald-400': currentRole === 'siswa'
+                                            }"></i>
                                     <div x-show="isLoading" class="absolute -right-6" x-cloak>
                                         <i class="fas fa-circle-notch fa-spin text-indigo-500"></i>
                                     </div>
                                 </div>
                             </td>
 
-                            <td class="px-6 py-4 text-right space-x-2">
-                                <a href="{{ route('admin.users.edit', $user->id) }}"
-                                    class="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST"
-                                    class="inline-block" onsubmit="return confirm('Yakin ingin menghapus user ini?');">
-                                    @csrf @method('DELETE')
-                                    <button type="submit"
-                                        class="w-8 h-8 items-center justify-center rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white transition">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
-                                </form>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center justify-end gap-2">
+                                    <a href="{{ route('admin.users.edit', $user->id) }}"
+                                        class="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST"
+                                        class="m-0" onsubmit="return confirm('Yakin ingin menghapus user ini?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit"
+                                            class="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white transition">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         @empty
                         <tr>
                             <td colspan="6" class="px-6 py-12 text-center text-slate-400 font-bold">
-                                <i class="fas fa-inbox text-4xl mb-3 opacity-20 block"></i> Tidak ada data user
-                                ditemukan.
+                                <i class="fas fa-inbox text-4xl mb-3 opacity-20 block"></i>
+                                Tidak ada data user ditemukan.
                             </td>
                         </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
+
             @if($users->hasPages())
             <div class="p-4 border-t border-slate-100 bg-slate-50/50">
                 {{ $users->links() }}
@@ -231,7 +242,7 @@
         </div>
     </div>
 
-    {{-- MODAL IMPORT (TIDAK BERUBAH) --}}
+    {{-- MODAL IMPORT --}}
     <div x-data="{ isModalOpen: false }" @buka-modal-import.window="isModalOpen = true" x-show="isModalOpen"
         style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
 
@@ -241,19 +252,22 @@
         <div x-show="isModalOpen" x-transition.scale.origin.bottom
             class="bg-white rounded-[2rem] shadow-2xl max-w-md w-full relative z-[110] overflow-hidden border border-slate-100">
             <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                <h3 class="font-black text-slate-800"><i class="fas fa-file-excel text-emerald-500 mr-2"></i> Import
-                    Data Excel</h3>
+                <h3 class="font-black text-slate-800">
+                    <i class="fas fa-file-excel text-emerald-500 mr-2"></i> Import Data Excel
+                </h3>
                 <button @click="isModalOpen = false"
-                    class="text-slate-400 hover:text-rose-500 w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm"><i
-                        class="fas fa-times"></i></button>
+                    class="text-slate-400 hover:text-rose-500 w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
 
             <form action="{{ route('admin.users.import') }}" method="POST" enctype="multipart/form-data"
                 class="p-6 space-y-6">
                 @csrf
                 <div>
-                    <label class="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Pilih File
-                        (.xlsx, .xls)</label>
+                    <label class="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">
+                        Pilih File (.xlsx, .xls)
+                    </label>
                     <input type="file" name="file_excel" accept=".xlsx, .xls, .csv" required
                         class="block w-full text-sm text-slate-500 file:mr-4 file:py-3 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 border border-slate-200 rounded-xl cursor-pointer bg-slate-50">
                 </div>
@@ -262,8 +276,9 @@
                     <i class="fas fa-info-circle mr-1"></i> Pastikan baris pertama Excel berisi header kolom berikut
                     (huruf kecil):
                     <span
-                        class="font-mono bg-white px-2 py-0.5 rounded text-amber-600 block mt-2 border border-amber-200 truncate overflow-hidden">nama
-                        | username | email | password | role</span>
+                        class="font-mono bg-white px-2 py-0.5 rounded text-amber-600 block mt-2 border border-amber-200 truncate overflow-hidden">
+                        nama | username | email | password | role
+                    </span>
                 </div>
                 <button type="submit"
                     class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-xl font-black transition shadow-lg shadow-emerald-200">
@@ -278,6 +293,7 @@
     <script>
         document.addEventListener('alpine:init', () => {
             let token = document.head.querySelector('meta[name="csrf-token"]');
+
             if (token && window.axios) {
                 axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
             }
@@ -289,21 +305,28 @@
 
                 updateRole() {
                     this.isLoading = true;
+
                     axios.post(`/admin/users/${userId}/update-role`, { role: this.currentRole })
-                    .then(response => {
-                        setTimeout(() => { this.isLoading = false; }, 500);
-                        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
-                        Toast.fire({ icon: 'success', title: 'Akses diubah ke: ' + this.currentRole.toUpperCase() });
-                    })
-                    .catch(error => {
-                        let errMsg = 'Gagal mengubah role.';
-                        if (error.response && error.response.data && error.response.data.message) {
-                            errMsg = error.response.data.message;
-                        }
-                        Swal.fire('Gagal!', errMsg, 'error');
-                        this.currentRole = initialRole;
-                        this.isLoading = false;
-                    });
+                        .then(response => {
+                            setTimeout(() => { this.isLoading = false; }, 500);
+                            const Toast = Swal.mixin({
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 3000,
+                                timerProgressBar: true
+                            });
+                            Toast.fire({ icon: 'success', title: 'Akses diubah ke: ' + this.currentRole.toUpperCase() });
+                        })
+                        .catch(error => {
+                            let errMsg = 'Gagal mengubah role.';
+                            if (error.response?.data?.message) {
+                                errMsg = error.response.data.message;
+                            }
+                            Swal.fire('Gagal!', errMsg, 'error');
+                            this.currentRole = initialRole;
+                            this.isLoading = false;
+                        });
                 }
             }));
         });
@@ -326,33 +349,54 @@
 
                 deleteSelected() {
                     if (this.selected.length === 0) return;
+
                     Swal.fire({
-                        title: 'Hapus ' + this.selected.length + ' User?',
+                        title: `Hapus ${this.selected.length} User?`,
                         text: "Data yang dipilih akan dihapus secara permanen!",
                         icon: 'warning',
-                        background: '#ffffff', color: '#1e293b',
+                        background: '#ffffff',
+                        color: '#1e293b',
                         showCancelButton: true,
-                        confirmButtonColor: '#f43f5e', cancelButtonColor: '#94a3b8',
-                        confirmButtonText: 'Ya, Hapus Semua', cancelButtonText: 'Batal'
+                        confirmButtonColor: '#f43f5e',
+                        cancelButtonColor: '#94a3b8',
+                        confirmButtonText: 'Ya, Hapus Semua',
+                        cancelButtonText: 'Batal'
                     }).then((result) => {
                         if (result.isConfirmed) {
                             axios.delete('/admin/users/bulk-delete', { data: { ids: this.selected } })
-                            .then(res => {
-                                Swal.fire({ icon: 'success', title: 'Terhapus!', text: res.data.message || 'Data berhasil dihapus', timer: 1500, showConfirmButton: false })
-                                .then(() => { window.location.reload(); });
-                            })
-                            .catch(err => {
-                                let errorMsg = 'Terjadi kesalahan saat menghapus data.';
-                                if (err.response && err.response.data && err.response.data.message) { errorMsg = err.response.data.message; }
-                                Swal.fire('Gagal!', errorMsg, 'error');
-                            });
+                                .then(res => {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Terhapus!',
+                                        text: res.data.message || 'Data berhasil dihapus',
+                                        timer: 1500,
+                                        showConfirmButton: false
+                                    }).then(() => {
+                                        window.location.reload();
+                                    });
+                                })
+                                .catch(err => {
+                                    let errorMsg = 'Terjadi kesalahan saat menghapus data.';
+                                    if (err.response?.data?.message) {
+                                        errorMsg = err.response.data.message;
+                                    }
+                                    Swal.fire('Gagal!', errorMsg, 'error');
+                                });
                         }
                     });
                 },
 
                 downloadSelected() {
                     if (this.selected.length === 0) return;
-                    Swal.fire({ title: 'Menyiapkan Unduhan...', text: `Sedang memproses ${this.selected.length} data user.`, icon: 'info', timer: 2000, showConfirmButton: false });
+
+                    Swal.fire({
+                        title: 'Menyiapkan Unduhan...',
+                        text: `Sedang memproses ${this.selected.length} data user.`,
+                        icon: 'info',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+
                     const idsParam = this.selected.join(',');
                     window.location.href = `/admin/users/export-selected?ids=${idsParam}`;
                 }
