@@ -618,7 +618,8 @@
 
     <script>
         document.addEventListener('alpine:init', () => {
-            Alpine.data('mathExamRunner', (questions, initialTime) => ({
+            // PERBAIKAN 1: Tambahkan maxViolations dan enableAntiCheat ke dalam parameter fungsi
+            Alpine.data('mathExamRunner', (questions, initialTime, maxViolations, enableAntiCheat) => ({
                 hasStarted: false,
                 questions: questions,
                 currentIndex: 0,
@@ -632,54 +633,48 @@
                 enableAntiCheat: Boolean(enableAntiCheat),
                 isPageVisible: true,
                 examId: '{{ $exam->id }}',
+
                 init() {
-                this.questions.forEach(q => {
-                    if (q.student_answer !== null && q.student_answer !== undefined) {
-                        this.answers[q.id] = q.student_answer;
+                    this.questions.forEach(q => {
+                        if (q.student_answer !== null && q.student_answer !== undefined) {
+                            this.answers[q.id] = q.student_answer;
+                        }
+                    });
+                },
+
+                triggerAutosave(questionId) {
+                    const answerValue = this.answers[questionId] !== undefined ? this.answers[questionId] : '';
+                    const metaToken = document.querySelector('meta[name="csrf-token"]');
+                    const csrfToken = metaToken ? metaToken.getAttribute('content') : '';
+
+                    axios.post(`/math-exam/${this.examId}/autosave`, {
+                        question_id: questionId,
+                        answer: answerValue
+                    }, {
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(response => console.log('Autosave sukses soal ID:', questionId))
+                    .catch(error => console.error('Autosave gagal:', error));
+                },
+
+                startExam() {
+                    this.hasStarted = true;
+                    let elem = document.documentElement;
+                    if (elem.requestFullscreen) {
+                        elem.requestFullscreen().catch(err => console.warn("Fullscreen blocked:", err));
+                    } else if (elem.webkitRequestFullscreen) {
+                        elem.webkitRequestFullscreen();
+                    } else if (elem.msRequestFullscreen) {
+                        elem.msRequestFullscreen();
                     }
-                });
-            },
-
-            triggerAutosave(questionId) {
-                const answerValue = this.answers[questionId] !== undefined ? this.answers[questionId] : '';
-
-                // Ambil CSRF Token dari tag meta HTML
-                const metaToken = document.querySelector('meta[name="csrf-token"]');
-                const csrfToken = metaToken ? metaToken.getAttribute('content') : '';
-
-                axios.post(`/math-exam/${this.examId}/autosave`, {
-                    question_id: questionId,
-                    answer: answerValue
-                }, {
-                    // Tambahkan Headers ini
-                    headers: {
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json'
-                    }
-                })
-                .then(response => {
-                    console.log('Autosave sukses soal ID:', questionId);
-                })
-                .catch(error => {
-                    console.error('Autosave gagal:', error);
-                });
-            },
-       startExam() {
-                this.hasStarted = true;
-                let elem = document.documentElement;
-                if (elem.requestFullscreen) {
-                    elem.requestFullscreen().catch(err => console.warn("Fullscreen blocked:", err));
-                } else if (elem.webkitRequestFullscreen) {
-                    elem.webkitRequestFullscreen();
-                } else if (elem.msRequestFullscreen) {
-                    elem.msRequestFullscreen();
-                }
-                this.$nextTick(() => { this.focusInput(); });
-                this.startTimer();
-            },
+                    this.$nextTick(() => { this.focusInput(); });
+                    this.startTimer();
+                },
 
                 handleVisibilityChange() {
-                    // JIKA DIMATIKAN, BERHENTI DI SINI (Jangan catat pelanggaran)
                     if (!this.enableAntiCheat) return;
 
                     if (this.hasStarted && !this.showCheatWarning) {
@@ -690,7 +685,6 @@
                 },
 
                 handleWindowBlur() {
-                    // JIKA DIMATIKAN, BERHENTI DI SINI
                     if (!this.enableAntiCheat) return;
 
                     if (this.hasStarted && !this.showCheatWarning) {
@@ -706,11 +700,12 @@
                     this.violationCount++;
                     this.showCheatWarning = true;
 
-                    if (this.violationCount >= 3) {
+                    // PERBAIKAN 2: Gunakan this.maxViolations, bukan angka 3 statis
+                    if (this.violationCount >= this.maxViolations) {
                         setTimeout(() => {
                             Swal.fire({
                                 title: 'Ujian Dikumpulkan!',
-                                text: 'Anda telah melakukan 3 kali pelanggaran. Ujian akan otomatis dikumpulkan.',
+                                text: `Anda telah melakukan ${this.maxViolations} kali pelanggaran. Ujian akan otomatis dikumpulkan.`,
                                 icon: 'error',
                                 confirmButtonColor: '#dc2626',
                                 confirmButtonText: 'Mengerti',
@@ -724,13 +719,10 @@
 
                 acknowledgeWarning() {
                     this.showCheatWarning = false;
-
-                    // Try to return to fullscreen
                     let elem = document.documentElement;
                     if (elem.requestFullscreen) {
                         elem.requestFullscreen().catch(() => {});
                     }
-
                     this.focusInput();
                 },
 
@@ -748,11 +740,9 @@
                             this.timeLeft--;
                         } else {
                             clearInterval(this.timerInterval);
-
                             if (document.exitFullscreen) {
                                 document.exitFullscreen().catch(()=>{});
                             }
-
                             Swal.fire({
                                 title: 'Waktu Habis!',
                                 text: 'Sistem sedang menyimpan jawaban Anda...',
@@ -780,47 +770,44 @@
                     }, 50);
                 },
 
-               nextQuestion() {
-                const currentQ = this.questions[this.currentIndex];
+                nextQuestion() {
+                    const currentQ = this.questions[this.currentIndex];
 
-                if (this.answers[currentQ.id] === undefined || this.answers[currentQ.id] === '') {
-                    this.focusInput();
-                    const input = document.getElementById('input-' + this.currentIndex);
-                    if(input) {
-                        input.classList.add('animate-shake');
-                        setTimeout(() => input.classList.remove('animate-shake'), 500);
+                    if (this.answers[currentQ.id] === undefined || this.answers[currentQ.id] === '') {
+                        this.focusInput();
+                        const input = document.getElementById('input-' + this.currentIndex);
+                        if(input) {
+                            input.classList.add('animate-shake');
+                            setTimeout(() => input.classList.remove('animate-shake'), 500);
+                        }
+                        return;
                     }
-                    return;
-                }
 
-                this.removeSkipped(currentQ.id);
+                    this.removeSkipped(currentQ.id);
+                    this.triggerAutosave(currentQ.id);
 
-                // 🔥 PANGGIL AUTOSAVE SEBELUM PINDAH
-                this.triggerAutosave(currentQ.id);
+                    if (this.currentIndex < this.questions.length - 1) {
+                        this.currentIndex++;
+                        this.focusInput();
+                    } else {
+                        this.finishExam();
+                    }
+                },
 
-                if (this.currentIndex < this.questions.length - 1) {
-                    this.currentIndex++;
-                    this.focusInput();
-                } else {
-                    this.finishExam();
-                }
-            },
+                skipQuestion() {
+                    const currentQ = this.questions[this.currentIndex];
 
-   skipQuestion() {
-                const currentQ = this.questions[this.currentIndex];
+                    if (!this.skipped.includes(currentQ.id) && (this.answers[currentQ.id] === undefined || this.answers[currentQ.id] === '')) {
+                        this.skipped.push(currentQ.id);
+                    }
 
-                if (!this.skipped.includes(currentQ.id) && (this.answers[currentQ.id] === undefined || this.answers[currentQ.id] === '')) {
-                    this.skipped.push(currentQ.id);
-                }
+                    this.triggerAutosave(currentQ.id);
 
-                // 🔥 PANGGIL AUTOSAVE JIKA ADA JAWABAN TAPI DILEWATI
-                this.triggerAutosave(currentQ.id);
-
-                if (this.currentIndex < this.questions.length - 1) {
-                    this.currentIndex++;
-                    this.focusInput();
-                }
-            },
+                    if (this.currentIndex < this.questions.length - 1) {
+                        this.currentIndex++;
+                        this.focusInput();
+                    }
+                },
 
                 removeSkipped(id) {
                     const index = this.skipped.indexOf(id);
@@ -829,25 +816,21 @@
                     }
                 },
 
-        prevQuestion() {
-                if (this.currentIndex > 0) {
+                prevQuestion() {
+                    if (this.currentIndex > 0) {
+                        const currentQ = this.questions[this.currentIndex];
+                        this.triggerAutosave(currentQ.id);
+                        this.currentIndex--;
+                        this.focusInput();
+                    }
+                },
+
+                jumpToQuestion(index) {
                     const currentQ = this.questions[this.currentIndex];
-                    // 🔥 PANGGIL AUTOSAVE SEBELUM MUNDUR
                     this.triggerAutosave(currentQ.id);
-
-                    this.currentIndex--;
+                    this.currentIndex = index;
                     this.focusInput();
-                }
-            },
-
-       jumpToQuestion(index) {
-                const currentQ = this.questions[this.currentIndex];
-
-                this.triggerAutosave(currentQ.id);
-
-                this.currentIndex = index;
-                this.focusInput();
-            },
+                },
 
                 isAnswered(questionId) {
                     return this.answers[questionId] !== undefined && this.answers[questionId] !== '';
@@ -871,8 +854,8 @@
 
                 finishExam() {
                     const unanswered = this.getUnansweredCount() + this.getSkippedCount();
-
                     let textMsg = "Pastikan semua soal sudah dihitung dengan teliti!";
+
                     if (unanswered > 0) {
                         textMsg = `Ada ${unanswered} soal yang belum dijawab. Yakin ingin mengumpulkan?`;
                     }
@@ -908,20 +891,13 @@
                     });
                 },
 
-              forceSubmit() {
-    clearInterval(this.timerInterval);
-
-    // 1. Ambil elemen form dan input hidden
-    const form = document.getElementById('math-submit-form');
-    let inputAnswers = form.querySelector('input[name="answers"]');
-
-    // 2. Suntikkan (inject) data jawaban secara paksa ke dalam input
-    // Menggunakan Alpine.raw() untuk memastikan kita mengambil data asli, bukan Proxy object
-    inputAnswers.value = JSON.stringify(Alpine.raw(this.answers));
-
-    // 3. Submit form
-    form.submit();
-}
+                forceSubmit() {
+                    clearInterval(this.timerInterval);
+                    const form = document.getElementById('math-submit-form');
+                    let inputAnswers = form.querySelector('input[name="answers"]');
+                    inputAnswers.value = JSON.stringify(Alpine.raw(this.answers));
+                    form.submit();
+                }
             }));
         });
     </script>
