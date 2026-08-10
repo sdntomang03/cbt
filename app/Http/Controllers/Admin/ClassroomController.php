@@ -117,20 +117,18 @@ class ClassroomController extends Controller
             abort(403);
         }
 
-        // Filter siswa yang tampil di kelas berdasarkan tahun ajaran kelas tersebut
         $classroom->load(['students' => function ($q) use ($classroom) {
             $q->where('classroom_student.academic_year_id', $classroom->academic_year_id)
                 ->orderBy('name', 'asc');
         }]);
 
-        // Cari ID siswa yang SUDAH memiliki kelas PADA TAHUN AJARAN INI
+        // PERBAIKAN DI SINI: Langsung jadikan Array murni dan pastikan tidak ada ID null
         $assignedStudentIds = DB::table('classroom_student')
-            ->join('users', 'classroom_student.student_id', '=', 'users.id')
-            ->where('users.school_id', $schoolId)
-            ->where('classroom_student.academic_year_id', $classroom->academic_year_id) // Tambahan filter tahun ajaran
-            ->pluck('student_id');
+            ->where('academic_year_id', $classroom->academic_year_id)
+            ->whereNotNull('student_id')
+            ->pluck('student_id')
+            ->toArray();
 
-        // Tampilkan siswa yang BELUM memiliki kelas pada TAHUN AJARAN INI
         $unassignedStudents = User::where('school_id', $schoolId)
             ->role('siswa')
             ->whereNotIn('id', $assignedStudentIds)
