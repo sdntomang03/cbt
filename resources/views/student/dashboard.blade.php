@@ -39,7 +39,7 @@
                 <div
                     class="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl text-center shrink-0 min-w-32">
                     <div class="text-xs font-black text-emerald-200 uppercase tracking-wider">Kelas Anda</div>
-                    <div class="text-3xl font-black mt-1">4B</div>
+                    <div class="text-3xl font-black mt-1">4</div>
                 </div>
             </div>
         </div>
