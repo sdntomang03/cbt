@@ -121,7 +121,7 @@ class ClassroomController extends Controller
 
         // 1. Tampilkan daftar siswa yang SUDAH ADA DI KELAS INI (berdasarkan tahun ajaran kelasnya)
         $classroom->load(['students' => function ($q) use ($classroom) {
-            $q->where('classroom_student.academic_year_id', $classroom->academic_year_id)
+            // $q->where('classroom_student.academic_year_id', $classroom->academic_year_id)
                 ->orderBy('name', 'asc');
         }]);
 
@@ -129,15 +129,15 @@ class ClassroomController extends Controller
         // Kita join dengan tabel classrooms untuk memastikan hanya mengecek kelas di sekolah yang sama
         $assignedStudentIds = DB::table('classroom_student')
             ->join('classrooms', 'classroom_student.classroom_id', '=', 'classrooms.id')
-            ->where('classrooms.school_id', $schoolId)
-            ->where('classroom_student.academic_year_id', $classroom->academic_year_id)
+            // ->where('classrooms.school_id', $schoolId)
+            // ->where('classroom_student.academic_year_id', $classroom->academic_year_id)
             ->pluck('classroom_student.student_id') // Hanya ambil kolom student_id
             ->toArray(); // Jadikan array murni agar whereNotIn berfungsi dengan baik
 
         // 3. Tarik SEMUA siswa di sekolah ini yang TIDAK ADA di dalam $assignedStudentIds
         $unassignedStudents = User::where('school_id', $schoolId)
             ->role('siswa') // PASTIKAN role 'siswa' sudah ter-assign ke user di database
-            ->whereNotIn('id', $assignedStudentIds)
+            // ->whereNotIn('id', $assignedStudentIds)
             ->orderBy('name', 'asc')
             ->get();
 
