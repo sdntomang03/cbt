@@ -110,10 +110,6 @@ class ClassroomController extends Controller
     // FITUR PENGELOLAAN SISWA DI DALAM KELAS (TETAP SAMA KARENA DI HALAMAN TERPISAH)
     // =========================================================================
 
-    // =========================================================================
-    // FITUR PENGELOLAAN SISWA DI DALAM KELAS
-    // =========================================================================
-
     public function manageStudents(Classroom $classroom)
     {
         $schoolId = Auth::user()->school_id;
