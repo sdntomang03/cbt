@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('academic_years', function (Blueprint $table) {
+        Schema::create('classroom_student', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('school_id')->constrained()->cascadeOnDelete(); // Filter sekolah
-            $table->string('name');
-            $table->boolean('is_active')->default(false);
+            $table->foreignId('classroom_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('student_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('academic_year_id')->constrained('academic_years')->cascadeOnDelete();
             $table->timestamps();
         });
     }
