@@ -114,25 +114,33 @@ class ClassroomController extends Controller
     {
         $schoolId = Auth::user()->school_id;
 
-        // --- MULAI KODE DEBUGGING ---
+        // Keamanan: Pastikan kelas ini milik sekolah admin yang login
+        if ($classroom->school_id !== $schoolId) {
+            abort(403);
+        }
+
+        // 1. Tampilkan daftar siswa yang SUDAH ADA DI KELAS INI
+        $classroom->load(['students' => function ($q) use ($classroom) {
+            $q->where('classroom_student.academic_year_id', $classroom->academic_year_id)
+                ->orderBy('name', 'asc');
+        }]);
+
+        // 2. Cari semua ID siswa yang SUDAH PUNYA KELAS MANAPUN pada tahun ajaran yang sama
         $assignedStudentIds = DB::table('classroom_student')
-            ->where('academic_year_id', $classroom->academic_year_id)
-            ->pluck('student_id')
+            ->join('classrooms', 'classroom_student.classroom_id', '=', 'classrooms.id')
+            ->where('classrooms.school_id', $schoolId)
+            ->where('classroom_student.academic_year_id', $classroom->academic_year_id)
+            ->pluck('classroom_student.student_id')
             ->toArray();
 
-        dd([
-            '1_School_ID_Admin_Login' => $schoolId,
-            '2_Academic_Year_ID_Kelas_Ini' => $classroom->academic_year_id,
-            '3_Total_Semua_User_di_Sekolah_Ini' => User::where('school_id', $schoolId)->count(),
-            '4_Total_User_Memiliki_Role_Siswa' => User::where('school_id', $schoolId)->role('siswa')->count(),
-            '5_Array_ID_Siswa_Sudah_Dapat_Kelas' => $assignedStudentIds,
-            '6_Hasil_Query_UnassignedStudents' => User::where('school_id', $schoolId)
-                ->role('siswa')
-                ->whereNotIn('id', $assignedStudentIds)
-                ->get(['id', 'name', 'school_id'])
-                ->toArray(),
-        ]);
-        // --- SELESAI KODE DEBUGGING ---
+        // 3. Tarik SEMUA siswa di sekolah ini yang BELUM DAPAT KELAS
+        $unassignedStudents = User::where('school_id', $schoolId)
+            ->role('siswa')
+            ->whereNotIn('id', $assignedStudentIds)
+            ->orderBy('name', 'asc')
+            ->get();
+
+        return view('admin.classrooms.students', compact('classroom', 'unassignedStudents'));
     }
 
     public function syncStudents(Request $request, Classroom $classroom)
