@@ -15,6 +15,9 @@ return new class extends Migration
             $table->json('digits');
             $table->integer('total_questions');
             $table->integer('duration_minutes');
+            $table->integer('max_violations')->default(3); // Yang kita buat sebelumnya
+
+            $table->boolean('enable_anti_cheat')->default(true);
             $table->boolean('show_explanation')->default(false);
             $table->foreignId('school_id')->nullable()->constrained()->cascadeOnDelete();
             $table->timestamps();

@@ -144,7 +144,8 @@
         }
     </style>
 
-    <div class="h-screen flex flex-col" x-data="mathExamRunner({{ json_encode($questions) }}, {{ $timeLeftSeconds }})"
+    <div class="h-screen flex flex-col"
+        x-data="mathExamRunner({{ json_encode($questions) }}, {{ $timeLeftSeconds }}, {{ $exam->max_violations ?? 3 }}, {{ $exam->enable_anti_cheat ?? 1 }})"
         @visibilitychange.window="handleVisibilityChange()" @blur.window="handleWindowBlur()"
         @focus.window="handleWindowFocus()">
 
@@ -175,10 +176,13 @@
                     </div>
                 </div>
 
+                {{-- Card Kejujuran --}}
                 <h2 class="text-2xl md:text-3xl font-black text-slate-800 mb-4 uppercase tracking-widest">Janji
                     Kejujuran</h2>
 
-                <div class="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 rounded-2xl p-4 mb-6">
+                {{-- TAMBAHKAN x-show DI SINI --}}
+                <div x-show="enableAntiCheat"
+                    class="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 rounded-2xl p-4 mb-6">
                     <div class="flex items-start gap-3">
                         <i class="fas fa-exclamation-triangle text-red-500 text-xl mt-1"></i>
                         <div class="text-left text-sm text-slate-700 leading-relaxed">
@@ -624,6 +628,8 @@
                 timerInterval: null,
                 showCheatWarning: false,
                 violationCount: 0,
+                maxViolations: maxViolations,
+                enableAntiCheat: Boolean(enableAntiCheat),
                 isPageVisible: true,
                 examId: '{{ $exam->id }}',
                 init() {
@@ -673,6 +679,9 @@
             },
 
                 handleVisibilityChange() {
+                    // JIKA DIMATIKAN, BERHENTI DI SINI (Jangan catat pelanggaran)
+                    if (!this.enableAntiCheat) return;
+
                     if (this.hasStarted && !this.showCheatWarning) {
                         if (document.hidden) {
                             this.recordViolation();
@@ -681,6 +690,9 @@
                 },
 
                 handleWindowBlur() {
+                    // JIKA DIMATIKAN, BERHENTI DI SINI
+                    if (!this.enableAntiCheat) return;
+
                     if (this.hasStarted && !this.showCheatWarning) {
                         this.recordViolation();
                     }
