@@ -110,6 +110,10 @@ class ClassroomController extends Controller
     // FITUR PENGELOLAAN SISWA DI DALAM KELAS (TETAP SAMA KARENA DI HALAMAN TERPISAH)
     // =========================================================================
 
+    // =========================================================================
+    // FITUR PENGELOLAAN SISWA DI DALAM KELAS
+    // =========================================================================
+
     public function manageStudents(Classroom $classroom)
     {
         $schoolId = Auth::user()->school_id;
@@ -117,15 +121,20 @@ class ClassroomController extends Controller
             abort(403);
         }
 
-        $classroom->load(['students' => function ($q) {
-            $q->orderBy('name', 'asc');
+        // Filter siswa yang tampil di kelas berdasarkan tahun ajaran kelas tersebut
+        $classroom->load(['students' => function ($q) use ($classroom) {
+            $q->where('classroom_student.academic_year_id', $classroom->academic_year_id)
+                ->orderBy('name', 'asc');
         }]);
 
+        // Cari ID siswa yang SUDAH memiliki kelas PADA TAHUN AJARAN INI
         $assignedStudentIds = DB::table('classroom_student')
             ->join('users', 'classroom_student.student_id', '=', 'users.id')
             ->where('users.school_id', $schoolId)
+            ->where('classroom_student.academic_year_id', $classroom->academic_year_id) // Tambahan filter tahun ajaran
             ->pluck('student_id');
 
+        // Tampilkan siswa yang BELUM memiliki kelas pada TAHUN AJARAN INI
         $unassignedStudents = User::where('school_id', $schoolId)
             ->role('siswa')
             ->whereNotIn('id', $assignedStudentIds)
@@ -147,7 +156,15 @@ class ClassroomController extends Controller
             'student_ids.*' => [Rule::exists('users', 'id')->where('school_id', $schoolId)],
         ]);
 
-        $classroom->students()->sync($request->student_ids ?? []);
+        // Siapkan data pivot yang menyertakan academic_year_id
+        $pivotData = [];
+        if ($request->filled('student_ids')) {
+            foreach ($request->student_ids as $studentId) {
+                $pivotData[$studentId] = ['academic_year_id' => $classroom->academic_year_id];
+            }
+        }
+
+        $classroom->students()->sync($pivotData);
 
         return redirect()->route('admin.classrooms.index')
             ->with('success', 'Daftar siswa di kelas '.$classroom->name.' berhasil diperbarui!');
@@ -165,7 +182,13 @@ class ClassroomController extends Controller
             'student_ids.*' => 'exists:users,id',
         ]);
 
-        $classroom->students()->syncWithoutDetaching($request->student_ids);
+        // Tambahkan academic_year_id saat insert siswa ke tabel pivot
+        $pivotData = [];
+        foreach ($request->student_ids as $studentId) {
+            $pivotData[$studentId] = ['academic_year_id' => $classroom->academic_year_id];
+        }
+
+        $classroom->students()->syncWithoutDetaching($pivotData);
 
         return back()->with('success', count($request->student_ids).' siswa berhasil ditambahkan ke kelas!');
     }
@@ -177,7 +200,13 @@ class ClassroomController extends Controller
             abort(403);
         }
 
-        $classroom->students()->detach($student->id);
+        // Hapus spesifik berdasarkan student, classroom, dan tahun ajaran
+        // (Agar riwayat kelas siswa di tahun ajaran sebelumnya tidak ikut terhapus)
+        DB::table('classroom_student')
+            ->where('classroom_id', $classroom->id)
+            ->where('student_id', $student->id)
+            ->where('academic_year_id', $classroom->academic_year_id)
+            ->delete();
 
         return back()->with('success', 'Siswa '.$student->name.' berhasil dikeluarkan dari kelas.');
     }
