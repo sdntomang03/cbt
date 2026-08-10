@@ -113,24 +113,30 @@ class ClassroomController extends Controller
     public function manageStudents(Classroom $classroom)
     {
         $schoolId = Auth::user()->school_id;
+
+        // Keamanan: Pastikan kelas ini milik sekolah admin yang login
         if ($classroom->school_id !== $schoolId) {
             abort(403);
         }
 
+        // 1. Tampilkan daftar siswa yang SUDAH ADA DI KELAS INI (berdasarkan tahun ajaran kelasnya)
         $classroom->load(['students' => function ($q) use ($classroom) {
             $q->where('classroom_student.academic_year_id', $classroom->academic_year_id)
                 ->orderBy('name', 'asc');
         }]);
 
-        // PERBAIKAN DI SINI: Langsung jadikan Array murni dan pastikan tidak ada ID null
+        // 2. Cari semua ID siswa yang SUDAH PUNYA KELAS MANAPUN pada tahun ajaran yang sama
+        // Kita join dengan tabel classrooms untuk memastikan hanya mengecek kelas di sekolah yang sama
         $assignedStudentIds = DB::table('classroom_student')
-            ->where('academic_year_id', $classroom->academic_year_id)
-            ->whereNotNull('student_id')
-            ->pluck('student_id')
-            ->toArray();
+            ->join('classrooms', 'classroom_student.classroom_id', '=', 'classrooms.id')
+            ->where('classrooms.school_id', $schoolId)
+            ->where('classroom_student.academic_year_id', $classroom->academic_year_id)
+            ->pluck('classroom_student.student_id') // Hanya ambil kolom student_id
+            ->toArray(); // Jadikan array murni agar whereNotIn berfungsi dengan baik
 
+        // 3. Tarik SEMUA siswa di sekolah ini yang TIDAK ADA di dalam $assignedStudentIds
         $unassignedStudents = User::where('school_id', $schoolId)
-            ->role('siswa')
+            ->role('siswa') // PASTIKAN role 'siswa' sudah ter-assign ke user di database
             ->whereNotIn('id', $assignedStudentIds)
             ->orderBy('name', 'asc')
             ->get();
