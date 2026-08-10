@@ -1,58 +1,37 @@
 <?php
 
-namespace App\Exports;
+namespace App\Imports;
 
-use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
-use Maatwebsite\Excel\Concerns\WithHeadings;
+use App\Models\User;
+use Maatwebsite\Excel\Concerns\ToModel;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Vinkla\Hashids\Facades\Hashids;
 
-class UsersTemplateExport implements FromArray, ShouldAutoSize, WithHeadings
+class UsersImport implements ToModel, WithHeadingRow
 {
-    protected $schoolId;
-
-    // Menerima school_id dari controller saat class ini dipanggil
-    public function __construct($schoolId)
+    public function model(array $row)
     {
-        $this->schoolId = $schoolId;
-    }
+        $realSchoolId = null;
 
-    public function headings(): array
-    {
-        return [
-            'nama',
-            'username',
-            'email',
-            'password',
-            'role',
-            'school_id',
-        ];
-    }
+        if (! empty($row['school_id'])) {
+            // Decode mengembalikan bentuk array, contoh: [1]
+            $decoded = Hashids::decode($row['school_id']);
 
-    public function array(): array
-    {
-        // Ubah ID sekolah asli menjadi karakter acak (contoh: "jR3qM")
-        $hashedSchoolId = Hashids::encode($this->schoolId);
+            // Jika hasil decode kosong (berarti user mencoba mengubah kode secara asal)
+            if (empty($decoded)) {
+                throw new \Exception('Gagal import: Kode Sekolah tidak valid atau telah dimanipulasi.');
+            }
 
-        // Memberikan contoh data baris pertama dan kedua
-        return [
-            [
-                'Budi Santoso',
-                '1234567890',
-                'budi@sekolah.com',
-                '12345678',
-                'siswa',
-                $hashedSchoolId,
-                'COPY PASTE DATA KODE SEKOLAH INI KE BARIS-BARIS SELANJUTNYA JIKA INGIN IMPORT KE SEKOLAH YANG SAMA',
-            ],
-            [
-                'Siti Aminah',
-                '0987654321',
-                'siti@sekolah.com',
-                '12345678',
-                'guru',
-                $hashedSchoolId,
-            ],
-        ];
+            // Ambil angka aslinya dari dalam array
+            $realSchoolId = $decoded[0];
+        }
+
+        return new User([
+            'name' => $row['nama'],
+            'username' => $row['username'],
+            'email' => $row['email'],
+            'password' => bcrypt('password123'),
+            'school_id' => $realSchoolId, // Masukkan ID asli (angka) ke database
+        ]);
     }
 }
