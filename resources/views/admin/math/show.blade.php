@@ -49,6 +49,10 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-3">
+                <button type="button" onclick="confirmRemoval()"
+                    class="bg-rose-500 hover:bg-rose-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-transform hover:-translate-y-1 flex items-center gap-2">
+                    <i class="fas fa-trash-alt"></i> Hapus Siswa
+                </button>
                 {{-- TOMBOL TAMBAH SISWA --}}
                 <button @click="showAddStudentModal = true"
                     class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-transform hover:-translate-y-1 flex items-center gap-2">
@@ -175,110 +179,128 @@
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr
-                            class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider font-black border-b border-slate-100">
-                            <th class="p-5 text-center w-16">No</th>
-                            <th class="p-5">Nama Siswa</th>
-                            <th class="p-5">Sekolah</th>
-                            <th class="p-5 text-center">Status</th>
-                            <th class="p-5 text-center">Waktu Pengerjaan</th>
-                            <th class="p-5 text-center">Nilai Akhir</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        @forelse($exam->examUsers->sortByDesc('score') as $index => $user)
-                        <tr class="hover:bg-slate-50/50 transition-colors">
-                            <td class="p-5 text-center font-bold text-slate-400">{{ $loop->iteration }}</td>
+                {{-- Form mengarah ke route removeStudents --}}
+                <form id="removeStudentsForm" action="{{ route('admin.math.removeStudents', $exam->id) }}"
+                    method="POST">
+                    @csrf
+                    {{-- Jika Anda menggunakan metode DELETE di route, tambahkan @method('DELETE') --}}
 
-                            <td class="p-5">
-                                <span class="block font-black text-slate-800">{{ $user->student->name ?? 'Siswa
-                                    Terhapus' }}</span>
-                            </td>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr
+                                class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider font-black border-b border-slate-100">
+                                {{-- Checkbox Pilih Semua --}}
+                                <th class="p-5 text-center w-16">
+                                    <input type="checkbox" id="checkAll" onclick="toggleAll(this)"
+                                        class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                                </th>
+                                <th class="p-5 text-center w-16">No</th>
+                                <th class="p-5">Nama Siswa</th>
+                                <th class="p-5">Sekolah</th>
+                                <th class="p-5 text-center">Status</th>
+                                <th class="p-5 text-center">Waktu Pengerjaan</th>
+                                <th class="p-5 text-center">Nilai Akhir</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($exam->examUsers->sortByDesc('score') as $index => $user)
+                            <tr class="hover:bg-slate-50/50 transition-colors">
+                                {{-- Checkbox Individual --}}
+                                <td class="p-5 text-center">
+                                    <input type="checkbox" name="student_ids[]" value="{{ $user->student_id }}"
+                                        data-name="{{ $user->student->name ?? 'Siswa Terhapus' }}"
+                                        class="student-checkbox rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                                </td>
 
-                            <td class="p-5">
-                                <span class="text-xs font-bold text-indigo-500 uppercase">{{
-                                    $user->student->school->name ?? 'Pusat' }}</span>
-                            </td>
+                                <td class="p-5 text-center font-bold text-slate-400">{{ $loop->iteration }}</td>
 
-                            <td class="p-5 text-center">
-                                @if($user->status === 'not_started')
-                                <span
-                                    class="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-xs font-black uppercase">Belum
-                                    Mulai</span>
-                                @elseif($user->status === 'ongoing')
-                                <span
-                                    class="bg-amber-100 text-amber-600 px-3 py-1 rounded-full text-xs font-black uppercase animate-pulse">Sedang
-                                    Ujian</span>
-                                @else
-                                <span
-                                    class="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-xs font-black uppercase">Selesai</span>
-                                @endif
-                            </td>
+                                <td class="p-5">
+                                    <span class="block font-black text-slate-800">{{ $user->student->name ?? 'Siswa
+                                        Terhapus' }}</span>
+                                </td>
 
-                            <td class="p-5 text-center">
-                                @if($user->status === 'completed' && $user->started_at && $user->finished_at)
-                                @php
-                                $start = \Carbon\Carbon::parse($user->started_at);
-                                $finish = \Carbon\Carbon::parse($user->finished_at);
+                                <td class="p-5">
+                                    <span class="text-xs font-bold text-indigo-500 uppercase">{{
+                                        $user->student->school->name ?? 'Pusat' }}</span>
+                                </td>
 
-                                $totalSeconds = $start->diffInSeconds($finish);
-                                $diffInMinutes = floor($totalSeconds / 60);
-                                $diffInSeconds = $totalSeconds % 60;
-                                @endphp
-
-                                <span class="text-sm font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-lg">
-                                    <i class="fas fa-stopwatch mr-1 text-slate-400"></i>
-                                    {{ $diffInMinutes }}m {{ $diffInSeconds }}s
-                                </span>
-                                @else
-                                <span class="text-slate-300 font-bold">-</span>
-                                @endif
-                            </td>
-
-                            <td class="p-5 text-center">
-                                <div class="mb-3">
-                                    @if($user->status === 'completed')
+                                <td class="p-5 text-center">
+                                    @if($user->status === 'not_started')
                                     <span
-                                        class="text-2xl font-black {{ $user->score >= 70 ? 'text-emerald-500' : 'text-rose-500' }}">
-                                        {{ $user->score }}
+                                        class="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-xs font-black uppercase">Belum
+                                        Mulai</span>
+                                    @elseif($user->status === 'ongoing')
+                                    <span
+                                        class="bg-amber-100 text-amber-600 px-3 py-1 rounded-full text-xs font-black uppercase animate-pulse">Sedang
+                                        Ujian</span>
+                                    @else
+                                    <span
+                                        class="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-xs font-black uppercase">Selesai</span>
+                                    @endif
+                                </td>
+
+                                <td class="p-5 text-center">
+                                    @if($user->status === 'completed' && $user->started_at && $user->finished_at)
+                                    @php
+                                    $start = \Carbon\Carbon::parse($user->started_at);
+                                    $finish = \Carbon\Carbon::parse($user->finished_at);
+
+                                    $totalSeconds = $start->diffInSeconds($finish);
+                                    $diffInMinutes = floor($totalSeconds / 60);
+                                    $diffInSeconds = $totalSeconds % 60;
+                                    @endphp
+
+                                    <span class="text-sm font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-lg">
+                                        <i class="fas fa-stopwatch mr-1 text-slate-400"></i>
+                                        {{ $diffInMinutes }}m {{ $diffInSeconds }}s
                                     </span>
                                     @else
-                                    <span class="text-slate-300 font-bold text-xl">-</span>
+                                    <span class="text-slate-300 font-bold">-</span>
                                     @endif
-                                </div>
+                                </td>
 
-                                <div class="flex items-center justify-center gap-2">
-                                    <a href="{{ route('admin.math.student_result', $user->id) }}"
-                                        class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-500 hover:bg-indigo-500 hover:text-white transition-colors"
-                                        title="Lihat Lembar Jawaban">
-                                        <i class="fas fa-search"></i>
-                                    </a>
+                                <td class="p-5 text-center">
+                                    <div class="mb-3">
+                                        @if($user->status === 'completed')
+                                        <span
+                                            class="text-2xl font-black {{ $user->score >= 70 ? 'text-emerald-500' : 'text-rose-500' }}">
+                                            {{ $user->score }}
+                                        </span>
+                                        @else
+                                        <span class="text-slate-300 font-bold text-xl">-</span>
+                                        @endif
+                                    </div>
 
-                                    <form action="{{ route('admin.math.resetStudent', $user->id) }}" method="POST"
-                                        class="m-0 p-0"
-                                        onsubmit="return confirm('Yakin ingin mereset ujian siswa ini? Semua jawaban sebelumnya akan hilang.');">
-                                        @csrf
-                                        <button type="submit"
-                                            class="btn btn-warning btn-sm inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-amber-500 hover:bg-amber-500 hover:text-white transition-colors"
-                                            title="Reset Ujian">
-                                            <i class="fas fa-undo"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="6" class="p-10 text-center text-slate-400 font-bold">
-                                <i class="fas fa-users-slash text-4xl mb-3 block opacity-30"></i>
-                                Belum ada siswa yang ditugaskan untuk ujian ini.
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                                    <div class="flex items-center justify-center gap-2">
+                                        <a href="{{ route('admin.math.student_result', $user->id) }}"
+                                            class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-500 hover:bg-indigo-500 hover:text-white transition-colors"
+                                            title="Lihat Lembar Jawaban">
+                                            <i class="fas fa-search"></i>
+                                        </a>
+
+                                        <form action="{{ route('admin.math.resetStudent', $user->id) }}" method="POST"
+                                            class="m-0 p-0"
+                                            onsubmit="return confirm('Yakin ingin mereset ujian siswa ini? Semua jawaban sebelumnya akan hilang.');">
+                                            @csrf
+                                            <button type="submit"
+                                                class="btn btn-warning btn-sm inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-amber-500 hover:bg-amber-500 hover:text-white transition-colors"
+                                                title="Reset Ujian">
+                                                <i class="fas fa-undo"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="6" class="p-10 text-center text-slate-400 font-bold">
+                                    <i class="fas fa-users-slash text-4xl mb-3 block opacity-30"></i>
+                                    Belum ada siswa yang ditugaskan untuk ujian ini.
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
             </div>
         </div>
 
@@ -408,4 +430,39 @@
             }
         </style>
     </div>
+    <script>
+        // Fungsi untuk "Check All"
+    function toggleAll(source) {
+        const checkboxes = document.querySelectorAll('.student-checkbox');
+        for(let i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = source.checked;
+        }
+    }
+
+    // Fungsi Konfirmasi Penghapusan
+    function confirmRemoval() {
+        // Ambil semua checkbox yang dicentang
+        const selected = document.querySelectorAll('.student-checkbox:checked');
+
+        if (selected.length === 0) {
+            alert('Silakan pilih minimal satu siswa yang ingin dikeluarkan dari tes.');
+            return;
+        }
+
+        // Kumpulkan nama-nama siswa dari atribut data-name
+        const studentNames = Array.from(selected)
+                                  .map(cb => '• ' + cb.getAttribute('data-name'))
+                                  .join('\n');
+
+        // Tampilkan prompt konfirmasi dengan daftar nama
+        const confirmationMessage = `Apakah Anda yakin ingin mengeluarkan ${selected.length} siswa berikut dari tes ini?\n\n`
+                                  + studentNames
+                                  + `\n\nPeringatan: Seluruh data soal dan jawaban mereka akan terhapus permanen!`;
+
+        if (confirm(confirmationMessage)) {
+            // Submit form jika user menekan "OK"
+            document.getElementById('removeStudentsForm').submit();
+        }
+    }
+    </script>
 </x-app-layout>

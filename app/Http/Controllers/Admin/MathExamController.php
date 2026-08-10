@@ -383,4 +383,27 @@ class MathExamController extends Controller
 
         return $pdf->stream('Lembar_Kerja_'.str_replace(' ', '_', $exam->title).'.pdf');
     }
+
+    public function removeStudents(Request $request, $id)
+    {
+        $request->validate([
+            'student_ids' => 'required|array|min:1',
+            'student_ids.*' => 'exists:users,id',
+        ]);
+
+        $exam = MathExam::findOrFail($id);
+        $studentIds = $request->student_ids;
+
+        // 1. Hapus data relasi peserta tes (MathExamUser)
+        $deletedCount = MathExamUser::where('math_exam_id', $exam->id)
+            ->whereIn('student_id', $studentIds)
+            ->delete();
+
+        // 2. Hapus data soal yang sudah digenerate khusus untuk siswa tersebut
+        MathExamQuestion::where('math_exam_id', $exam->id)
+            ->whereIn('student_id', $studentIds)
+            ->delete();
+
+        return redirect()->back()->with('success', "Berhasil mengeluarkan {$deletedCount} siswa dari tes ini.");
+    }
 }

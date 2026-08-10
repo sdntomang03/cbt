@@ -138,6 +138,7 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         Route::post('/math-exams/store', [MathExamController::class, 'store'])->name('math.store');
         Route::get('/math-exams/{id}/show', [MathExamController::class, 'show'])->name('math.show');
         Route::delete('/math-exams/{id}', [MathExamController::class, 'destroy'])->name('math.destroy');
+        Route::post('/math-exams/{id}/remove-students', [MathExamController::class, 'removeStudents'])->name('math.removeStudents');
         Route::get('/math-exams/result/{examUserId}', [MathExamController::class, 'showStudentResult'])->name('math.student_result');
         Route::post('/math/reset/{examUserId}', [MathExamController::class, 'resetStudentExam'])->name('math.resetStudent');
         Route::get('/math-exams/{id}/export-recap', [MathExamController::class, 'exportRecap'])->name('math.recap_export');
@@ -145,7 +146,6 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         Route::post('/math-exams/{id}/add-student', [MathExamController::class, 'addStudent'])->name('math.addStudent');
         Route::get('/math-exams/{id}/print', [MathExamController::class, 'printWorksheets'])->name('math.print');
         Route::patch('/math/{id}/toggle-explanation', [MathExamController::class, 'toggleExplanation'])->name('math.toggle-explanation');
-
         // Manajemen Users
         Route::delete('/users/bulk-delete', [UserController::class, 'bulkDelete'])->name('users.bulk-delete');
         Route::get('/users/export-selected', [UserController::class, 'exportSelected'])->name('users.export-selected');
