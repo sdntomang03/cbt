@@ -2,56 +2,36 @@
 
 namespace App\Imports;
 
-use App\Models\School;
-use App\Models\User; // Jangan lupa import model School
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Hash;
-use Maatwebsite\Excel\Concerns\ToCollection;
+use App\Models\User;
+use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Vinkla\Hashids\Facades\Hashids;
 
-use function Symfony\Component\Clock\now;
-
-class UsersImport implements ToCollection, WithHeadingRow
+class UsersImport implements ToModel, WithHeadingRow
 {
-    /**
-     * Menggunakan ToCollection agar kita bisa melakukan proses lanjutan
-     * (seperti assignRole) setelah User berhasil di-create.
-     */
-    public function collection(Collection $rows)
+    public function model(array $row)
     {
-        // Ambil school_id default untuk multi-tenancy
-        $schoolId = School::value('id') ?? 1;
+        $realSchoolId = null;
 
-        foreach ($rows as $row) {
-            // Abaikan jika kolom nama atau username kosong
-            if (empty($row['nama']) || empty($row['username'])) {
-                continue;
+        if (! empty($row['school_id'])) {
+            // Decode mengembalikan bentuk array, contoh: [1]
+            $decoded = Hashids::decode($row['school_id']);
+
+            // Jika hasil decode kosong (berarti user mencoba mengubah kode secara asal)
+            if (empty($decoded)) {
+                throw new \Exception('Gagal import: Kode Sekolah tidak valid atau telah dimanipulasi.');
             }
 
-            // Cek apakah user sudah ada (berdasarkan username)
-            $existingUser = User::where('username', $row['username'])->first();
-            if ($existingUser) {
-                continue; // Lewati baris ini jika user sudah ada
-            }
-
-            // 1. Simpan User ke database beserta school_id-nya
-            $user = User::updateOrCreate(
-                [
-                    'username' => $row['username'], // Kunci pencarian (Harus Unik)
-                ],
-                [
-                    'name' => $row['nama'],
-                    'email' => $row['email'] ?? null,
-                    // Jangan timpa password jika user sudah ada (kecuali diisi di excel)
-                    'password' => isset($row['password']) ? Hash::make($row['password']) : Hash::make('12345678'),
-                    'school_id' => $row['school_id'] ?? auth()->user()->school_id,
-                    'email_verified_at' => now(),
-                ]
-            );
-
-            // 2. Berikan Role menggunakan Spatie Permission
-            $roleName = ! empty($row['role']) ? strtolower($row['role']) : 'siswa';
-            $user->assignRole($roleName);
+            // Ambil angka aslinya dari dalam array
+            $realSchoolId = $decoded[0];
         }
+
+        return new User([
+            'name' => $row['nama'],
+            'username' => $row['username'],
+            'email' => $row['email'],
+            'password' => bcrypt('password123'),
+            'school_id' => $realSchoolId, // Masukkan ID asli (angka) ke database
+        ]);
     }
 }
