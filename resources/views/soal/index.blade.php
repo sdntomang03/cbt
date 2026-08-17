@@ -107,6 +107,12 @@
                     <span class="hidden md:inline">Chart</span>
                 </a>
 
+                <a href="{{ route('admin.exams.soal.ai_generator', $exam) }}"
+                    class="inline-flex items-center gap-2 px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl bg-violet-50 border border-violet-200 text-violet-700 hover:bg-violet-100 font-semibold text-sm transition-all shadow-sm">
+                    <i class="fas fa-robot text-violet-500 text-xs"></i>
+                    <span class="hidden md:inline">AI Soal</span>
+                </a>
+
                 <div class="w-px h-8 bg-slate-200 hidden sm:block mx-0.5 lg:mx-1"></div>
 
                 <a href="{{ route('admin.exams.soal.create', $exam) }}"
