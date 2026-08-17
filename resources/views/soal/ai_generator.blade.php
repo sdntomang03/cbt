@@ -27,20 +27,7 @@
             <!-- PANEL PENGATURAN -->
             <aside class="lg:col-span-12 space-y-6">
                 <!-- API Key -->
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-400" viewBox="0 0 24 24"
-                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4l-4 4Z" />
-                        <path d="m21 2-9.6 9.6" />
-                        <path d="m5.4 16.6-2.1 2.1a1 1 0 0 0 0 1.4l2.2 2.2a1 1 0 0 0 1.4 0l2.1-2.1" />
-                        <path d="M12 14v2" />
-                        <path d="M14 12h2" />
-                    </svg>
-                    <input type="password" id="apiKey" value="{{ env('GEMINI_API_KEY', '') }}"
-                        placeholder="Masukkan Gemini API Key..."
-                        class="outline-none bg-transparent text-sm w-full focus:ring-0 border-none p-0">
-                </div>
+                <input type="hidden" id="apiKey" value="{{ config('services.gemini.key') }}">
 
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
