@@ -217,8 +217,8 @@ ${strukturOpsiInstruksi}
             toggleLoading(true);
 
             try {
-                // Diubah ke gemini-1.5-pro-latest untuk menghindari error high demand dan mendapatkan hasil lebih baik
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent`, {
+                // Diubah ke gemini-1.5-pro (tanpa latest) untuk stabilitas maksimal
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-goog-api-key': apiKey },
                     body: JSON.stringify({
