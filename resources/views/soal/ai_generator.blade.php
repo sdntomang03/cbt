@@ -240,13 +240,8 @@ ${strukturOpsiInstruksi}
                 // Submit form otomatis
                 document.getElementById('formPreview').submit();
 
-            } } catch (error) {
-                console.error(error);
-                if (error.message.includes("high demand") || error.message.includes("503")) {
-                    alert("Server AI sedang penuh karena tingginya permintaan. Mohon tunggu 1-2 menit dan coba lagi.");
-                } else {
-                    alert("Gagal memproses soal: " + error.message);
-                }
+            } catch (error) {
+                alert("Gagal memproses soal: " + error.message);
                 toggleLoading(false);
             }
         }
