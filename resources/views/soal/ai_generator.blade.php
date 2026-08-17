@@ -217,8 +217,7 @@ ${strukturOpsiInstruksi}
             toggleLoading(true);
 
             try {
-                // Diubah ke gemini-1.5-pro (tanpa latest) untuk stabilitas maksimal
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent`, {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-goog-api-key': apiKey },
                     body: JSON.stringify({
@@ -228,10 +227,7 @@ ${strukturOpsiInstruksi}
                 });
 
                 const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error?.message || "Terjadi kesalahan pada API Gemini.");
-                }
+                if (!response.ok) throw new Error(data.error?.message || "Terjadi kesalahan pada API Gemini.");
 
                 let jsonResult = data.candidates[0].content.parts[0].text;
 
@@ -245,13 +241,7 @@ ${strukturOpsiInstruksi}
                 document.getElementById('formPreview').submit();
 
             } catch (error) {
-                console.error(error);
-                // Penanganan pesan error khusus jika server Google sedang sibuk
-                if (error.message.toLowerCase().includes("high demand") || error.message.includes("503")) {
-                    alert("Server AI sedang penuh karena tingginya permintaan. Mohon tunggu sekitar 1 menit, lalu klik 'Mulai Generate Soal' kembali.");
-                } else {
-                    alert("Gagal memproses soal: " + error.message);
-                }
+                alert("Gagal memproses soal: " + error.message);
                 toggleLoading(false);
             }
         }
