@@ -433,4 +433,43 @@ class SoalController extends Controller
         // langsung via Javascript di dalam tampilan Blade.
         return view('soal.chart_generator');
     }
+    /**
+     * Menampilkan halaman AI Generator Soal
+     */
+    public function aiGenerator(Exam $exam)
+    {
+        $subjects = Subject::all();
+        $levels = Level::all();
+        
+        return view('soal.ai_generator', compact('exam', 'subjects', 'levels'));
+    }
+
+    /**
+     * Memproses teks JSON hasil dari AI ke layar Preview yang sudah ada
+     */
+    public function aiPreview(Request $request, Exam $exam)
+    {
+        $request->validate([
+            'json_data' => 'required|string',
+        ]);
+
+        // Bersihkan hasil AI dari markdown ```json ... ``` jika ada
+        $jsonContent = preg_replace('/```(?:json)?\s*(.*?)\s*```/s', '$1', $request->json_data);
+        
+        $soals = json_decode($jsonContent, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || ! is_array($soals)) {
+            return back()->withErrors(['error' => 'Format JSON dari AI tidak valid atau gagal di-generate. Coba generate ulang. Error: ' . json_last_error_msg()]);
+        }
+
+        if (isset($soals['data']) && is_array($soals['data'])) {
+            $soals = $soals['data'];
+        }
+
+        // Enkripsi seluruh data JSON menjadi teks base64 untuk disisipkan ke form (Stateless)
+        $jsonDataEncoded = base64_encode(json_encode($soals));
+
+        // Panggil view preview_json yang sudah Anda buat sebelumnya
+        return view('soal.preview_json', compact('exam', 'soals', 'jsonDataEncoded'));
+    }
 }
