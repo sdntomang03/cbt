@@ -108,7 +108,7 @@
             const jumlahSoal = document.getElementById('jumlahSoal').value;
             const kesulitan = document.getElementById('kesulitan').value;
 
-            if (!apiKey) return alert("API Key Gemini tidak boleh kosong!");
+            if (!apiKey) return alert("API Key Gemini tidak boleh kosong! (Periksa konfigurasi .env)");
             if (!mapel || !topik) return alert("Mata Pelajaran dan Topik wajib diisi!");
 
             // Tentukan struktur JSON opsi yang diharapkan berdasarkan tipe soal
@@ -145,7 +145,8 @@ ${strukturOpsiInstruksi}
             toggleLoading(true);
 
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`, {
+                // MENGGUNAKAN gemini-flash-latest AGAR MENDUKUNG API v1beta
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-goog-api-key': apiKey },
                     body: JSON.stringify({
