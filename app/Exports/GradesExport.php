@@ -149,7 +149,7 @@ class GradesExport implements FromQuery, ShouldAutoSize, WithEvents, WithHeading
                 // A. INJEKSI JUDUL UJIAN DI BARIS 1 DAN 2
                 // ============================================
                 $sheet->setCellValue('A1', 'REKAPITULASI HASIL UJIAN');
-                $sheet->setCellValue('A2', 'Nama Ujian : ' . $this->examTitle);
+                $sheet->setCellValue('A2',  strtoupper($this->examTitle));
 
                 // Gabungkan cell A sampai G agar judul berada di tengah layar
                 $sheet->mergeCells('A1:G1');
