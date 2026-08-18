@@ -20,8 +20,6 @@ class ProctorController extends Controller
     {
         // Ambil sesi ujian yang sedang berlangsung hari ini atau akan datang
         $sessions = ExamSession::with('exam')
-            ->whereDate('start_time', '<=', now())
-            ->whereDate('end_time', '>=', now())
             ->orderBy('start_time', 'asc')
             ->get();
 

@@ -34,11 +34,40 @@
                             diawasi</p>
                     </div>
                 </div>
+
+                {{-- TAMBAHKAN KODE FILTER INI --}}
+                <div class="relative w-full md:w-56 z-20">
+                    <select x-model="filterStatus"
+                        class="w-full bg-white border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 py-3 pl-4 pr-10 text-slate-600 appearance-none shadow-sm cursor-pointer">
+                        <option value="all">Semua Sesi</option>
+                        <option value="ongoing">Sedang Berlangsung</option>
+                        <option value="completed">Sudah Selesai</option>
+                        <option value="upcoming">Akan Datang</option>
+                    </select>
+                    <i
+                        class="fas fa-chevron-down absolute right-4 top-4 text-slate-400 text-xs pointer-events-none"></i>
+                </div>
+                {{-- AKHIR KODE FILTER --}}
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @forelse($sessions as $session)
-                <div
+
+                {{-- 1. Definisikan status menggunakan PHP --}}
+                @php
+                $sessionStatus = 'completed';
+                if(now()->between($session->start_time, $session->end_time)) {
+                $sessionStatus = 'ongoing';
+                } elseif(now()->lessThan($session->start_time)) {
+                $sessionStatus = 'upcoming';
+                }
+                @endphp
+
+                {{-- 2. Tambahkan x-show dan x-transition --}}
+                <div x-show="filterStatus === 'all' || filterStatus === '{{ $sessionStatus }}'"
+                    x-transition:enter="transition ease-out duration-300"
+                    x-transition:enter-start="opacity-0 transform scale-95"
+                    x-transition:enter-end="opacity-100 transform scale-100"
                     class="bg-white rounded-[2.5rem] p-6 border border-slate-100 transition-all hover-lift flex flex-col h-full relative overflow-hidden">
 
                     <div class="absolute -right-6 -top-6 w-24 h-24 bg-slate-50 rounded-full z-0"></div>
@@ -147,6 +176,7 @@
     <script>
         function proctorManager() {
             return {
+                filterStatus: 'all',
                 copyToken(id) {
                     // Ambil text dari DOM id token agar selalu sinkron meski sudah direset
                     const token = document.getElementById(`token-${id}`).innerText.trim();
