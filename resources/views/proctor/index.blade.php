@@ -176,7 +176,7 @@
     <script>
         function proctorManager() {
             return {
-                filterStatus: 'all',
+                filterStatus: 'ongoing',
                 copyToken(id) {
                     // Ambil text dari DOM id token agar selalu sinkron meski sudah direset
                     const token = document.getElementById(`token-${id}`).innerText.trim();
