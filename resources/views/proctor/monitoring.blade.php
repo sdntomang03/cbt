@@ -120,6 +120,13 @@
                             <span>Export Excel</span>
                         </a>
 
+                        {{-- Tombol Copy JSON untuk Siakad --}}
+                        <button @click="copyJSON"
+                            class="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200/50 px-5 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 w-full sm:w-auto">
+                            <i class="fas fa-copy"></i>
+                            <span>Copy JSON</span>
+                        </button>
+
                     </div>
                 </div>
             </div>
@@ -265,6 +272,33 @@
                 toggleAutoUpdate() {
                     this.isAutoUpdate = !this.isAutoUpdate;
                 },
+
+                copyJSON() {
+    // Map data dari siswa yang sedang terfilter (mendukung filter per sekolah)
+    const dataToCopy = this.filteredStudents.map(student => {
+        return {
+            nisn: student.username, // Username disimpan menjadi nisn
+            nilai: student.pivot.status === 'completed' ? student.pivot.score : 0 // Default 0 jika belum selesai
+        };
+    });
+
+    // Ubah format data menjadi string JSON (indentasi 2 spasi agar rapi)
+    const jsonString = JSON.stringify(dataToCopy, null, 2);
+
+    // Salin ke Clipboard
+    navigator.clipboard.writeText(jsonString).then(() => {
+        Swal.fire({
+            icon: 'success',
+            title: 'Berhasil Disalin!',
+            text: 'Data JSON siap di-paste ke website Siakad.',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    }).catch(err => {
+        console.error("Gagal menyalin text: ", err);
+        Swal.fire('Gagal', 'Terjadi kesalahan saat menyalin data ke clipboard.', 'error');
+    });
+},
 
                 fetchData() {
                     axios.get(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
