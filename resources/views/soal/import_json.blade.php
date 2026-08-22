@@ -79,7 +79,8 @@
             </div>
 
             <div class="p-6">
-
+                <p class="text-sm text-slate-400 mb-4">Pastikan struktur JSON sesuai dengan parameter yang diproses oleh
+                    sistem Anda.</p>
 
                 <div class="relative group">
                     {{-- Tombol Copy Melayang --}}
