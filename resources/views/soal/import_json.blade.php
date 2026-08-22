@@ -79,11 +79,7 @@
             </div>
 
             <div class="p-6">
-                <p class="text-sm text-slate-400 mb-4">Pastikan struktur JSON sesuai dengan parameter yang diproses oleh
-                    sistem Anda. Properti <code
-                        class="bg-slate-800 px-1.5 py-0.5 rounded text-indigo-300">options</code> harus disesuaikan
-                    dengan format yang bisa dibaca oleh method <code
-                        class="bg-slate-800 px-1.5 py-0.5 rounded text-emerald-300">saveQuestionDetails()</code>.</p>
+
 
                 <div class="relative group">
                     {{-- Tombol Copy Melayang --}}
