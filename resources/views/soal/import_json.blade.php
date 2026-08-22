@@ -85,9 +85,23 @@
                     dengan format yang bisa dibaca oleh method <code
                         class="bg-slate-800 px-1.5 py-0.5 rounded text-emerald-300">saveQuestionDetails()</code>.</p>
 
-                <div class="overflow-x-auto">
-                    <pre
-                        class="text-[11px] sm:text-xs text-slate-300 font-mono leading-relaxed bg-black/30 p-4 rounded-xl border border-slate-700/50 custom-scrollbar overflow-x-auto"><code>[
+                <div class="relative group">
+                    {{-- Tombol Copy Melayang --}}
+                    <button type="button" onclick="copyFormatJson(this)"
+                        class="absolute top-3 right-3 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors shadow-sm flex items-center gap-1.5 z-10">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                        <span>Copy Format</span>
+                    </button>
+
+                    <div class="overflow-x-auto">
+                        {{-- Tambahkan id="json-format-code" dan padding-top (pt-12) agar teks tidak tertutup tombol
+                        --}}
+                        <pre id="json-format-code"
+                            class="text-[11px] sm:text-xs text-slate-300 font-mono leading-relaxed bg-black/30 p-4 pt-12 rounded-xl border border-slate-700/50 custom-scrollbar overflow-x-auto"><code>[
     <span class="text-slate-500">// 1. Pilihan Ganda (Satu Jawaban Benar)</span>
     {
         <span class="text-emerald-400">"type"</span>: <span class="text-amber-300">"single_choice"</span>,
@@ -143,9 +157,38 @@
         ]
     }
 ]</code></pre>
+                    </div>
                 </div>
             </div>
-        </div>
 
-    </div>
+        </div>
+        <script>
+            function copyFormatJson(btn) {
+            // Ambil elemen berdasarkan ID
+            const codeBlock = document.getElementById('json-format-code');
+
+            // Mengambil hanya teks murni (mengabaikan tag <span> warna-warni)
+            const textToCopy = codeBlock.innerText || codeBlock.textContent;
+
+            // Eksekusi copy ke clipboard
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                // Simpan tampilan awal tombol
+                const originalHtml = btn.innerHTML;
+                const originalClasses = btn.className;
+
+                // Ubah tombol menjadi mode "Sukses"
+                btn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>Copied!</span>`;
+                btn.className = "absolute top-3 right-3 bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors shadow-sm flex items-center gap-1.5 z-10";
+
+                // Kembalikan ke tampilan semula setelah 2 detik
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.className = originalClasses;
+                }, 2000);
+            }).catch(err => {
+                console.error('Gagal meng-copy teks: ', err);
+                alert('Browser Anda tidak mendukung fitur copy otomatis.');
+            });
+        }
+        </script>
 </x-app-layout>
