@@ -211,28 +211,48 @@ class SoalController extends Controller
         return view('soal.import_json', compact('exam'));
     }
 
-    // Method untuk memproses file dan menampilkan layar Preview
+    // Method untuk memproses file/teks dan menampilkan layar Preview
     public function previewImportJson(Request $request, Exam $exam)
     {
+        // Validasi, pastikan file_json dan text_json boleh kosong (nullable),
+        // tapi kita akan cek manual di bawah agar minimal salah satu diisi.
         $request->validate([
-            'file_json' => 'required|file|mimetypes:application/json,text/plain',
+            'file_json' => 'nullable|file|mimetypes:application/json,text/plain',
+            'text_json' => 'nullable|string',
         ]);
 
-        $jsonContent = file_get_contents($request->file('file_json')->getPathname());
-        $soals = json_decode($jsonContent, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE || ! is_array($soals)) {
-            return back()->withErrors(['file_json' => 'Format file JSON tidak valid atau rusak.']);
+        // Jika dua-duanya kosong
+        if (! $request->hasFile('file_json') && empty($request->text_json)) {
+            return back()->withErrors(['error' => 'Harap unggah file JSON atau paste teks JSON di kolom yang disediakan.']);
         }
 
+        // Ambil string JSON dari File (jika ada) atau dari Teks Paste (jika file kosong)
+        if ($request->hasFile('file_json')) {
+            $jsonContent = file_get_contents($request->file('file_json')->getPathname());
+        } else {
+            $jsonContent = $request->text_json;
+        }
+
+        // Bersihkan hasil jika pengguna terlanjur mencopy backticks markdown (```json ... ```)
+        $jsonContent = preg_replace('/```(?:json)?\s*(.*?)\s*```/s', '$1', $jsonContent);
+
+        // Decode string menjadi array
+        $soals = json_decode($jsonContent, true);
+
+        // Cek validitas format JSON
+        if (json_last_error() !== JSON_ERROR_NONE || ! is_array($soals)) {
+            return back()->withErrors(['error' => 'Format JSON tidak valid atau rusak. Error: '.json_last_error_msg()]);
+        }
+
+        // Antisipasi jika root array JSON berada di dalam property 'data'
         if (isset($soals['data']) && is_array($soals['data'])) {
             $soals = $soals['data'];
         }
 
-        // Enkripsi seluruh data JSON menjadi teks base64 untuk disisipkan ke form (Stateless)
+        // Enkripsi seluruh data JSON menjadi teks base64 untuk disisipkan ke form Preview (Stateless)
         $jsonDataEncoded = base64_encode(json_encode($soals));
 
-        return view('soal.preview_json', compact('exam', 'soals', 'jsonDataEncoded')); // Sesuaikan path view-nya jika perlu
+        return view('soal.preview_json', compact('exam', 'soals', 'jsonDataEncoded'));
     }
 
     // Method untuk menyimpan data yang dicentang (Final)
@@ -433,6 +453,7 @@ class SoalController extends Controller
         // langsung via Javascript di dalam tampilan Blade.
         return view('soal.chart_generator');
     }
+
     /**
      * Menampilkan halaman AI Generator Soal
      */
@@ -440,7 +461,7 @@ class SoalController extends Controller
     {
         $subjects = Subject::all();
         $levels = Level::all();
-        
+
         return view('soal.ai_generator', compact('exam', 'subjects', 'levels'));
     }
 
@@ -455,11 +476,11 @@ class SoalController extends Controller
 
         // Bersihkan hasil AI dari markdown ```json ... ``` jika ada
         $jsonContent = preg_replace('/```(?:json)?\s*(.*?)\s*```/s', '$1', $request->json_data);
-        
+
         $soals = json_decode($jsonContent, true);
 
         if (json_last_error() !== JSON_ERROR_NONE || ! is_array($soals)) {
-            return back()->withErrors(['error' => 'Format JSON dari AI tidak valid atau gagal di-generate. Coba generate ulang. Error: ' . json_last_error_msg()]);
+            return back()->withErrors(['error' => 'Format JSON dari AI tidak valid atau gagal di-generate. Coba generate ulang. Error: '.json_last_error_msg()]);
         }
 
         if (isset($soals['data']) && is_array($soals['data'])) {

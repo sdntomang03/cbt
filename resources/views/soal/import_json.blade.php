@@ -27,22 +27,45 @@
         <div
             class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8 hover:border-indigo-300 transition-colors">
             <form action="{{ route('admin.soal.import_json_preview', $exam) }}" method="POST"
-                enctype="multipart/form-data" class="flex flex-col md:flex-row items-end gap-5">
+                enctype="multipart/form-data" class="flex flex-col gap-5">
                 @csrf
-                <div class="flex-1 w-full">
-                    <label class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Unggah File
+
+                {{-- Opsi 1: Upload File --}}
+                <div class="w-full">
+                    <label class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3">1. Unggah File
                         Bank Soal (.json)</label>
-                    <input type="file" name="file_json" accept=".json" required
+                    <input type="file" name="file_json" accept=".json"
                         class="block w-full text-sm text-slate-500 file:mr-4 file:py-3.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-all border-2 border-slate-100 rounded-2xl cursor-pointer focus:outline-none focus:border-indigo-300">
                 </div>
-                <button type="submit"
-                    class="w-full md:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-200 transition-all active:scale-95 flex items-center justify-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-                    </svg>
-                    Proses Import
-                </button>
+
+                {{-- Divider --}}
+                <div class="flex items-center w-full my-2">
+                    <div class="flex-grow border-t border-slate-200"></div>
+                    <span class="flex-shrink-0 mx-4 text-slate-400 text-xs font-black uppercase tracking-widest">ATAU
+                        PASTE TEKS</span>
+                    <div class="flex-grow border-t border-slate-200"></div>
+                </div>
+
+                {{-- Opsi 2: Paste Teks JSON --}}
+                <div class="w-full">
+                    <label class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3">2. Paste JSON
+                        Bank Soal</label>
+                    <textarea name="text_json" rows="8"
+                        class="block w-full text-sm text-slate-700 bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 focus:outline-none focus:border-indigo-300 focus:bg-white transition-all font-mono custom-scrollbar"
+                        placeholder="Paste (CTRL+V) teks format JSON di sini..."></textarea>
+                </div>
+
+                {{-- Tombol Submit --}}
+                <div class="flex justify-end mt-2">
+                    <button type="submit"
+                        class="w-full md:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-200 transition-all active:scale-95 flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                        </svg>
+                        Proses Import
+                    </button>
+                </div>
             </form>
         </div>
 
