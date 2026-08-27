@@ -9,6 +9,7 @@ use App\Models\ExamType;
 use App\Models\Level;
 use App\Models\School;
 use App\Models\Subject;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
