@@ -23,21 +23,19 @@ class ExamController extends Controller
         $user = Auth::user();
         $schoolId = $user->school_id;
 
-        // Ambil semua Jenis Ujian untuk navigasi tab/sidebar
         $examTypes = ExamType::where('school_id', $schoolId)->get();
-
-        // AMBIL DATA LEVEL DAN SUBJECT UNTUK DROPDOWN MODAL
-        // Asumsi: Level dan Subject terikat dengan school_id.
-        // Jika tabel level bersifat global (tidak punya school_id), gunakan \App\Models\Level::all();
         $levels = Level::where('school_id', $schoolId)->get();
         $subjects = Subject::where('school_id', $schoolId)->get();
 
-        // Ambil ID tipe yang sedang aktif (default ke tipe pertama jika ada)
+        // 1. TAMBAHAN: Ambil daftar guru di sekolah yang sama (Kecuali diri sendiri)
+        $teachers = User::where('school_id', $schoolId)
+            ->where('id', '!=', $user->id)
+            ->get();
+
         $activeTypeId = $request->get('exam_type_id', $examTypes->first()?->id);
 
-        // Query Ujian berdasarkan tipe yang dipilih
-        // Tambahkan 'level' dan 'subject' di dalam with() agar query lebih efisien
-        $query = Exam::with(['examType', 'level', 'subject'])
+        // 2. TAMBAHAN: Masukkan 'invitedTeachers' ke dalam eager loading with()
+        $query = Exam::with(['examType', 'level', 'subject', 'invitedTeachers'])
             ->withCount('questions')
             ->where('school_id', $schoolId);
 
@@ -47,9 +45,7 @@ class ExamController extends Controller
 
         if (! $user->hasRole('admin')) {
             $query->where(function ($q) use ($user) {
-                // 1. Tampilkan ujian yang dibuat sendiri (Penulis)
                 $q->where('teacher_id', $user->id)
-                  // 2. ATAU tampilkan ujian di mana user ini diundang
                     ->orWhereHas('invitedTeachers', function ($subQuery) use ($user) {
                         $subQuery->where('user_id', $user->id);
                     });
@@ -59,8 +55,8 @@ class ExamController extends Controller
         $exams = $query->latest()->paginate(10)->withQueryString();
         $schools = $user->hasRole('admin') ? School::all() : [];
 
-        // Jangan lupa tambahkan 'levels' dan 'subjects' ke dalam compact()
-        return view('exams.index', compact('exams', 'examTypes', 'activeTypeId', 'schools', 'levels', 'subjects'));
+        // 3. TAMBAHAN: Jangan lupa passing variabel $teachers ke compact()
+        return view('exams.index', compact('exams', 'examTypes', 'activeTypeId', 'schools', 'levels', 'subjects', 'teachers'));
     }
 
     public function store(Request $request)
@@ -336,5 +332,23 @@ class ExamController extends Controller
     public function livePreview()
     {
         return view('exams.live-preview');
+    }
+
+    public function syncInvites(Request $request, Exam $exam)
+    {
+        // Proteksi: Hanya pembuat ujian atau admin yang boleh mengatur undangan
+        if ($exam->teacher_id !== Auth::id() && ! Auth::user()->hasRole('admin')) {
+            abort(403, 'Anda tidak memiliki hak untuk mengatur undangan ujian ini.');
+        }
+
+        $request->validate([
+            'teacher_ids' => 'nullable|array',
+            'teacher_ids.*' => 'exists:users,id',
+        ]);
+
+        // Fungsi sync akan otomatis menambah/menghapus relasi di tabel exam_invitations
+        $exam->invitedTeachers()->sync($request->teacher_ids ?? []);
+
+        return redirect()->back()->with('success', 'Hak akses guru undangan berhasil diperbarui!');
     }
 }

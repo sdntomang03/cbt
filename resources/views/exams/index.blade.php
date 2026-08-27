@@ -162,6 +162,14 @@
                             <td class="px-6 py-4 text-right">
                                 <div class="flex justify-end gap-2">
                                     @can('manage questions')
+                                    @if($exam->teacher_id === auth()->id() || auth()->user()->hasRole('admin'))
+                                    <button type="button"
+                                        @click="$store.inviteModule.open({{ $exam->id }}, '{{ addslashes($exam->title) }}', {{ $exam->invitedTeachers->pluck('id')->toJson() }})"
+                                        class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition"
+                                        title="Undang Guru">
+                                        <i class="fas fa-users-cog"></i>
+                                    </button>
+                                    @endif
                                     <a href="{{ route('admin.exams.soal.index', $exam) }}"
                                         class="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition"
                                         title="Input Soal">
@@ -567,6 +575,63 @@
         </div>
     </div>
 
+    {{-- MODAL UNDANG GURU --}}
+    <div x-data x-show="$store.inviteModule.openModal" class="fixed inset-0 z-[100] overflow-y-auto" x-cloak
+        x-transition>
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div @click="$store.inviteModule.openModal = false" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm">
+            </div>
+
+            <div
+                class="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg z-[110] border border-slate-100 text-left">
+                <div
+                    class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-[2.5rem]">
+                    <div>
+                        <h3 class="text-xl font-black text-slate-800">Undang Guru</h3>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5"
+                            x-text="$store.inviteModule.examTitle"></p>
+                    </div>
+                    <button type="button" @click="$store.inviteModule.openModal = false"
+                        class="text-slate-300 hover:text-rose-500 transition w-9 h-9 rounded-xl hover:bg-rose-50 flex items-center justify-center">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+
+                <form :action="`/admin/exams/${$store.inviteModule.examId}/sync-invites`" method="POST" class="p-8">
+                    @csrf
+                    <p class="text-sm text-slate-500 font-bold mb-4">Pilih guru yang diizinkan untuk melihat dan
+                        mengelola ujian ini:</p>
+
+                    <div class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                        @forelse($teachers as $guru)
+                        <label
+                            class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-indigo-50 border border-slate-100 hover:border-indigo-200 transition">
+                            <input type="checkbox" name="teacher_ids[]" value="{{ $guru->id }}"
+                                x-model="$store.inviteModule.selectedTeachers"
+                                class="rounded text-indigo-600 border-slate-300 w-4 h-4 focus:ring-indigo-500">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-bold text-slate-700">{{ $guru->name }}</span>
+                                <span class="text-[10px] text-slate-400">{{ $guru->email }}</span>
+                            </div>
+                        </label>
+                        @empty
+                        <div class="text-center py-4 bg-slate-50 rounded-xl border border-slate-100 border-dashed">
+                            <span class="text-xs font-bold text-slate-400">Tidak ada guru lain yang tersedia.</span>
+                        </div>
+                        @endforelse
+                    </div>
+
+                    <div class="pt-6 flex justify-end gap-3 mt-4 border-t border-slate-100">
+                        <button type="button" @click="$store.inviteModule.openModal = false"
+                            class="px-6 py-3 text-slate-400 font-black rounded-2xl hover:bg-slate-50 transition">Batal</button>
+                        <button type="submit"
+                            class="px-8 py-3 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all active:scale-95">Simpan
+                            Hak Akses</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
     @push('scripts')
     <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
@@ -619,6 +684,21 @@
                     this.openTypeModal = true;
                 }
             });
+
+            Alpine.store('inviteModule', {
+        openModal: false,
+        examId: null,
+        examTitle: '',
+        selectedTeachers: [],
+
+        open(id, title, existingTeachers) {
+            this.examId = id;
+            this.examTitle = title;
+            // Pastikan tipe data array selaras (jadikan string agar pas dengan value checkbox)
+            this.selectedTeachers = existingTeachers.map(String);
+            this.openModal = true;
+        }
+    });
 
             // 2. KOMPONEN QUILL EDITOR
             Alpine.data('quillEditorComponent', () => ({

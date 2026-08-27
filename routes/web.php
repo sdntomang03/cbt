@@ -103,6 +103,7 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         Route::post('/exam-types', [ExamController::class, 'storeType'])->name('exam-types.store');
         Route::post('/preview', [ExamController::class, 'preview'])->name('preview');
         Route::get('/live-preview', [ExamController::class, 'livePreview'])->name('live-preview');
+        Route::post('/exams/{exam}/sync-invites', [ExamController::class, 'syncInvites'])->name('admin.exams.sync-invites');
         Route::get('/chart-generator', [SoalController::class, 'chartGenerator'])
             ->name('soal.chart.generator');
 
@@ -118,11 +119,11 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         Route::post('exams/{exam}/soal/bank', [SoalController::class, 'attachBankSoal'])->name('exams.soal.bank.store');
         // Soal AI
         Route::get('/exams/{exam}/soal/ai-generator', [SoalController::class, 'aiGenerator'])
-    ->name('exams.soal.ai_generator');
+            ->name('exams.soal.ai_generator');
 
-// Memproses hasil JSON dari AI dan melemparkannya ke halaman Preview
-Route::post('/exams/{exam}/soal/ai-preview', [SoalController::class, 'aiPreview'])
-    ->name('exams.soal.ai_preview');
+        // Memproses hasil JSON dari AI dan melemparkannya ke halaman Preview
+        Route::post('/exams/{exam}/soal/ai-preview', [SoalController::class, 'aiPreview'])
+            ->name('exams.soal.ai_preview');
         // Manajemen Soal (AJAX)
         Route::get('/exams/{exam}/questions', [QuestionAjaxController::class, 'index'])->name('ajax.questions.index');
         Route::post('/exams/{exam}/questions', [QuestionAjaxController::class, 'store'])->name('ajax.questions.store');
