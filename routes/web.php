@@ -103,7 +103,7 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         Route::post('/exam-types', [ExamController::class, 'storeType'])->name('exam-types.store');
         Route::post('/preview', [ExamController::class, 'preview'])->name('preview');
         Route::get('/live-preview', [ExamController::class, 'livePreview'])->name('live-preview');
-        Route::post('/exams/{exam}/sync-invites', [ExamController::class, 'syncInvites'])->name('admin.exams.sync-invites');
+        Route::post('/exams/{exam}/sync-invites', [ExamController::class, 'syncInvites'])->name('exams.sync-invites');
         Route::get('/chart-generator', [SoalController::class, 'chartGenerator'])
             ->name('soal.chart.generator');
 
