@@ -7,8 +7,13 @@ use App\Models\StudentAnswer;
 use Illuminate\Contracts\View\View;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithStyles; // Tambahkan ini
+use PhpOffice\PhpSpreadsheet\Style\Alignment; // Tambahkan ini
+use PhpOffice\PhpSpreadsheet\Style\Border; // Tambahkan ini
+use PhpOffice\PhpSpreadsheet\Style\Fill; // Tambahkan ini
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet; // Tambahkan ini
 
-class ButirSoalExport implements FromView, ShouldAutoSize
+class ButirSoalExport implements FromView, ShouldAutoSize, WithStyles
 {
     protected $examSessionId;
 
@@ -33,30 +38,22 @@ class ButirSoalExport implements FromView, ShouldAutoSize
         foreach ($questions as $index => $q) {
             $totalSiswaMenjawab = 0;
             $totalBenar = 0;
-            $skorTertinggi = 0;
-            $skorTerendah = 0; // Anda mungkin perlu mengatur default skor minimum yang logis
 
-            // Ambil semua jawaban untuk soal ini pada sesi ini
             $answers = StudentAnswer::where('exam_session_id', $this->examSessionId)
                 ->where('question_id', $q->id)
                 ->get();
 
             foreach ($answers as $ans) {
-                // Pastikan siswa yang menjawab statusnya 'completed'
                 if ($students->contains('id', $ans->user_id)) {
                     $totalSiswaMenjawab++;
-                    // Anda perlu menyesuaikan logika "Benar" berdasarkan tipe soal
-                    // Ini contoh sederhana, asumsi nilai maksimal = 1
                     if ($ans->score > 0) {
                         $totalBenar++;
                     }
                 }
             }
 
-            // Hitung Tingkat Kesukaran (Proposi Jawaban Benar)
             $tingkatKesukaran = $totalSiswaMenjawab > 0 ? ($totalBenar / $totalSiswaMenjawab) : 0;
 
-            // Kategori Tingkat Kesukaran (Opsional)
             $kategori = 'Sedang';
             if ($tingkatKesukaran < 0.3) {
                 $kategori = 'Sukar';
@@ -64,13 +61,12 @@ class ButirSoalExport implements FromView, ShouldAutoSize
                 $kategori = 'Mudah';
             }
 
-            // Menghitung Daya Pembeda sedikit lebih kompleks dan memerlukan pembagian kelompok atas/bawah
-            // Untuk contoh ini, kami menempatkan placeholder. Anda perlu mengimplementasikan logika statistiknya.
-            $dayaPembeda = 'Implementasi Daya Pembeda';
+            $dayaPembeda = 'Analisis Lanjut';
 
             $analysisData[] = [
                 'nomor' => $index + 1,
-                'soal' => strip_tags($q->content), // Hapus tag HTML
+                // Hilangkan spasi berlebih pada teks soal
+                'soal' => trim(preg_replace('/\s+/', ' ', strip_tags($q->content))),
                 'tipe' => $q->type,
                 'total_menjawab' => $totalSiswaMenjawab,
                 'total_benar' => $totalBenar,
@@ -84,5 +80,67 @@ class ButirSoalExport implements FromView, ShouldAutoSize
             'session' => $session,
             'analysisData' => $analysisData,
         ]);
+    }
+
+    /**
+     * Konfigurasi Styling Excel
+     */
+    public function styles(Worksheet $sheet)
+    {
+        $highestRow = $sheet->getHighestRow();
+
+        // 1. Style untuk Judul (Baris 1 dan 2)
+        $sheet->getStyle('A1:H2')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'size' => 14,
+                'color' => ['argb' => 'FFFFFFFF'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['argb' => 'FF4F46E5'], // Warna Indigo
+            ],
+        ]);
+
+        // 2. Style untuk Header Tabel (Baris 3)
+        $sheet->getStyle('A3:H3')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['argb' => 'FFFFFFFF'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['argb' => 'FF374151'], // Warna Abu-abu Gelap (Slate)
+            ],
+        ]);
+
+        // 3. Tambahkan Border untuk semua data tabel (Mulai baris 3 sampai akhir)
+        $sheet->getStyle('A3:H'.$highestRow)->applyFromArray([
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['argb' => 'FF9CA3AF'],
+                ],
+            ],
+        ]);
+
+        // 4. Rata Tengah untuk kolom Nomor, Tipe, dan Angka Analisis
+        $sheet->getStyle('A4:B'.$highestRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('D4:H'.$highestRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        // 5. Khusus kolom Soal (C), atur Auto Wrap agar teks panjang turun ke bawah (tidak memanjang menembus sel)
+        $sheet->getStyle('C4:C'.$highestRow)->getAlignment()->setWrapText(true);
+        $sheet->getColumnDimension('C')->setWidth(60); // Set lebar kolom soal lebih lebar
+        $sheet->getStyle('C4:C'.$highestRow)->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+
+        return [];
     }
 }
