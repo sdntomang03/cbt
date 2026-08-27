@@ -7,11 +7,12 @@
                 <h2 class="text-3xl font-black text-slate-800 tracking-tight mb-2">Manajemen Kelas</h2>
                 <p class="text-slate-500 font-bold text-sm">Kelola daftar kelas, wali kelas, dan tahun ajaran.</p>
             </div>
-            {{-- Tombol ini sekarang memanggil Alpine Store --}}
+            @can('manage classrooms')
             <button @click="$store.classModule.newClassroom()"
                 class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg shadow-indigo-200 transition-all flex items-center gap-2 active:scale-95">
                 <i class="fas fa-plus"></i> Tambah Kelas
             </button>
+            @can
         </div>
 
         {{-- Alert Notifikasi --}}
