@@ -72,9 +72,20 @@
                                 @endif
 
                                 {{-- Render PG / Essay --}}
-                                @elseif(isset($opsi['option_text']))
-                                @php $benar = isset($opsi['is_correct']) && filter_var($opsi['is_correct'],
-                                FILTER_VALIDATE_BOOLEAN); @endphp
+                                @elseif(is_string($opsi) || isset($opsi['option_text']) || isset($opsi['text']))
+
+                                @php
+                                // Deteksi jika formatnya string (Essay Praktis) atau array object (Pilihan Ganda)
+                                if (is_string($opsi)) {
+                                $teksJawaban = $opsi;
+                                $benar = true; // Jawaban essay dianggap sebagai alternatif benar
+                                } else {
+                                $teksJawaban = $opsi['option_text'] ?? $opsi['text'] ?? '';
+                                $benar = isset($opsi['is_correct']) && filter_var($opsi['is_correct'],
+                                FILTER_VALIDATE_BOOLEAN);
+                                }
+                                @endphp
+
                                 <li
                                     class="flex items-start p-2 rounded {{ $benar ? 'bg-emerald-50 border border-emerald-200' : 'bg-white border border-slate-200' }}">
                                     @if($benar)
@@ -89,7 +100,7 @@
                                     @endif
                                     <span
                                         class="text-sm {{ $benar ? 'text-emerald-800 font-bold' : 'text-slate-600' }}">{!!
-                                        $opsi['option_text'] !!}</span>
+                                        $teksJawaban !!}</span>
                                 </li>
                                 @endif
 
