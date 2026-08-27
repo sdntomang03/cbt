@@ -45,6 +45,17 @@ class ExamController extends Controller
             $query->where('exam_type_id', $activeTypeId);
         }
 
+        if (! $user->hasRole('admin')) {
+            $query->where(function ($q) use ($user) {
+                // 1. Tampilkan ujian yang dibuat sendiri (Penulis)
+                $q->where('teacher_id', $user->id)
+                  // 2. ATAU tampilkan ujian di mana user ini diundang
+                    ->orWhereHas('invitedTeachers', function ($subQuery) use ($user) {
+                        $subQuery->where('user_id', $user->id);
+                    });
+            });
+        }
+
         $exams = $query->latest()->paginate(10)->withQueryString();
         $schools = $user->hasRole('admin') ? School::all() : [];
 

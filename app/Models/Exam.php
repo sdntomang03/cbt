@@ -69,6 +69,11 @@ class Exam extends Model
         return $this->belongsTo(Subject::class);
     }
 
+    public function invitedTeachers()
+    {
+        return $this->belongsToMany(User::class, 'exam_invitations', 'exam_id', 'user_id');
+    }
+
     public function getRouteKey()
     {
         return Hashids::encode($this->getKey());
