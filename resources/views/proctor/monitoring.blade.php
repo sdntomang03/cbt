@@ -105,22 +105,32 @@
 
                     <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
 
-                        {{-- Tombol Auto Update --}}
-                        <button @click="toggleAutoUpdate" ...>...</button>
+                        {{-- Tombol Auto Update (Milik Anda) --}}
+                        <button @click="toggleAutoUpdate"
+                            :class="isAutoUpdate ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-slate-200 text-slate-600 shadow-slate-200'"
+                            class="px-5 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 w-full sm:w-auto">
+                            <i class="fas" :class="isAutoUpdate ? 'fa-sync fa-spin' : 'fa-play'"></i>
+                            <span x-text="isAutoUpdate ? 'Auto On' : 'Auto Off'"></span>
+                        </button>
 
-                        {{-- Tombol Export Excel Nilai (Sudah ada) --}}
-                        <a href="{{ route('admin.exams.export', $examSession->exam->id) }}" ...>...</a>
+                        {{-- Tombol Baru: Download Excel --}}
+                        <a href="{{ route('admin.exams.export', $examSession->exam->id) }}"
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200/50 px-5 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 w-full sm:w-auto">
+                            <i class="fas fa-file-excel"></i>
+                            <span>Export Excel</span>
+                        </a>
 
-                        {{-- TAMBAHKAN TOMBOL ANALISIS BUTIR SOAL DI SINI --}}
+                        {{-- Tombol Copy JSON untuk Siakad --}}
+                        <button @click="copyJSON"
+                            class="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200/50 px-5 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 w-full sm:w-auto">
+                            <i class="fas fa-copy"></i>
+                            <span>Copy JSON</span>
+                        </button>
                         <a href="{{ route('proctor.sessions.export-analysis', $examSession->id) }}"
                             class="bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-200/50 px-5 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 w-full sm:w-auto">
                             <i class="fas fa-chart-line"></i>
                             <span>Analisis Soal</span>
                         </a>
-
-                        {{-- Tombol Copy JSON --}}
-                        <button @click="copyJSON" ...>...</button>
-
                     </div>
                 </div>
             </div>
