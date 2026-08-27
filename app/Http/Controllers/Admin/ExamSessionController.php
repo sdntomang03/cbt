@@ -14,39 +14,62 @@ use Vinkla\Hashids\Facades\Hashids;
 
 class ExamSessionController extends Controller
 {
-    /**
-     * Menampilkan daftar sesi ujian.
-     */
     public function index(Request $request)
     {
+        $user = auth()->user();
+
         // Pastikan model ExamSession memiliki relasi ke 'school' dan 'exam'
         $query = ExamSession::with(['exam', 'school']);
 
-        // --- FILTER BERDASARKAN EXAM_ID ---
+        // --- FILTER BERDASARKAN EXAM_ID ---[cite: 4]
         if ($request->filled('exam_id')) {
             $query->where('exam_id', $request->exam_id);
         }
 
-        // 1. Filter Dropdown: HANYA berlaku untuk Super Admin
-        if (auth()->user()->hasRole('admin') && $request->filled('school_id')) {
+        // 1. Filter Dropdown: HANYA berlaku untuk Super Admin[cite: 4]
+        if ($user->hasRole('admin') && $request->filled('school_id')) {
             $query->where('school_id', $request->school_id);
         }
 
-        // 2. Fitur Pencarian Teks (Berdasarkan nama sesi)
+        // 2. Fitur Pencarian Teks (Berdasarkan nama sesi)[cite: 4]
         if ($request->filled('search')) {
             $query->where('session_name', 'like', '%'.$request->search.'%');
         }
 
-        // Menjalankan query dengan paginasi
+        // =========================================================
+        // 3. FILTER HAK AKSES MELIHAT SESI UJIAN (Tambahan Baru)
+        // =========================================================
+        if (! $user->hasRole('admin')) {
+            $query->whereHas('exam', function ($q) use ($user) {
+                // Tampilkan jika user adalah pembuat ujian
+                $q->where('teacher_id', $user->id)
+                  // ATAU jika user terdaftar sebagai undangan di ujian tersebut
+                    ->orWhereHas('invitedTeachers', function ($subQuery) use ($user) {
+                        $subQuery->where('user_id', $user->id);
+                    });
+            });
+        }
+
+        // Menjalankan query dengan paginasi[cite: 4]
         $sessions = $query->latest()->paginate(12)->withQueryString();
 
-        // 3. Kirim data daftar sekolah ke layar (Hanya dikirim jika admin)
-        $schools = auth()->user()->hasRole('admin') ? School::orderBy('name')->get() : [];
+        // 4. Kirim data daftar sekolah ke layar (Hanya dikirim jika admin)[cite: 4]
+        $schools = $user->hasRole('admin') ? School::orderBy('name')->get() : [];
 
-        // 4. Ambil data ujian untuk form modal (Create/Edit)
-        $exams = Exam::latest()->get();
+        // 5. Ambil data ujian untuk form modal (Create/Edit)[cite: 4]
+        // PENTING: Filter juga daftar ujian ini agar guru tidak bisa memilih ujian orang lain
+        $examsQuery = Exam::latest();
+        if (! $user->hasRole('admin')) {
+            $examsQuery->where(function ($q) use ($user) {
+                $q->where('teacher_id', $user->id)
+                    ->orWhereHas('invitedTeachers', function ($subQ) use ($user) {
+                        $subQ->where('user_id', $user->id);
+                    });
+            });
+        }
+        $exams = $examsQuery->get();
 
-        // Ambil detail ujian yang sedang dipilih (untuk judul di Blade)
+        // Ambil detail ujian yang sedang dipilih (untuk judul di Blade)[cite: 4]
         $selectedExam = $request->filled('exam_id') ? Exam::find($request->exam_id) : null;
 
         return view('admin.sessions.index', compact('sessions', 'schools', 'exams', 'selectedExam'));
