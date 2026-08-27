@@ -98,12 +98,12 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         Route::delete('classrooms/{classroom}/students/{student}/detach', [ClassroomController::class, 'detachStudent'])->name('classrooms.detach-student');
 
         // --- Manajemen Ujian (CBT & Bank Soal) ---
+        Route::post('/exams/{exam}/sync-invites', [ExamController::class, 'syncInvites'])->name('exams.sync-invites');
         Route::get('/exams/{exam}/export', [ExamController::class, 'exportGrades'])->name('exams.export');
         Route::resource('exams', ExamController::class);
         Route::post('/exam-types', [ExamController::class, 'storeType'])->name('exam-types.store');
         Route::post('/preview', [ExamController::class, 'preview'])->name('preview');
         Route::get('/live-preview', [ExamController::class, 'livePreview'])->name('live-preview');
-        Route::post('/exams/{exam}/sync-invites', [ExamController::class, 'syncInvites'])->name('exams.sync-invites');
         Route::get('/chart-generator', [SoalController::class, 'chartGenerator'])
             ->name('soal.chart.generator');
 
