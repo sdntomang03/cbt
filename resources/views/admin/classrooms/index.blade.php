@@ -12,7 +12,7 @@
                 class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg shadow-indigo-200 transition-all flex items-center gap-2 active:scale-95">
                 <i class="fas fa-plus"></i> Tambah Kelas
             </button>
-            @can
+            @endcan
         </div>
 
         {{-- Alert Notifikasi --}}
