@@ -31,6 +31,8 @@ class ExamController extends Controller
         // 1. TAMBAHAN: Ambil daftar guru di sekolah yang sama (Kecuali diri sendiri)
         $teachers = User::where('school_id', $schoolId)
             ->where('id', '!=', $user->id)
+            ->role('guru') // <-- Tambahkan baris ini untuk memfilter berdasarkan role
+            ->orderBy('name', 'asc') // Opsional: agar daftar guru berurutan sesuai abjad
             ->get();
 
         $activeTypeId = $request->get('exam_type_id', $examTypes->first()?->id);
