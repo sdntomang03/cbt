@@ -3,7 +3,6 @@
 namespace App\Exports;
 
 use App\Models\ExamSession;
-use App\Models\Question;
 use App\Models\StudentAnswer;
 use Illuminate\Contracts\View\View;
 use Maatwebsite\Excel\Concerns\FromView;
@@ -23,7 +22,7 @@ class ButirSoalExport implements FromView, ShouldAutoSize
         $session = ExamSession::with('exam')->findOrFail($this->examSessionId);
 
         // Ambil semua soal untuk ujian ini
-        $questions = Question::where('exam_id', $session->exam_id)->get();
+        $questions = $session->exam->questions;
 
         // Ambil daftar siswa yang sudah menyelesaikan (status 'completed')
         $students = $session->students()->wherePivot('status', 'completed')->get();
