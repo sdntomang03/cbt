@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ButirSoalExport;
 use App\Models\Exam;
 use App\Models\ExamSession;
 use App\Models\ExamSessionUser;
@@ -10,6 +11,8 @@ use App\Models\StudentAnswer;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Maatwebsite\Excel\Excel;
 
 class ProctorController extends Controller
 {
@@ -352,5 +355,23 @@ class ProctorController extends Controller
         ]);
 
         return back()->with('success', "Ujian siswa {$student->name} berhasil direset.");
+    }
+
+    public function exportAnalysis(ExamSession $examSession)
+    {
+        // Pastikan user memiliki akses
+        $user = auth()->user();
+        if (! $user->hasRole('admin')) {
+            $hasAccess = $examSession->exam->teacher_id === $user->id ||
+                         $examSession->exam->invitedTeachers()->where('user_id', $user->id)->exists();
+
+            if (! $hasAccess) {
+                abort(403, 'Akses ditolak.');
+            }
+        }
+
+        $fileName = 'Analisis_Butir_Soal_'.Str::slug($examSession->exam->title).'_'.date('Ymd_His').'.xlsx';
+
+        return Excel::download(new ButirSoalExport($examSession->id), $fileName);
     }
 }
