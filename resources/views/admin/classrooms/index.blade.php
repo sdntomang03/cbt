@@ -102,7 +102,7 @@
                                     title="Atur Siswa">
                                     <i class="fas fa-users-cog"></i>
                                 </a>
-
+                                @can('manage classrooms')
                                 {{-- Tombol Edit (Buka Modal) --}}
                                 <button @click="$store.classModule.editClassroom({{ $classroom->toJson() }})"
                                     class="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition tooltip"
@@ -121,6 +121,7 @@
                                         <i class="fas fa-trash-alt"></i>
                                     </button>
                                 </form>
+                                @endcan
                             </td>
                         </tr>
                         @empty
