@@ -19,18 +19,26 @@ class ClassroomController extends Controller
      */
     public function index()
     {
-        $schoolId = Auth::user()->school_id;
+        $user = Auth::user();
+        $schoolId = $user->school_id;
 
         // Ambil Data Kelas Utama
-        $classrooms = Classroom::with(['homeroomTeacher', 'academicYear'])
+        $query = Classroom::with(['homeroomTeacher', 'academicYear'])
             ->withCount('students')
-            ->where('school_id', $schoolId)
-            ->orderBy('name', 'asc')
-            ->get();
+            ->where('school_id', $schoolId);
+
+        // =========================================================
+        // FILTER BERDASARKAN HAK AKSES GURU
+        // =========================================================
+        // Jika user BUKAN admin, tampilkan HANYA kelas di mana ia menjadi wali kelas
+        if (! $user->hasRole('admin')) {
+            $query->where('user_id', $user->id);
+        }
+
+        $classrooms = $query->orderBy('name', 'asc')->get();
 
         // Ambil Data Pendukung untuk Dropdown Modal
         $academicYears = AcademicYear::where('school_id', $schoolId)->get();
-        // Pastikan relasi spatie sudah diatur dengan benar untuk memanggil scope 'role'
         $levels = Level::where('school_id', $schoolId)->get();
         $teachers = User::role('guru')->where('school_id', $schoolId)->get();
 
