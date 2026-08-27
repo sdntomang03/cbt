@@ -597,7 +597,7 @@
                     </button>
                 </div>
 
-                <form :action="`/admin/exams/${$store.inviteModule.examId}/sync-invites`" method="POST" class="p-8">
+                <form :action="`/exams/${$store.inviteModule.examId}/sync-invites`" method="POST" class="p-8">
                     @csrf
                     <p class="text-sm text-slate-500 font-bold mb-4">Pilih guru yang diizinkan untuk melihat dan
                         mengelola ujian ini:</p>
