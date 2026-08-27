@@ -125,6 +125,7 @@ class UserController extends Controller
             'email' => $request->email,
             'role' => $request->role,
             'school_id' => auth()->user()->hasRole('admin') ? $request->school_id : $user->school_id,
+            'email_verified_at' => now(),
         ];
 
         // Jika password diisi, berarti ingin ganti password. Jika kosong, biarkan password lama.
