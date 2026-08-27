@@ -18,10 +18,27 @@ class ProctorController extends Controller
      */
     public function index()
     {
-        // Ambil sesi ujian yang sedang berlangsung hari ini atau akan datang
-        $sessions = ExamSession::with('exam')
-            ->orderBy('start_time', 'asc')
-            ->get();
+        $user = auth()->user();
+
+        // Mulai Query dengan eager loading relasi 'exam'
+        $query = ExamSession::with('exam')->orderBy('start_time', 'asc');
+
+        // =========================================================
+        // FILTER HAK AKSES PENGAWAS (PROCTOR)
+        // =========================================================
+        // Jika bukan admin, batasi sesi ujian yang tampil
+        if (! $user->hasRole('admin')) {
+            $query->whereHas('exam', function ($q) use ($user) {
+                // Tampilkan jika user adalah pembuat ujian
+                $q->where('teacher_id', $user->id)
+                  // ATAU jika user terdaftar sebagai undangan di ujian tersebut
+                    ->orWhereHas('invitedTeachers', function ($subQuery) use ($user) {
+                        $subQuery->where('user_id', $user->id);
+                    });
+            });
+        }
+
+        $sessions = $query->get();
 
         return view('proctor.index', compact('sessions'));
     }
