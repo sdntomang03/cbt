@@ -31,7 +31,7 @@ class ClassroomController extends Controller
         // FILTER BERDASARKAN HAK AKSES GURU
         // =========================================================
         // Jika user BUKAN admin, tampilkan HANYA kelas di mana ia menjadi wali kelas
-        if (! $user->hasRole('admin')) {
+        if (! $user->hasRole('admin') || $user->hasRole('operator')) {
             $query->where('user_id', $user->id);
         }
 
