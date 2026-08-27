@@ -256,6 +256,7 @@ class SoalController extends Controller
     }
 
     // Method untuk menyimpan data yang dicentang (Final)
+    // Method untuk menyimpan data yang dicentang (Final)
     public function storeImportJson(Request $request, Exam $exam)
     {
         $request->validate([
@@ -314,14 +315,23 @@ class SoalController extends Controller
                                 ]);
                             }
                         } else {
-                            // Deteksi key JSON untuk option text (fleksibel)
-                            $text = $opsi['option_text'] ?? $opsi['text'] ?? null;
+                            // --- MODIFIKASI UNTUK JAWABAN ESSAY GANDA ---
+
+                            // Jika format array berupa string biasa: ["Jawaban 1", "Jawaban 2"]
+                            if (is_string($opsi)) {
+                                $text = $opsi;
+                                $isCorrect = 1; // Asumsi variasi string essay adalah jawaban benar
+                            } else {
+                                // Deteksi key JSON untuk option text (fleksibel: untuk format Object JSON lama)
+                                $text = $opsi['option_text'] ?? $opsi['text'] ?? null;
+                                $isCorrect = (isset($opsi['is_correct']) && $opsi['is_correct'] == true) ? 1 : 0;
+                            }
 
                             if (! empty($text)) {
                                 $question->options()->create([
                                     'school_id' => $schoolId,
                                     'option_text' => $text,
-                                    'is_correct' => (isset($opsi['is_correct']) && $opsi['is_correct'] == true) ? 1 : 0,
+                                    'is_correct' => $isCorrect,
                                 ]);
                             }
                         }
@@ -340,7 +350,7 @@ class SoalController extends Controller
             DB::rollBack();
             Log::error('Gagal simpan JSON soal: '.$e->getMessage());
 
-            // Ubah route redirect gagal ini sesuai dengan nama route Bapak
+            // Ubah route redirect gagal ini sesuai dengan nama route Anda
             return back()->withErrors(['error' => 'Terjadi kesalahan sistem saat menyimpan: '.$e->getMessage()]);
         }
     }

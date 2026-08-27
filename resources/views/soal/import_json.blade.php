@@ -132,12 +132,14 @@
         ]
     },
 
-    <span class="text-slate-500">// 4. Isian Singkat</span>
+<span class="text-slate-500">// 4. Isian Singkat (Essay) - Mendukung banyak variasi jawaban benar</span>
     {
         <span class="text-emerald-400">"type"</span>: <span class="text-amber-300">"essay"</span>,
-        <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Sebutkan dasar negara Indonesia!&lt;/p&gt;"</span>,
+        <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Sebutkan ibu kota negara Indonesia!&lt;/p&gt;"</span>,
         <span class="text-emerald-400">"options"</span>: [
-            { <span class="text-emerald-400">"option_text"</span>: <span class="text-amber-300">"Pancasila"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> }
+            <span class="text-amber-300">"Jakarta"</span>,
+            <span class="text-amber-300">"DKI Jakarta"</span>,
+            <span class="text-amber-300">"Daerah Khusus Ibukota Jakarta"</span>
         ]
     },
 
