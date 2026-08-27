@@ -164,7 +164,7 @@
                                     @can('manage questions')
                                     @if($exam->teacher_id === auth()->id() || auth()->user()->hasRole('admin'))
                                     <button type="button"
-                                        @click="$store.inviteModule.open({{ $exam->id }}, '{{ addslashes($exam->title) }}', {{ $exam->invitedTeachers->pluck('id')->toJson() }})"
+                                        @click="$store.inviteModule.open('{{ route('admin.exams.sync-invites', $exam) }}', '{{ addslashes($exam->title) }}', {{ $exam->invitedTeachers->pluck('id')->toJson() }})"
                                         class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition"
                                         title="Undang Guru">
                                         <i class="fas fa-users-cog"></i>
@@ -597,7 +597,7 @@
                     </button>
                 </div>
 
-                <form :action="`/admin/exams/${$store.inviteModule.examId}/sync-invites`" method="POST" class="p-8">
+                <form :action="$store.inviteModule.actionUrl" method="POST" class="p-8">
                     @csrf
                     <p class="text-sm text-slate-500 font-bold mb-4">Pilih guru yang diizinkan untuk melihat dan
                         mengelola ujian ini:</p>
@@ -685,20 +685,19 @@
                 }
             });
 
-            Alpine.store('inviteModule', {
-        openModal: false,
-        examId: null,
-        examTitle: '',
-        selectedTeachers: [],
+           Alpine.store('inviteModule', {
+    openModal: false,
+    actionUrl: '',
+    examTitle: '',
+    selectedTeachers: [],
 
-        open(id, title, existingTeachers) {
-            this.examId = id;
-            this.examTitle = title;
-            // Pastikan tipe data array selaras (jadikan string agar pas dengan value checkbox)
-            this.selectedTeachers = existingTeachers.map(String);
-            this.openModal = true;
-        }
-    });
+    open(url, title, existingTeachers) { // <-- Sesuaikan parameter ini
+        this.actionUrl = url;
+        this.examTitle = title;
+        this.selectedTeachers = existingTeachers.map(String);
+        this.openModal = true;
+    }
+});
 
             // 2. KOMPONEN QUILL EDITOR
             Alpine.data('quillEditorComponent', () => ({
