@@ -463,10 +463,16 @@
 
                                     <div
                                         class="text-5xl sm:text-7xl md:text-8xl font-black text-slate-800 flex items-center justify-center gap-4 sm:gap-6 md:gap-10 mb-8 sm:mb-12">
-                                        <span x-text="q.num1" class="drop-shadow-lg"></span>
+
+                                        {{-- Panggil fungsi formatNumber() untuk q.num1 --}}
+                                        <span x-text="formatNumber(q.num1)" class="drop-shadow-lg"></span>
+
                                         <span x-html="getOperatorIcon(q.operator)"
                                             class="text-indigo-600 text-4xl sm:text-6xl md:text-7xl bg-gradient-to-br from-indigo-50 to-purple-50 w-16 h-16 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-2xl sm:rounded-3xl flex items-center justify-center shadow-xl border-2 border-indigo-100 transform hover:rotate-12 transition-transform"></span>
-                                        <span x-text="q.num2" class="drop-shadow-lg"></span>
+
+                                        {{-- Panggil fungsi formatNumber() untuk q.num2 --}}
+                                        <span x-text="formatNumber(q.num2)" class="drop-shadow-lg"></span>
+
                                         <span class="text-slate-300">=</span>
                                     </div>
 
