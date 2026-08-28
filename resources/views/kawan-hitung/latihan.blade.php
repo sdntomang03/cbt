@@ -75,7 +75,9 @@
 
                     <div
                         class="text-3xl md:text-5xl font-black text-slate-700 flex items-center gap-3 md:gap-4 tracking-tight">
-                        <span>{{ $s['n1'] }}</span>
+
+                        {{-- Tambahkan format ribuan di sini --}}
+                        <span>{{ number_format($s['n1'], 0, ',', '.') }}</span>
 
                         @php
                         $opClass = $s['op'] == '+' ? 'text-blue-500 bg-blue-50' :
@@ -87,7 +89,8 @@
                             {{ $s['op'] == '*' ? '×' : ($s['op'] == '/' ? '÷' : $s['op']) }}
                         </span>
 
-                        <span>{{ $s['n2'] }}</span>
+                        {{-- Tambahkan format ribuan di sini --}}
+                        <span>{{ number_format($s['n2'], 0, ',', '.') }}</span>
                         <span class="text-slate-300">=</span>
                     </div>
                 </div>

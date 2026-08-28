@@ -62,7 +62,9 @@
 
             <div
                 class="flex flex-wrap items-center justify-center gap-4 md:gap-6 text-5xl md:text-7xl font-black text-slate-700 tracking-tight mb-10">
-                <span id="angka1">{{ $s['n1'] }}</span>
+
+                {{-- Gunakan number_format untuk angka pertama --}}
+                <span id="angka1">{{ number_format($s['n1'], 0, ',', '.') }}</span>
 
                 @php
                 $opClass = $s['op'] == '+' ? 'text-blue-500 bg-blue-50 border-blue-100' :
@@ -76,7 +78,8 @@
                     {{ $s['op'] == '*' ? '×' : ($s['op'] == '/' ? '÷' : $s['op']) }}
                 </span>
 
-                <span id="angka2">{{ $s['n2'] }}</span>
+                {{-- Gunakan number_format untuk angka kedua --}}
+                <span id="angka2">{{ number_format($s['n2'], 0, ',', '.') }}</span>
                 <span class="text-slate-300">=</span>
             </div>
 
