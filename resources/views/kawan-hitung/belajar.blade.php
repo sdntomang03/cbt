@@ -82,7 +82,7 @@
 
             <!-- Interaksi Siswa -->
             <div class="flex flex-col md:flex-row items-center justify-center gap-4">
-                <input type="number" id="jawaban-siswa" placeholder="Jawabanmu..."
+                <input type="text" id="jawaban-siswa" placeholder="Jawabanmu..." oninput="formatRibuan(this)"
                     class="w-full md:w-64 py-4 px-6 text-center text-3xl font-black rounded-2xl border-4 border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none text-blue-700 transition-all placeholder:text-slate-300">
 
                 <button onclick="cekJawaban()" id="btn-cek"
@@ -152,7 +152,8 @@
                 return;
             }
 
-            const isCorrect = parseFloat(inputVal) === kunci;
+            const cleanVal = inputVal.replace(/\./g, '');
+const isCorrect = parseFloat(cleanVal) === kunci;
 
             feedbackBox.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-700', 'bg-rose-100', 'text-rose-700');
 
@@ -273,6 +274,14 @@
             return tempat[indexDariBelakang] || "Angka ke-" + (indexDariBelakang+1);
         }
 
+        function formatRibuan(input) {
+    let value = input.value.replace(/[^\d-]/g, '');
+    if (value === '' || value === '-') {
+        input.value = value;
+        return;
+    }
+    input.value = parseInt(value, 10).toLocaleString('id-ID');
+}
         function getLangkahPenyelesaian(n1, n2, op) {
 
             // =================================================================================

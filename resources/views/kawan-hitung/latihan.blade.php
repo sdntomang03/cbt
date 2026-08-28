@@ -92,8 +92,8 @@
                     </div>
                 </div>
 
-                <input type="number" name="jawaban[{{ $index }}]" required placeholder="?"
-                    class="w-24 md:w-32 py-4 md:py-5 text-center text-3xl md:text-4xl font-black rounded-2xl border-4 border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-0 outline-none text-blue-700 transition-all placeholder:text-slate-300 shadow-inner">
+                <input type="text" name="jawaban[{{ $index }}]" required placeholder="?" oninput="formatRibuan(this)"
+                    class="w-32 md:w-40 text-center text-3xl md:text-4xl font-black text-indigo-700 border-4 focus:ring-0 rounded-2xl py-2 md:py-3 transition-all shadow-lg placeholder-slate-300 focus:shadow-2xl focus:scale-105">
             </div>
             @endforeach
 
@@ -109,6 +109,18 @@
         </form>
 
     </div>
+    <script>
+        function formatRibuan(input) {
+        // Hapus semua karakter selain angka dan tanda minus
+        let value = input.value.replace(/[^\d-]/g, '');
+        if (value === '' || value === '-') {
+            input.value = value;
+            return;
+        }
+        // Konversi ke format ribuan lokal Indonesia
+        input.value = parseInt(value, 10).toLocaleString('id-ID');
+    }
+    </script>
 </body>
 
 </html>

@@ -137,7 +137,8 @@ class KawanHitungController extends Controller
                 '/' => $kunci = $n1 / $n2,
             };
 
-            $jawab = isset($jawaban_user[$i]) ? floatval($jawaban_user[$i]) : null;
+            $jawab_mentah = isset($jawaban_user[$i]) ? str_replace('.', '', $jawaban_user[$i]) : null;
+            $jawab = ($jawab_mentah !== null && $jawab_mentah !== '') ? floatval($jawab_mentah) : null;
             $is_correct = ($jawab === floatval($kunci));
 
             if ($is_correct) {

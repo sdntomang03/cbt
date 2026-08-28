@@ -152,7 +152,10 @@ class MathExamController extends Controller
 
         foreach ($questions as $q) {
             // Ambil jawaban, pastikan jika kosong dianggap null
-            $studentAns = isset($answers[$q->id]) && $answers[$q->id] !== '' ? (int) $answers[$q->id] : null;
+            // Ambil jawaban, hilangkan titik ribuan jika ada, lalu konversi ke integer
+            $rawAns = isset($answers[$q->id]) ? str_replace('.', '', $answers[$q->id]) : '';
+            $studentAns = ($rawAns !== '') ? (int) $rawAns : null;
+
             $isCorrect = ($studentAns === $q->correct_answer && $studentAns !== null);
 
             if ($isCorrect) {
@@ -215,9 +218,10 @@ class MathExamController extends Controller
                 ->first();
 
             if ($question) {
-                $studentAns = ($answer !== null && $answer !== '') ? (int) $answer : null;
+                // Bersihkan nilai dari titik ribuan sebelum dikonversi ke integer
+                $cleanAnswer = ($answer !== null) ? str_replace('.', '', $answer) : '';
+                $studentAns = ($cleanAnswer !== '') ? (int) $cleanAnswer : null;
 
-                // PERBAIKAN: Hapus kata 'clone' di sini
                 $isCorrect = ($studentAns === $question->correct_answer && $studentAns !== null);
 
                 // Update data
