@@ -480,9 +480,9 @@
                                         <input type="text" :id="'input-' + index" :value="formatNumber(answers[q.id])"
                                             @input="handleInput($event, q.id)" @keydown.enter="nextQuestion()"
                                             placeholder="?" :class="skipped.includes(q.id) && (answers[q.id] === undefined || answers[q.id] === '')
-               ? 'border-orange-400 focus:border-orange-500 bg-orange-50/30 ring-4 ring-orange-100'
-               : 'border-indigo-200 focus:border-indigo-500 bg-slate-50 ring-4 ring-indigo-50'"
-                                            class="w-40 sm:w-56 md:w-72 text-center text-4xl sm:text-5xl md:text-6xl font-black text-indigo-700 border-4 focus:ring-0 rounded-2xl sm:rounded-3xl py-4 sm:py-6 transition-all shadow-lg placeholder-slate-300 focus:shadow-2xl focus:scale-105">
+        ? 'border-orange-400 focus:border-orange-500 bg-orange-50/30 ring-4 ring-orange-100'
+        : 'border-indigo-200 focus:border-indigo-500 bg-slate-50 ring-4 ring-indigo-50'"
+                                            class="w-64 sm:w-80 md:w-96 text-center text-4xl sm:text-5xl md:text-6xl font-black text-indigo-700 border-4 focus:ring-0 rounded-2xl sm:rounded-3xl py-4 sm:py-6 transition-all shadow-lg placeholder-slate-300 focus:shadow-2xl focus:scale-105">
 
                                         <p
                                             class="text-slate-400 font-bold text-xs sm:text-sm mt-4 hidden sm:flex items-center justify-center gap-2">
