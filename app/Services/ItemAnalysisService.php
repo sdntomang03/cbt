@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Exam;
 use App\Models\StudentAnswer;
 use Illuminate\Support\Collection;
 
