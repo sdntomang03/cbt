@@ -294,14 +294,25 @@ class StudentExamController extends Controller
                         $poin = $correctPairs / $totalPairs;
                     }
                 } elseif ($q->type === 'essay') {
-                    $correctRaw = $q->options->first()->option_text ?? '';
-                    $cleanCorrect = trim(strip_tags(html_entity_decode($correctRaw)));
                     $cleanUser = trim(strip_tags($studentAns));
-                    if (strcasecmp($cleanCorrect, $cleanUser) === 0) {
-                        $poin = 1;
-                    } elseif (is_numeric($cleanCorrect) && is_numeric($cleanUser)) {
-                        if ((float) $cleanCorrect === (float) $cleanUser) {
+                    $poin = 0; // Set default 0
+
+                    // Lakukan perulangan untuk mengecek SEMUA kemungkinan kunci jawaban (opsi)
+                    foreach ($q->options as $opt) {
+                        $correctRaw = $opt->option_text ?? '';
+                        $cleanCorrect = trim(strip_tags(html_entity_decode($correctRaw)));
+
+                        // Jika cocok secara teks (case-insensitive)
+                        if (strcasecmp($cleanCorrect, $cleanUser) === 0) {
                             $poin = 1;
+                            break; // Hentikan perulangan jika sudah ketemu yang cocok
+                        }
+                        // Jika cocok secara angka desimal
+                        elseif (is_numeric($cleanCorrect) && is_numeric($cleanUser)) {
+                            if ((float) $cleanCorrect === (float) $cleanUser) {
+                                $poin = 1;
+                                break; // Hentikan perulangan jika sudah ketemu yang cocok
+                            }
                         }
                     }
                 }
