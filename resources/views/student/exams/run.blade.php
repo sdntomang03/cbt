@@ -287,9 +287,11 @@
                 class="fas fa-lock text-4xl"></i></div>
         <h1 class="text-4xl font-black mb-4 uppercase tracking-wider">UJIAN TERKUNCI</h1>
         <p class="text-slate-300 max-w-xl text-lg mb-10 leading-relaxed">Anda telah melanggar aturan keamanan sebanyak
-            <strong>3 kali</strong>.<br>Sistem telah mengunci akses ujian Anda secara permanen.</p>
+            <strong>3 kali</strong>.<br>Sistem telah mengunci akses ujian Anda secara permanen.
+        </p>
         <div class="bg-white/10 px-6 py-4 rounded-xl border border-white/20 text-sm mb-8">Silakan lapor ke
-            <strong>Pengawas Ujian</strong> untuk membuka kunci.</div>
+            <strong>Pengawas Ujian</strong> untuk membuka kunci.
+        </div>
         <div class="flex gap-4">
             <button onclick="location.reload()"
                 class="px-8 py-3.5 rounded-xl font-bold bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg transition hover:scale-105"><i
@@ -349,7 +351,8 @@
     {{-- Overlay Terkunci (dinamis) --}}
     <div x-data x-show="$store.examState.isLocked" x-cloak class="overlay-base bg-slate-900 z-[10000] p-10 text-white">
         <div class="bg-rose-600 w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-2xl animate-pulse">
-            <i class="fas fa-lock text-4xl"></i></div>
+            <i class="fas fa-lock text-4xl"></i>
+        </div>
         <h1 class="text-4xl font-black mb-4 uppercase tracking-wider">UJIAN TERKUNCI</h1>
         <p class="text-slate-300 max-w-xl text-lg mb-10 leading-relaxed">Anda baru saja melanggar aturan keamanan ke-{{
             $config['max_tolerances'] ?? 3 }} kalinya.<br>Akses telah ditutup.</p>
@@ -842,12 +845,42 @@
                     }
                 },
 
-                seededRandom(seed) { let t = seed += 0x6D2B79F5; t = Math.imul(t^t>>>15,t|1); t ^= t + Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; },
-                shuffleArray(array, seedSuffix) {
-                    let m = array.length, t, i, seed = this.userId + seedSuffix;
-                    while (m) { let r = this.seededRandom(seed + m); i = Math.floor(r * m--); t = array[m]; array[m] = array[i]; array[i] = t; }
-                    return array;
-                },
+                // 1. Tambahkan fungsi ini untuk merubah string menjadi integer 32-bit (Hash)
+hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        let char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return hash;
+},
+
+// 2. Biarkan seededRandom murni mengolah angka (integer)
+seededRandom(seedInt) {
+    let t = seedInt += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+},
+
+// 3. Panggil hashString di dalam shuffleArray sebelum looping
+shuffleArray(array, seedSuffix) {
+    let m = array.length, t, i;
+
+    // Gabungkan string, lalu hash menjadi angka unik yang konsisten
+    let seedString = this.userId + seedSuffix;
+    let numericSeed = this.hashString(seedString);
+
+    while (m) {
+        let r = this.seededRandom(numericSeed + m);
+        i = Math.floor(r * m--);
+        t = array[m];
+        array[m] = array[i];
+        array[i] = t;
+    }
+    return array;
+},
 
                 prepareMatchingTargets(q) {
                     if (q.matches && !this.shuffledTargets[q.id]) {
