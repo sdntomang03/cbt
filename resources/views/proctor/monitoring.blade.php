@@ -200,8 +200,23 @@
                                             x-text="student.pivot.violation_count"></span>
                                     </td>
                                     <td class="p-4 text-center font-black text-lg"
-                                        :class="student.pivot.status === 'completed' ? 'text-emerald-500' : 'text-slate-300'"
-                                        x-text="student.pivot.status === 'completed' ? student.pivot.score : '-'"></td>
+                                        :class="student.pivot.status === 'completed' ? 'text-emerald-500' : 'text-slate-300'">
+                                        <!-- Jika Selesai, tampilkan link ke tab baru -->
+                                        <template x-if="student.pivot.status === 'completed'">
+                                            <a :href="`/proctor/sessions/{{ $examSession->id }}/analysis/${student.id}`"
+                                                target="_blank"
+                                                class="inline-flex items-center justify-center gap-1.5 hover:text-indigo-600 hover:underline transition-colors decoration-2 underline-offset-4"
+                                                title="Buka Analisis Jawaban">
+                                                <span x-text="student.pivot.score"></span>
+                                                <i class="fas fa-external-link-alt text-[10px] text-slate-400"></i>
+                                            </a>
+                                        </template>
+
+                                        <!-- Jika Belum Selesai, tampilkan strip -->
+                                        <template x-if="student.pivot.status !== 'completed'">
+                                            <span>-</span>
+                                        </template>
+                                    </td>
                                     <td class="p-4 pr-6">
                                         <div class="flex items-center justify-end gap-2">
                                             <button x-show="student.pivot.is_locked"

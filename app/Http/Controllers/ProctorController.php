@@ -374,4 +374,34 @@ class ProctorController extends Controller
 
         return Excel::download(new ButirSoalExport($examSession->id), $fileName);
     }
+
+    /**
+     * Menampilkan halaman analisis jawaban siswa secara detail.
+     */
+    public function showStudentAnalysis(ExamSession $examSession, User $student)
+    {
+        $examUser = ExamSessionUser::where('exam_session_id', $examSession->id)
+            ->where('user_id', $student->id)
+            ->firstOrFail();
+
+        // Cegah akses jika ujian belum selesai
+        if ($examUser->status !== 'completed') {
+            return redirect()->back()->with('error', 'Siswa belum menyelesaikan ujian.');
+        }
+
+        // Ambil data jawaban beserta relasinya
+        $answers = StudentAnswer::where('exam_session_id', $examSession->id)
+            ->where('user_id', $student->id)
+            ->with(['question.options', 'question.matches'])
+            ->get()
+            ->map(function ($answer) {
+                // Proses JSON jika jawaban berupa array (pilihan ganda kompleks, menjodohkan)
+                $decoded = is_string($answer->answer) ? json_decode($answer->answer, true) : $answer->answer;
+                $answer->formatted_answer = (json_last_error() === JSON_ERROR_NONE) ? $decoded : $answer->answer;
+
+                return $answer;
+            });
+
+        return view('proctor.student-analysis', compact('examSession', 'student', 'examUser', 'answers'));
+    }
 }
