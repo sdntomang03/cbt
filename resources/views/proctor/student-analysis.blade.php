@@ -56,29 +56,77 @@
                             Diberikan:</p>
 
                         <div class="text-sm font-bold text-slate-700">
+                            {{-- SINGLE CHOICE & ESSAY --}}
                             @if($q->type === 'single_choice' || $q->type === 'essay')
                             @php
-                            // Cari teks jawaban berdasarkan ID opsi, atau tampilkan teks asli (essay)
                             $selectedOpt = $q->options->where('id', $ans->formatted_answer)->first();
                             @endphp
                             @if($selectedOpt)
                             {!! $selectedOpt->option_text !!}
                             @else
-                            {{ $ans->formatted_answer ?? '- Kosong -' }}
+                            {{ $ans->formatted_answer ?? '- Tidak Menjawab -' }}
                             @endif
 
+                            {{-- COMPLEX CHOICE --}}
                             @elseif($q->type === 'complex_choice')
                             <ul class="list-disc list-inside space-y-1">
-                                @if(is_array($ans->formatted_answer))
+                                @if(is_array($ans->formatted_answer) && count($ans->formatted_answer) > 0)
                                 @foreach($ans->formatted_answer as $optId)
                                 @php $cOpt = $q->options->where('id', $optId)->first(); @endphp
                                 <li>{!! $cOpt ? $cOpt->option_text : $optId !!}</li>
                                 @endforeach
+                                @else
+                                <span class="text-slate-400 italic">- Tidak Menjawab -</span>
                                 @endif
                             </ul>
 
+                            {{-- TRUE / FALSE --}}
+                            @elseif(in_array($q->type, ['true_false', 'true_false_multi']))
+                            <div class="space-y-3">
+                                @if(is_array($ans->formatted_answer) && count($ans->formatted_answer) > 0)
+                                @foreach($ans->formatted_answer as $optId => $tfValue)
+                                @php $tfOpt = $q->options->where('id', $optId)->first(); @endphp
+                                <div class="flex items-start gap-3">
+                                    <span
+                                        class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider shrink-0 mt-0.5 {{ strtolower($tfValue) === 'benar' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white' }}">
+                                        {{ $tfValue }}
+                                    </span>
+                                    <div class="prose prose-sm text-slate-600 leading-tight">
+                                        {!! $tfOpt ? $tfOpt->option_text : '- Pernyataan hilang -' !!}
+                                    </div>
+                                </div>
+                                @endforeach
+                                @else
+                                <span class="text-slate-400 italic">- Tidak Menjawab -</span>
+                                @endif
+                            </div>
+
+                            {{-- MATCHING / MENJODOHKAN --}}
+                            @elseif($q->type === 'matching')
+                            <div class="space-y-2">
+                                @if(is_array($ans->formatted_answer) && count($ans->formatted_answer) > 0)
+                                @foreach($ans->formatted_answer as $premiseId => $targetId)
+                                @php
+                                $premise = $q->matches->where('id', $premiseId)->first();
+                                $target = $q->matches->where('id', $targetId)->first();
+                                @endphp
+                                <div
+                                    class="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm text-xs">
+                                    <div class="flex-1 text-slate-700">{!! $premise ? $premise->premise_text :
+                                        '<i>Premis tidak ditemukan</i>' !!}</div>
+                                    <div class="w-6 flex justify-center text-indigo-400 shrink-0"><i
+                                            class="fas fa-arrow-right"></i></div>
+                                    <div class="flex-1 text-indigo-700">{!! $target ? $target->target_text : '<i>Target
+                                            tidak ditemukan</i>' !!}</div>
+                                </div>
+                                @endforeach
+                                @else
+                                <span class="text-slate-400 italic">- Tidak Menjawab -</span>
+                                @endif
+                            </div>
+
+                            {{-- FALLBACK / TIPE LAIN --}}
                             @else
-                            <!-- Fallback untuk format lain (True/False, Matching) -->
                             <pre
                                 class="text-xs bg-slate-200 p-3 rounded-xl overflow-x-auto">{{ json_encode($ans->formatted_answer, JSON_PRETTY_PRINT) }}</pre>
                             @endif
