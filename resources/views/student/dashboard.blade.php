@@ -12,7 +12,7 @@
         </div>
     </x-slot>
 
-    <div class="py-8 mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div class="py-6 sm:py-8 mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
 
         {{-- Banner Sapaan Siswa --}}
         <div
@@ -39,7 +39,60 @@
                 <div
                     class="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl text-center shrink-0 min-w-32">
                     <div class="text-xs font-black text-emerald-200 uppercase tracking-wider">Kelas Anda</div>
-                    <div class="text-3xl font-black mt-1">4</div>
+                    <div class="text-xl sm:text-2xl font-black mt-1">{{ $classrooms->join(', ') ?: 'Belum diatur' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+                <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Ujian</p>
+                <p class="text-2xl font-black text-slate-800 mt-1">{{ $stats['total_ujian'] }}</p>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-emerald-100 shadow-sm">
+                <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Sedang Aktif</p>
+                <p class="text-2xl font-black text-emerald-600 mt-1">{{ $stats['ujian_aktif'] }}</p>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-blue-100 shadow-sm">
+                <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Selesai</p>
+                <p class="text-2xl font-black text-blue-600 mt-1">{{ $stats['ujian_selesai'] }}</p>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border border-amber-100 shadow-sm">
+                <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Rata-rata Nilai</p>
+                <p class="text-2xl font-black text-amber-600 mt-1">{{ $stats['rata_nilai'] !== null ? number_format($stats['rata_nilai'], 1) : '-' }}</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <h3 class="font-black text-slate-800">Agenda Ujian</h3>
+                    <a href="{{ route('student.index') }}" class="text-xs font-black text-emerald-600">Ruang ujian</a>
+                </div>
+                <div class="divide-y divide-slate-100">
+                    @forelse($upcomingSessions as $session)
+                    <div class="px-5 py-3">
+                        <p class="font-bold text-sm text-slate-700 truncate">{{ $session->exam->title }}</p>
+                        <p class="text-xs text-slate-400 mt-1">{{ $session->start_time->format('d M Y, H:i') }} - {{ $session->end_time->format('H:i') }}</p>
+                    </div>
+                    @empty
+                    <p class="px-5 py-8 text-center text-sm text-slate-400">Tidak ada agenda ujian terdekat.</p>
+                    @endforelse
+                </div>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-100">
+                    <h3 class="font-black text-slate-800">Hasil Terbaru</h3>
+                </div>
+                <div class="divide-y divide-slate-100">
+                    @forelse($recentResults as $session)
+                    <div class="px-5 py-3 flex items-center justify-between gap-3">
+                        <p class="font-bold text-sm text-slate-700 truncate">{{ $session->exam->title }}</p>
+                        <span class="shrink-0 font-black text-emerald-600">{{ number_format((float) $session->pivot->final_score, 1) }}</span>
+                    </div>
+                    @empty
+                    <p class="px-5 py-8 text-center text-sm text-slate-400">Belum ada hasil ujian.</p>
+                    @endforelse
                 </div>
             </div>
         </div>

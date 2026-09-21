@@ -622,6 +622,7 @@ quill.setSelection(cursor + latexText.length - 2);
                 type:        'single_choice',
                 content:     '',
                 explanation: '',
+                exam_section_id: '',
                 subject_id:  '',
                 level_id:    '',
                 options:     [],
@@ -632,6 +633,7 @@ quill.setSelection(cursor + latexText.length - 2);
             types: [
                 { id: 'single_choice',  label: 'Pilgan',        icon: 'fa-dot-circle'   },
                 { id: 'complex_choice', label: 'PG Kompleks',   icon: 'fa-check-square' },
+                { id: 'tkp',            label: 'TKP Berbobot',  icon: 'fa-weight-hanging' },
                 { id: 'true_false',     label: 'Benar/Salah',   icon: 'fa-list-ol'      },
                 { id: 'matching',       label: 'Menjodohkan',   icon: 'fa-exchange-alt' },
                 { id: 'essay',          label: 'Isian Singkat', icon: 'fa-keyboard'     },
@@ -654,7 +656,7 @@ quill.setSelection(cursor + latexText.length - 2);
                         : [{ premise_text: '', target_text: '' }];
                 } else {
                     opts = q.options?.length
-                        ? q.options.map(o => ({ option_text: o.option_text, is_correct: o.is_correct }))
+                    ? q.options.map(o => ({ option_text: o.option_text, is_correct: o.is_correct, score_weight: o.score_weight ?? 0 }))
                         : [];
                     if (['essay', 'true_false'].includes(q.type) && !opts.length) {
                         opts = [{ option_text: '', is_correct: 1 }];
@@ -664,6 +666,7 @@ quill.setSelection(cursor + latexText.length - 2);
                     type:        q.type,
                     content:     q.content     || '',
                     explanation: q.explanation || '',
+                    exam_section_id: q.exam_section_id || '',
                     subject_id:  q.subject_id  || '',
                     level_id:    q.level_id    || '',
                     options:     opts,
@@ -730,7 +733,7 @@ quill.setSelection(cursor + latexText.length - 2);
                         this.form.options.push({ premise_text: '', target_text: '' });
                 } else {
                     for (let i = 0; i < 4; i++)
-                        this.form.options.push({ option_text: '', is_correct: i === 0 ? 1 : 0 });
+                        this.form.options.push({ option_text: '', is_correct: i === 0 ? 1 : 0, score_weight: this.form.type === 'tkp' ? 1 : 0 });
                 }
 
                 this.$nextTick(() => setTimeout(() => this.initAllOptionEditors(), 100));
@@ -742,7 +745,7 @@ quill.setSelection(cursor + latexText.length - 2);
                 } else if (['essay', 'true_false'].includes(this.form.type)) {
                     this.form.options.push({ option_text: '', is_correct: 1 });
                 } else {
-                    this.form.options.push({ option_text: '', is_correct: 0 });
+                    this.form.options.push({ option_text: '', is_correct: 0, score_weight: this.form.type === 'tkp' ? 1 : 0 });
                 }
                 const newIndex = this.form.options.length - 1;
                 this.$nextTick(() => setTimeout(() => this.mountOptionAt(newIndex), 50));

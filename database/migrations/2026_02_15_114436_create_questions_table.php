@@ -6,33 +6,26 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('questions', function (Blueprint $table) {
             $table->id();
-
-            // Relasi ke Ujian
-            $table->foreignId('exam_id')->constrained('exams')->cascadeOnDelete();
-
-            // TAMBAHAN: Relasi ke User (Pembuat Soal)
-            // cascadeOnDelete() berarti jika user dihapus, soal buatannya ikut terhapus.
-            // Jika ingin soal tetap ada meski user dihapus, ganti jadi ->nullOnDelete() dan tambahkan ->nullable()
+            // UBAH: Relasi ke Exam Sections, bukan langsung ke Exams[cite: 10]
+            $table->foreignId('exam_section_id')->constrained('exam_sections')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
 
             $table->enum('type', [
-                'single_choice',    // Pilihan Ganda
-                'complex_choice',   // Pilihan Ganda Kompleks
-                'essay',            // Isian
-                'matching',         // Menjodohkan (LeaderLine)
-                'true_false',       // Benar Salah
+                'single_choice',
+                'complex_choice',
+                'essay',
+                'matching',
+                'true_false',
+                'tkp',
             ]);
 
-            $table->longText('content'); // Soal
+            $table->longText('content');
             $table->longText('explanation')->nullable();
-            // Metadata
+
             $table->foreignId('subject_id')->nullable()->constrained('subjects')->nullOnDelete();
             $table->foreignId('level_id')->nullable()->constrained('levels')->nullOnDelete();
             $table->foreignId('school_id')->nullable()->constrained()->cascadeOnDelete();
@@ -40,9 +33,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('questions');

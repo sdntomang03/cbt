@@ -26,9 +26,6 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <!-- PANEL PENGATURAN -->
             <aside class="lg:col-span-12 space-y-6">
-                <!-- API Key -->
-                <input type="hidden" id="apiKey" value="{{ config('services.gemini.key') }}">
-
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
@@ -155,7 +152,6 @@
 
     <script>
         async function generateSoal() {
-            const apiKey = document.getElementById('apiKey').value.trim();
             const mapel = document.getElementById('mapel').value;
             const topik = document.getElementById('topik').value;
             const jumlahSoal = document.getElementById('jumlahSoal').value;
@@ -167,7 +163,6 @@
             // Ambil semua kesulitan yang dicentang
             const selectedKesulitan = Array.from(document.querySelectorAll('input[name="kesulitan"]:checked')).map(cb => cb.value);
 
-            if (!apiKey) return alert("API Key Gemini tidak boleh kosong! (Periksa konfigurasi .env)");
             if (!mapel || !topik) return alert("Mata Pelajaran dan Topik wajib diisi!");
             if (selectedTipeSoal.length === 0) return alert("Pilih minimal satu Tipe Soal!");
             if (selectedKesulitan.length === 0) return alert("Pilih minimal satu Tingkat Kesulitan!");
@@ -203,6 +198,7 @@ Instruksi Output (SANGAT PENTING):
     {
         "type": "isi_dengan_tipe_soal_yang_sesuai",
         "content": "<p>Tuliskan pertanyaan disini (Gunakan tag HTML dasar seperti <p>, <strong>, dll jika perlu)</p>",
+        "explanation": "<p>Jelaskan jawaban atau pembahasan soal secara ringkas.</p>",
         "options": [
             { "option_text": "Teks Pilihan 1", "is_correct": true_atau_false },
             { "option_text": "Teks Pilihan 2", "is_correct": true_atau_false }
@@ -217,19 +213,20 @@ ${strukturOpsiInstruksi}
             toggleLoading(true);
 
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent`, {
+                const response = await fetch(`{{ route('admin.exams.soal.ai_generate', $exam) }}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-goog-api-key': apiKey },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: { temperature: 0.7 }
-                    })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({ prompt })
                 });
 
                 const data = await response.json();
-                if (!response.ok) throw new Error(data.error?.message || "Terjadi kesalahan pada API Gemini.");
+                if (!response.ok) throw new Error(data.message || "Terjadi kesalahan pada API DeepSeek.");
 
-                let jsonResult = data.candidates[0].content.parts[0].text;
+                let jsonResult = data.content;
 
                 // Pastikan teks murni JSON tanpa backticks
                 jsonResult = jsonResult.replace(/```json/g, '').replace(/```/g, '').trim();

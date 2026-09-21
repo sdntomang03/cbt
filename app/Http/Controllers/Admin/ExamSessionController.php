@@ -7,6 +7,7 @@ use App\Models\Exam;
 use App\Models\ExamSession;
 use App\Models\ExamSessionUser;
 use App\Models\School;
+use App\Models\StudentAnswer;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -263,13 +264,16 @@ class ExamSessionController extends Controller
         $realSessionId = $decodedArray[0];
 
         // 1. Ambil Data Sesi & Soal
-        $examSession = ExamSession::with(['exam.questions.options'])->findOrFail($realSessionId);
+        $examSession = ExamSession::with(['exam.questions.options', 'exam.questions.matches'])->findOrFail($realSessionId);
 
         // 2. Ambil Data Progres Siswa menggunakan Model ExamSessionUser
         // Menggunakan firstOrFail() agar otomatis 404 jika siswa tidak terdaftar di sesi tersebut
         $participant = ExamSessionUser::where('exam_session_id', $realSessionId)
             ->where('user_id', auth()->id())
             ->firstOrFail();
+        $studentAnswers = StudentAnswer::where('exam_attempt_id', $participant->id)
+            ->pluck('answer', 'question_id')
+            ->toArray();
 
         // 3. Lapis Keamanan
         if ($participant->status !== 'completed') {
@@ -281,6 +285,6 @@ class ExamSessionController extends Controller
         }
 
         // 4. Kirim ke view (ingat nama variabelnya: examSession dan participant)
-        return view('student.exams.explanation', compact('examSession', 'participant'));
+        return view('student.exams.explanation', compact('examSession', 'participant', 'studentAnswers'));
     }
 }

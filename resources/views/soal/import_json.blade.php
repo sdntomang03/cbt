@@ -7,9 +7,9 @@
                 <p class="text-sm text-slate-500 mt-1">Ujian: <span class="font-bold text-indigo-600">{{ $exam->title ??
                         'Nama Ujian' }}</span></p>
             </div>
-            <a href="{{ route('admin.exams.soal.index', $exam->id) }}"
+            <a href="{{ route('admin.exams.soal.index', $exam->hashid) }}"
                 class="px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-bold shadow-sm transition-colors">
-                &larr; Kembali ke Ujian
+                &larr; Kembali
             </a>
         </div>
 
@@ -106,6 +106,7 @@
     {
         <span class="text-emerald-400">"type"</span>: <span class="text-amber-300">"single_choice"</span>,
         <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Ibu kota negara Indonesia adalah...&lt;/p&gt;"</span>,
+        <span class="text-emerald-400">"explanation"</span>: <span class="text-amber-300">"&lt;p&gt;Jakarta adalah ibu kota Indonesia.&lt;/p&gt;"</span>,
         <span class="text-emerald-400">"options"</span>: [
             { <span class="text-emerald-400">"option_text"</span>: <span class="text-amber-300">"Jakarta"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> },
             { <span class="text-emerald-400">"option_text"</span>: <span class="text-amber-300">"Bandung"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">false</span> }
@@ -116,6 +117,7 @@
     {
         <span class="text-emerald-400">"type"</span>: <span class="text-amber-300">"complex_choice"</span>,
         <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Hewan manakah yang termasuk mamalia?&lt;/p&gt;"</span>,
+        <span class="text-emerald-400">"explanation"</span>: <span class="text-amber-300">"&lt;p&gt;Kucing dan paus termasuk mamalia karena menyusui anaknya.&lt;/p&gt;"</span>,
         <span class="text-emerald-400">"options"</span>: [
             { <span class="text-emerald-400">"option_text"</span>: <span class="text-amber-300">"Kucing"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> },
             { <span class="text-emerald-400">"option_text"</span>: <span class="text-amber-300">"Paus"</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> }
@@ -126,6 +128,7 @@
     {
         <span class="text-emerald-400">"type"</span>: <span class="text-amber-300">"true_false"</span>,
         <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Tentukan Benar/Salah pernyataan berikut!&lt;/p&gt;"</span>,
+        <span class="text-emerald-400">"explanation"</span>: <span class="text-amber-300">"&lt;p&gt;Bumi adalah planet ketiga dari Matahari.&lt;/p&gt;"</span>,
         <span class="text-emerald-400">"options"</span>: [
             { <span class="text-emerald-400">"option_text"</span>: <span class="text-amber-300">"Matahari mengelilingi bumi."</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">false</span> },
             { <span class="text-emerald-400">"option_text"</span>: <span class="text-amber-300">"Bumi adalah planet ke-3."</span>, <span class="text-emerald-400">"is_correct"</span>: <span class="text-indigo-400">true</span> }
@@ -136,6 +139,7 @@
     {
         <span class="text-emerald-400">"type"</span>: <span class="text-amber-300">"essay"</span>,
         <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Sebutkan ibu kota negara Indonesia!&lt;/p&gt;"</span>,
+        <span class="text-emerald-400">"explanation"</span>: <span class="text-amber-300">"&lt;p&gt;Jawaban yang diterima adalah Jakarta atau variasinya.&lt;/p&gt;"</span>,
         <span class="text-emerald-400">"options"</span>: [
             <span class="text-amber-300">"Jakarta"</span>,
             <span class="text-amber-300">"DKI Jakarta"</span>,
@@ -147,6 +151,7 @@
     {
         <span class="text-emerald-400">"type"</span>: <span class="text-amber-300">"matching"</span>,
         <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Jodohkan negara dengan ibukotanya!&lt;/p&gt;"</span>,
+        <span class="text-emerald-400">"explanation"</span>: <span class="text-amber-300">"&lt;p&gt;Tokyo adalah ibu kota Jepang, sedangkan Kuala Lumpur adalah ibu kota Malaysia.&lt;/p&gt;"</span>,
         <span class="text-emerald-400">"options"</span>: [
             {
                 <span class="text-emerald-400">"premise_text"</span>: <span class="text-amber-300">"Jepang"</span>,

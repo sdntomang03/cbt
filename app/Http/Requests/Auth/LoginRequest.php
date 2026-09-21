@@ -27,7 +27,10 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'login' => ['required', 'string'], // Ubah 'email' menjadi 'login' (hapus aturan 'email')
+            // `email` is retained for Breeze/API compatibility while the UI
+            // may submit the more flexible `login` field.
+            'login' => ['nullable', 'string', 'required_without:email'],
+            'email' => ['nullable', 'string', 'required_without:login'],
             'password' => ['required', 'string'],
         ];
     }
@@ -42,7 +45,7 @@ class LoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
 
         // 1. Ambil input dari user
-        $loginInput = $this->input('login');
+        $loginInput = $this->input('login', $this->input('email'));
 
         // 2. Deteksi apakah input berupa format email yang valid?
         // Jika ya, gunakan kolom 'email' di database. Jika tidak, gunakan kolom 'username'.
@@ -94,6 +97,6 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+        return Str::transliterate(Str::lower($this->input('login', $this->input('email'))).'|'.$this->ip());
     }
 }

@@ -148,7 +148,7 @@
         </div>
     </x-slot>
 
-    <div class="py-8 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+    <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto flex flex-col min-h-full">
 
         @if($errors->any())
         <div class="mb-6 p-4 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl text-sm font-bold shadow-sm">
@@ -166,14 +166,25 @@
             class="bg-white shadow-sm sm:rounded-[2rem] border border-slate-100 overflow-hidden mb-10" x-data="{
                 isPublic: {{ old('is_public', isset($exam) && $exam->is_public ? 'true' : 'false') }},
                 enableViolation: {{ old('enable_violation', isset($exam) && $exam->enable_violation ? 'true' : 'false') }},
-                isPremium: {{ old('is_premium', isset($exam) && $exam->is_premium ? 'true' : 'false') }}
+                isPremium: {{ old('is_premium', isset($exam) && $exam->is_premium ? 'true' : 'false') }},
+
+                {{-- Data Seksi Ujian Dinamis --}}
+                hasSections: {{ old('has_sections', (isset($exam) && $exam->sections->count() > 1) ? 'true' : 'false') }},
+                sections: {{ isset($exam) ? json_encode(old('sections', $exam->sections->toArray())) : json_encode(old('sections', [['section_id' => '', 'scoring_profile_id' => '']])) }},
+
+                addSection() {
+                    this.sections.push({ section_id: '', scoring_profile_id: '' });
+                },
+                removeSection(index) {
+                    if (this.sections.length > 1) this.sections.splice(index, 1);
+                }
             }">
 
             @csrf
             @if(isset($exam)) @method('PUT') @endif
 
             {{-- ═══════════════════ 1. INFORMASI DASAR ══════════════════ --}}
-            <div class="p-6 sm:p-10 border-b border-slate-100 space-y-6">
+            <div class="p-6 border-b border-slate-100 space-y-6">
                 <h3 class="font-black text-slate-800 text-lg flex items-center gap-2 mb-6">
                     <div
                         class="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-sm">
@@ -191,6 +202,7 @@
                         placeholder="Contoh: Ujian Matematika Pecahan Kelas 4">
                 </div>
 
+                {{-- Baris 1: Kategori & Kelas --}}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-2">
@@ -201,7 +213,9 @@
                             <option value="">-- Pilih Tipe --</option>
                             @foreach($examTypes as $type)
                             <option value="{{ $type->id }}" {{ old('exam_type_id', $exam->exam_type_id ?? '') ==
-                                $type->id ? 'selected' : '' }}>{{ $type->name }}</option>
+                                $type->id ? 'selected' : '' }}>
+                                {{ $type->name }}
+                            </option>
                             @endforeach
                         </select>
                     </div>
@@ -214,13 +228,16 @@
                             <option value="">-- Pilih Level --</option>
                             @foreach($levels as $level)
                             <option value="{{ $level->id }}" {{ old('level_id', $exam->level_id ?? '') == $level->id ?
-                                'selected' : '' }}>{{ $level->name }}</option>
+                                'selected' : '' }}>
+                                {{ $level->name }}
+                            </option>
                             @endforeach
                         </select>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {{-- Baris 2: Mapel & Scoring Profile --}}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-2">
                             Mata Pelajaran <span class="text-rose-500">*</span>
@@ -230,16 +247,41 @@
                             <option value="">-- Pilih Mapel --</option>
                             @foreach($subjects as $subject)
                             <option value="{{ $subject->id }}" {{ old('subject_id', $exam->subject_id ?? '') ==
-                                $subject->id ? 'selected' : '' }}>{{ $subject->name }}</option>
+                                $subject->id ? 'selected' : '' }}>
+                                {{ $subject->name }}
+                            </option>
                             @endforeach
                         </select>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-2">
+                            Profil Penilaian (Default) <span class="text-slate-400 font-normal">(Opsional)</span>
+                        </label>
+                        <select name="scoring_profile_id"
+                            class="w-full rounded-xl border-slate-200 focus:ring-indigo-500 font-bold text-slate-700 py-3 px-4 bg-slate-50">
+                            <option value="">-- Gunakan Aturan Bawaan Sistem --</option>
+                            @if(isset($scoringProfiles))
+                            @foreach($scoringProfiles as $profile)
+                            <option value="{{ $profile->id }}" {{ old('scoring_profile_id', $exam->scoring_profile_id ??
+                                '') == $profile->id ? 'selected' : '' }}>
+                                {{ $profile->name }} ({{ $profile->code }})
+                            </option>
+                            @endforeach
+                            @endif
+                        </select>
+                        <p class="text-[10px] text-slate-500 mt-1">Aturan skor utama jika seksi ujian tidak
+                            menentukannya.</p>
+                    </div>
+                </div>
+
+                {{-- Baris 3: Durasi & Status --}}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-2">
                             Durasi (Menit) <span class="text-rose-500">*</span>
                         </label>
                         <input type="number" name="duration_minutes"
-                            value="{{ old('duration_minutes', $exam->duration_minutes ?? 60) }}" required
+                            value="{{ old('duration_minutes', $exam->duration_minutes ?? 60) }}" required min="1"
                             class="w-full rounded-xl border-slate-200 focus:ring-indigo-500 font-bold text-slate-700 py-3 px-4">
                     </div>
                     <div>
@@ -248,10 +290,105 @@
                             class="w-full rounded-xl border-slate-200 font-bold text-slate-700 py-3 px-4 bg-slate-50 uppercase text-xs">
                             @foreach(\App\Enums\ExamStatus::cases() as $status)
                             <option value="{{ $status->value }}" {{ old('status', $exam->status->value ?? 'draft') ==
-                                $status->value ? 'selected' : '' }}>{{ $status->name }}</option>
+                                $status->value ? 'selected' : '' }}>
+                                {{ $status->name }}
+                            </option>
                             @endforeach
                         </select>
                     </div>
+                </div>
+            </div>
+
+            {{-- ═══════════════════ 1.5 STRUKTUR SEKSI UJIAN (BARU) ══════════════════ --}}
+            <div class="p-6 sm:p-10 border-b border-slate-100 space-y-6 bg-slate-50/50">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
+                        <div class="w-8 h-8 bg-sky-50 text-sky-600 rounded-lg flex items-center justify-center text-sm">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        Struktur Seksi Ujian
+                    </h3>
+
+                    {{-- Toggle Gunakan Seksi --}}
+                    <label class="flex items-center gap-3 cursor-pointer group">
+                        <span class="text-sm font-bold text-slate-600 group-hover:text-indigo-600 transition">Gunakan
+                            Seksi (Misal: TWK, TIU, TKP)</span>
+                        <div class="relative">
+                            <input type="checkbox" name="has_sections" value="1" x-model="hasSections" class="sr-only">
+                            <div class="w-11 h-6 bg-slate-200 rounded-full transition"
+                                :class="hasSections ? 'bg-indigo-500' : 'bg-slate-300'"></div>
+                            <div class="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition transform"
+                                :class="hasSections ? 'translate-x-5' : ''"></div>
+                        </div>
+                    </label>
+                </div>
+
+                {{-- Kontainer Daftar Seksi Dinamis --}}
+                <div x-show="hasSections" x-transition.opacity.duration.300ms class="space-y-4" style="display: none;">
+                    <div
+                        class="bg-indigo-50/50 border border-indigo-100 p-4 rounded-xl flex items-start gap-3 text-indigo-700">
+                        <i class="fas fa-info-circle mt-0.5"></i>
+                        <div class="text-xs font-bold leading-relaxed">
+                            Aktifkan fitur ini jika ujian memiliki beberapa bagian dengan aturan penilaian yang berbeda.
+                            Jika tidak diaktifkan, sistem akan mengelompokkan semua soal ke dalam satu Sesi Utama.
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <template x-for="(section, index) in sections" :key="index">
+                            <div
+                                class="flex flex-col md:flex-row items-center gap-3 p-4 bg-white border border-slate-200 rounded-xl shadow-sm relative group hover:border-indigo-200 transition-colors">
+                                <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-black text-slate-400 shrink-0"
+                                    x-text="index + 1"></div>
+
+                                <input type="hidden" :name="`sections[${index}][id]`" :value="section.id">
+
+                                <div class="w-full md:w-1/2">
+                                    <label
+                                        class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Section
+                                        Seksi <span class="text-rose-500">*</span></label>
+                                    <select :name="`sections[${index}][section_id]`" x-model="section.section_id"
+                                        :disabled="!hasSections"
+                                        class="w-full text-sm font-bold text-slate-700 rounded-lg border-slate-200 focus:ring-indigo-500 py-2"
+                                        :required="hasSections">
+                                        <option value="">-- Pilih Section --</option>
+                                        @foreach($sections as $masterSection)
+                                        <option value="{{ $masterSection->id }}">
+                                            {{ $masterSection->abbreviation }} - {{ $masterSection->name }}
+                                        </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="w-full md:w-1/2">
+                                    <label
+                                        class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Profil
+                                        Skor <span class="text-slate-400 font-normal">(Opsional)</span></label>
+                                    <select :name="`sections[${index}][scoring_profile_id]`"
+                                        x-model="section.scoring_profile_id"
+                                        class="w-full text-sm font-bold text-slate-700 rounded-lg border-slate-200 focus:ring-indigo-500 py-2">
+                                        <option value="">-- Ikuti Skor Default Ujian --</option>
+                                        @if(isset($scoringProfiles))
+                                        @foreach($scoringProfiles as $profile)
+                                        <option value="{{ $profile->id }}">{{ $profile->name }}</option>
+                                        @endforeach
+                                        @endif
+                                    </select>
+                                </div>
+
+                                <button type="button" @click="removeSection(index)" x-show="sections.length > 1"
+                                    class="md:self-end mt-2 md:mt-0 p-2 text-rose-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition"
+                                    title="Hapus Seksi">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+
+                    <button type="button" @click="addSection()"
+                        class="mt-2 inline-flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded-xl text-xs font-black transition shadow-sm bounce-active">
+                        <i class="fas fa-plus text-indigo-500"></i> Tambah Seksi
+                    </button>
                 </div>
             </div>
 

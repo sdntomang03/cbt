@@ -4,6 +4,8 @@ namespace App\Exports;
 
 use App\Models\User;
 use App\Models\Exam;
+use App\Models\ExamAttempt;
+use App\Services\AttemptScoringService;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithEvents;
@@ -23,13 +25,22 @@ class GradesExport implements FromQuery, ShouldAutoSize, WithEvents, WithHeading
     protected $schoolId;
     protected $rowNumber = 0;
     protected $examTitle;
+    protected $exam;
+    protected $sections;
+    protected $scoringService;
 
     public function __construct($examId, $schoolId = null)
     {
         $this->examId = $examId;
         $this->schoolId = $schoolId;
 
-        $this->examTitle = Exam::find($examId)?->title ?? 'Ujian';
+        $this->exam = Exam::with(['sections.section', 'sections.scoringProfile', 'scoringProfile'])->findOrFail($examId);
+        $this->examTitle = $this->exam->title;
+        $this->sections = $this->exam->sections->sortBy([
+            ['order', 'asc'],
+            ['id', 'asc'],
+        ])->values();
+        $this->scoringService = app(AttemptScoringService::class);
     }
 
     public function query()
@@ -61,33 +72,71 @@ class GradesExport implements FromQuery, ShouldAutoSize, WithEvents, WithHeading
 
     public function headings(): array
     {
-        return [
+        $headings = [
             'No',             // Kolom A
             'Nama Siswa',     // Kolom B
             'Username/NISN',  // Kolom C
             'Sekolah',        // Kolom D
             'Sesi Ujian',     // Kolom E
-            'Nilai Akhir',    // Kolom F
-            'Status',         // Kolom G
         ];
+
+        if ($this->sections->count() > 1) {
+            foreach ($this->sections as $section) {
+                $mode = $this->scoringService->resultMode($section->scoringProfile ?? $this->exam->scoringProfile);
+                $headings[] = 'Section '.($section->section?->name ?? 'Sesi Utama')
+                    .' ('.($mode === 'total' ? 'Total Poin' : 'Rata-rata').')';
+            }
+        }
+
+        $mode = $this->overallResultMode();
+        $headings[] = 'Nilai Akhir ('.($mode === 'total' ? 'Total Poin' : 'Rata-rata').')';
+        $headings[] = 'Status';
+
+        return $headings;
     }
 
     public function map($user): array
     {
         $session = $user->examSessions->first();
-        $score = $session ? $session->pivot->score : 0;
+        $score = $session ? $session->pivot->final_score : 0;
+        $attempt = $session
+            ? ExamAttempt::where('exam_session_id', $session->id)
+                ->where('user_id', $user->id)
+                ->first()
+            : null;
 
         $this->rowNumber++;
 
-        return [
+        $row = [
             $this->rowNumber,
             $user->name,
             $user->username,
             $user->school->name ?? '-',
-            $session->title ?? 'Sesi Default',
-            $score,
-            ($score >= 75) ? 'Lulus' : 'Remedial',
+            $session->session_name ?? 'Sesi Default',
         ];
+
+        if ($this->sections->count() > 1) {
+            $sectionResults = $attempt
+                ? $this->scoringService->sectionResults($attempt)->keyBy('id')
+                : collect();
+
+            foreach ($this->sections as $section) {
+                $row[] = $sectionResults->get($section->id)['display_score'] ?? 0;
+            }
+        }
+
+        $mode = $this->overallResultMode();
+        $row[] = $score;
+        $row[] = $mode === 'total' ? 'Selesai' : (($score >= 75) ? 'Lulus' : 'Remedial');
+
+        return $row;
+    }
+
+    protected function overallResultMode(): string
+    {
+        return $this->scoringService->resultMode(
+            $this->exam->scoringProfile ?? $this->sections->first()?->scoringProfile
+        );
     }
 
     /**
@@ -96,9 +145,10 @@ class GradesExport implements FromQuery, ShouldAutoSize, WithEvents, WithHeading
     public function styles(Worksheet $sheet)
     {
         $highestRow = $sheet->getHighestRow();
+        $lastColumn = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($this->headings()));
 
-        // 1. Header Style (Mulai di Baris ke-4, sampai Kolom G)
-        $sheet->getStyle('A4:G4')->applyFromArray([
+        // 1. Header Style (Mulai di Baris ke-4)
+        $sheet->getStyle('A4:'.$lastColumn.'4')->applyFromArray([
             'font' => [
                 'bold' => true,
                 'color' => ['argb' => 'FFFFFFFF'],
@@ -115,7 +165,7 @@ class GradesExport implements FromQuery, ShouldAutoSize, WithEvents, WithHeading
         ]);
 
         // 2. Border untuk Tabel Utama
-        $sheet->getStyle('A4:G'.$highestRow)->applyFromArray([
+        $sheet->getStyle('A4:'.$lastColumn.$highestRow)->applyFromArray([
             'borders' => [
                 'allBorders' => [
                     'borderStyle' => Border::BORDER_THIN,
@@ -128,7 +178,7 @@ class GradesExport implements FromQuery, ShouldAutoSize, WithEvents, WithHeading
         if($highestRow > 4) {
             $sheet->getStyle('A5:A'.$highestRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER); // No
             $sheet->getStyle('C5:C'.$highestRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER); // NISN
-            $sheet->getStyle('E5:G'.$highestRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER); // Sesi, Nilai, Status
+            $sheet->getStyle('E5:'.$lastColumn.$highestRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         }
 
         $sheet->getRowDimension(4)->setRowHeight(25);
@@ -151,9 +201,10 @@ class GradesExport implements FromQuery, ShouldAutoSize, WithEvents, WithHeading
                 $sheet->setCellValue('A1', 'REKAPITULASI HASIL UJIAN');
                 $sheet->setCellValue('A2',  strtoupper($this->examTitle));
 
-                // Gabungkan cell A sampai G agar judul berada di tengah layar
-                $sheet->mergeCells('A1:G1');
-                $sheet->mergeCells('A2:G2');
+                // Gabungkan cell sesuai jumlah kolom export.
+                $lastColumn = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($this->headings()));
+                $sheet->mergeCells('A1:'.$lastColumn.'1');
+                $sheet->mergeCells('A2:'.$lastColumn.'2');
 
                 // Style Judul
                 $sheet->getStyle('A1:A2')->applyFromArray([
@@ -177,24 +228,25 @@ class GradesExport implements FromQuery, ShouldAutoSize, WithEvents, WithHeading
                 $maxRow = $lastDataRow + 2;
                 $minRow = $lastDataRow + 3;
 
-                // Masukkan Label di Kolom E (Bawah kolom Sesi Ujian)
-                $sheet->setCellValue('E'.$avgRow, 'Rata-rata Nilai:');
-                $sheet->setCellValue('E'.$maxRow, 'Nilai Tertinggi:');
-                $sheet->setCellValue('E'.$minRow, 'Nilai Terendah:');
+                $scoreColumn = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($this->headings()) - 1);
+                $labelColumn = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($this->headings()) - 2);
+                $sheet->setCellValue($labelColumn.$avgRow, 'Rata-rata Nilai:');
+                $sheet->setCellValue($labelColumn.$maxRow, 'Nilai Tertinggi:');
+                $sheet->setCellValue($labelColumn.$minRow, 'Nilai Terendah:');
 
                 // Masukkan Rumus Excel di Kolom F (Bawah kolom Nilai Akhir)
                 if ($lastDataRow > 4) { // Pastikan ada data siswa (baris > 4)
-                    $sheet->setCellValue('F'.$avgRow, "=ROUND(AVERAGE(F5:F{$lastDataRow}), 2)");
-                    $sheet->setCellValue('F'.$maxRow, "=MAX(F5:F{$lastDataRow})");
-                    $sheet->setCellValue('F'.$minRow, "=MIN(F5:F{$lastDataRow})");
+                    $sheet->setCellValue($scoreColumn.$avgRow, "=ROUND(AVERAGE({$scoreColumn}5:{$scoreColumn}{$lastDataRow}), 2)");
+                    $sheet->setCellValue($scoreColumn.$maxRow, "=MAX({$scoreColumn}5:{$scoreColumn}{$lastDataRow})");
+                    $sheet->setCellValue($scoreColumn.$minRow, "=MIN({$scoreColumn}5:{$scoreColumn}{$lastDataRow})");
                 } else {
-                    $sheet->setCellValue('F'.$avgRow, '0');
-                    $sheet->setCellValue('F'.$maxRow, '0');
-                    $sheet->setCellValue('F'.$minRow, '0');
+                    $sheet->setCellValue($scoreColumn.$avgRow, '0');
+                    $sheet->setCellValue($scoreColumn.$maxRow, '0');
+                    $sheet->setCellValue($scoreColumn.$minRow, '0');
                 }
 
-                // Styling area rekapitulasi (E sampai F)
-                $summaryRange = 'E'.$avgRow.':F'.$minRow;
+                // Styling area rekapitulasi
+                $summaryRange = $labelColumn.$avgRow.':'.$scoreColumn.$minRow;
 
                 $sheet->getStyle($summaryRange)->applyFromArray([
                     'font' => [
@@ -214,8 +266,8 @@ class GradesExport implements FromQuery, ShouldAutoSize, WithEvents, WithHeading
                 ]);
 
                 // Rata Kanan untuk Label, Rata Tengah untuk Nilai Rumus
-                $sheet->getStyle('E'.$avgRow.':E'.$minRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-                $sheet->getStyle('F'.$avgRow.':F'.$minRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle($labelColumn.$avgRow.':'.$labelColumn.$minRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle($scoreColumn.$avgRow.':'.$scoreColumn.$minRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             },
         ];
     }

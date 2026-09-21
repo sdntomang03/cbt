@@ -6,12 +6,19 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        // 1. BUAT TABEL MASTER TERLEBIH DAHULU
+        // 1. BUAT TABEL SCORING PROFILES (BARU)
+        Schema::create('scoring_profiles', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('school_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->string('code')->unique();
+            $table->string('name');
+            $table->json('rules');
+            $table->timestamps();
+        });
+
+        // 2. BUAT TABEL EXAM TYPES[cite: 9]
         Schema::create('exam_types', function (Blueprint $table) {
             $table->id();
             $table->foreignId('school_id')->constrained()->cascadeOnDelete();
@@ -19,16 +26,14 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // 2. BARU BUAT TABEL EXAMS
+        // 3. BUAT TABEL EXAMS[cite: 9]
         Schema::create('exams', function (Blueprint $table) {
             $table->id();
             $table->foreignId('school_id')->constrained()->cascadeOnDelete();
             $table->foreignId('teacher_id')->constrained('users')->cascadeOnDelete();
 
-            // Tambahkan kolom foreign key ke exam_types
             $table->foreignId('exam_type_id')->nullable()->constrained('exam_types')->nullOnDelete();
-
-            // Tambahan Level dan Mata Pelajaran (Subject)
+            $table->foreignId('scoring_profile_id')->nullable()->constrained('scoring_profiles')->nullOnDelete(); // TAMBAHAN
             $table->foreignId('level_id')->constrained()->cascadeOnDelete();
             $table->foreignId('subject_id')->constrained()->cascadeOnDelete();
 
@@ -47,15 +52,23 @@ return new class extends Migration
             $table->string('thumbnail')->nullable();
             $table->timestamps();
         });
+
+        // 4. BUAT TABEL EXAM SECTIONS (BARU)
+        Schema::create('exam_sections', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('exam_id')->constrained('exams')->cascadeOnDelete();
+            $table->foreignId('scoring_profile_id')->nullable()->constrained('scoring_profiles')->nullOnDelete();
+            $table->string('name'); // cth: TWK, TIU, TKP
+            $table->integer('order')->default(1);
+            $table->timestamps();
+        });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        // Urutan hapus harus kebalikan dari urutan buat
+        Schema::dropIfExists('exam_sections');
         Schema::dropIfExists('exams');
         Schema::dropIfExists('exam_types');
+        Schema::dropIfExists('scoring_profiles');
     }
 };

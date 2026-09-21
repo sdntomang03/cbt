@@ -87,7 +87,13 @@
         <span>Manajemen Kelas</span>
     </a>
     @endcan
-
+    @can('view exams')
+    <a href="{{ route('admin.scoring-profiles.index') }}"
+        class="{{ $navClass }} {{ request()->routeIs('admin.scoring-profiles.*') ? $activeClass : $inactiveClass }}">
+        <i class="fas fa-sliders-h w-6 text-center text-lg"></i>
+        <span>Profil Scoring</span>
+    </a>
+    @endcan
     @can('view exams')
     <a href="{{ route('admin.exams.index') }}"
         class="{{ $navClass }} {{ request()->routeIs('admin.exams.*') ? $activeClass : $inactiveClass }}">
@@ -95,6 +101,8 @@
         <span>Ujian & Bank Soal</span>
     </a>
     @endcan
+
+
 
     @can('view modules')
     <a href="{{ route('admin.modules.index') }}"

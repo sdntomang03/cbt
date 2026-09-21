@@ -17,20 +17,39 @@
 
             // Logika Panel Kiri (Tambah Siswa)
             get visibleLeft() {
-                return Array.from(document.querySelectorAll('.checkbox-left')).filter(cb => cb.closest('.student-item-left').style.display !== 'none');
+                const keyword = this.search.toLowerCase().trim();
+                return Array.from(document.querySelectorAll('.checkbox-left')).filter(cb => {
+                    const item = cb.closest('.student-item-left');
+                    return !keyword || (item?.dataset.name || '').includes(keyword);
+                });
             },
-            toggleLeft() {
-                this.visibleLeft.forEach(cb => cb.checked = this.selectAllLeft);
+            toggleLeft(checked = this.selectAllLeft) {
+                this.selectAllLeft = checked;
+                this.visibleLeft.forEach(cb => {
+                    cb.checked = checked;
+                });
+                document.querySelectorAll('.checkbox-class-left').forEach(cb => {
+                    cb.checked = checked;
+                });
             },
             checkLeft() {
                 const visible = this.visibleLeft;
                 this.selectAllLeft = visible.length > 0 && visible.every(cb => cb.checked);
+                document.querySelectorAll('.checkbox-class-left').forEach(classCheckbox => {
+                    const className = classCheckbox.dataset.class;
+                    const classStudents = Array.from(document.querySelectorAll('.checkbox-left'))
+                        .filter(cb => cb.dataset.class === className && this.visibleLeft.includes(cb));
+                    classCheckbox.checked = classStudents.length > 0 && classStudents.every(cb => cb.checked);
+                });
             },
             // Fungsi untuk memilih semua siswa di dalam 1 kelas spesifik
             toggleLeftClass(className, isChecked) {
-                const classCheckboxes = document.querySelectorAll(`.checkbox-left[data-class='${className}']`);
+                const classCheckboxes = Array.from(document.querySelectorAll('.checkbox-left'))
+                    .filter(cb => cb.dataset.class === className);
                 classCheckboxes.forEach(cb => {
-                    if (cb.closest('.student-item-left').style.display !== 'none') {
+                    const keyword = this.search.toLowerCase().trim();
+                    const item = cb.closest('.student-item-left');
+                    if (!keyword || (item?.dataset.name || '').includes(keyword)) {
                         cb.checked = isChecked;
                     }
                 });
@@ -39,10 +58,17 @@
 
             // Logika Panel Kanan (Hapus Siswa)
             get visibleRight() {
-                return Array.from(document.querySelectorAll('.checkbox-right')).filter(cb => cb.closest('.item-right').style.display !== 'none');
+                const keyword = this.searchRight.toLowerCase().trim();
+                return Array.from(document.querySelectorAll('.checkbox-right')).filter(cb => {
+                    const item = cb.closest('.item-right');
+                    return !keyword || (item?.dataset.name || '').includes(keyword);
+                });
             },
-            toggleRight() {
-                this.visibleRight.forEach(cb => cb.checked = this.selectAllRight);
+            toggleRight(checked = this.selectAllRight) {
+                this.selectAllRight = checked;
+                this.visibleRight.forEach(cb => {
+                    cb.checked = checked;
+                });
             },
             checkRight() {
                 const visible = this.visibleRight;
@@ -129,7 +155,8 @@
                         @if($availableStudents->count() > 0)
                         <div class="mb-3 pb-3 border-b border-gray-100 flex items-center justify-between px-2 shrink-0">
                             <label class="flex items-center cursor-pointer group">
-                                <input type="checkbox" x-model="selectAllLeft" @change="toggleLeft"
+                                <input type="checkbox" x-model="selectAllLeft"
+                                    @change="toggleLeft($event.target.checked)"
                                     class="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
                                 <span class="ml-3 font-black text-sm text-gray-700 group-hover:text-indigo-600">Pilih
                                     Semua Filter</span>
@@ -149,9 +176,10 @@
                                 <div class="bg-indigo-50/50 p-3 sm:p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-indigo-100/50 transition"
                                     @click="toggleAccordion('{{ $className }}')">
                                     <div class="flex items-center gap-3">
-                                        <input type="checkbox" @click.stop
-                                            @change="toggleLeftClass('{{ $className }}', $event.target.checked)"
-                                            class="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
+                                        <input type="checkbox" data-class="{{ $className }}"
+                                            @click.stop
+                                            @change="toggleLeftClass($event.target.dataset.class, $event.target.checked)"
+                                            class="checkbox-class-left w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
                                         <div>
                                             <h4 class="font-black text-indigo-800 text-sm flex items-center gap-2">
                                                 <i class="fas fa-users-class text-indigo-400"></i> Kelas: {{ $className
@@ -169,7 +197,7 @@
                                 <div x-show="openClasses.includes('{{ $className }}')" x-collapse
                                     class="p-3 bg-white space-y-2">
                                     @foreach($studentsInClass as $student)
-                                    <label
+                                    <label data-name="{{ strtolower($student->name) }}"
                                         x-show="search === '' || '{{ strtolower($student->name) }}'.includes(search.toLowerCase())"
                                         class="student-item-left flex items-center p-3 sm:p-4 rounded-xl border border-gray-100 cursor-pointer hover:bg-indigo-50 hover:border-indigo-200 transition-all group">
 
@@ -245,7 +273,8 @@
                         <div
                             class="mb-3 pb-3 border-b border-slate-700 flex items-center justify-between px-2 shrink-0">
                             <label class="flex items-center cursor-pointer group">
-                                <input type="checkbox" x-model="selectAllRight" @change="toggleRight"
+                                <input type="checkbox" x-model="selectAllRight"
+                                    @change="toggleRight($event.target.checked)"
                                     class="w-5 h-5 text-rose-500 rounded border-slate-600 focus:ring-rose-500 bg-slate-800">
                                 <span
                                     class="ml-3 font-black text-sm text-slate-300 group-hover:text-rose-400 transition-colors">Pilih
@@ -256,7 +285,8 @@
 
                         <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
                             @forelse($enrolledStudents as $student)
-                            <div x-show="searchRight === '' || '{{ strtolower($student->name) }}'.includes(searchRight.toLowerCase())"
+                            <div data-name="{{ strtolower($student->name) }}"
+                                x-show="searchRight === '' || '{{ strtolower($student->name) }}'.includes(searchRight.toLowerCase())"
                                 class="item-right flex items-center justify-between p-3 bg-slate-800 border border-slate-700 rounded-2xl hover:bg-slate-700/80 transition-all group">
 
                                 <div class="flex items-center gap-4 flex-1 overflow-hidden">

@@ -389,7 +389,8 @@
             @json($flags ?? []),
             {{ auth()->id() }},
             @json($config),
-            "{{ $exam->hashid }}"
+            "{{ $exam->hashid }}",
+            @json($sections)
         )' x-show="$store.examState.started && !$store.examState.isLocked" x-cloak>
 
         {{-- HEADER --}}
@@ -455,9 +456,12 @@
                             {{-- Header Soal --}}
                             <div class="flex flex-wrap justify-between items-center gap-3 mb-6">
                                 <div class="flex items-center gap-3">
-                                    <span
+                                        <span x-show="sectionCount > 1"
+                                            class="bg-white border border-indigo-200 text-indigo-600 px-3 py-2 rounded-2xl font-black text-xs"
+                                            x-text="currentSectionName"></span>
+                                        <span
                                         class="bg-indigo-600 text-white px-5 py-2 rounded-2xl font-black shadow-lg text-sm">
-                                        NO. <span x-text="currentIndex + 1" class="text-lg"></span>
+                                        NO.                                         <span x-text="questionNumber(questionIds[currentIndex])" class="text-lg"></span>
                                     </span>
                                     <span
                                         class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-full"
@@ -501,7 +505,7 @@
 
                                 {{-- Pilihan Jawaban --}}
                                 <div class="space-y-4">
-                                    <template x-if="q.type === 'single_choice'">
+                                    <template x-if="['single_choice', 'tkp'].includes(q.type)">
                                         <x-exam.single-choice :q="'q'" />
                                     </template>
                                     <template x-if="['multiple_choice', 'complex_choice'].includes(q.type)">
@@ -538,6 +542,7 @@
                                         <x-exam.essay :q="'q'" />
                                     </template>
                                 </div>
+
                             </div>
                         </div>
                     </template>
@@ -555,20 +560,25 @@
                     </p>
                 </div>
                 <div class="flex-1 overflow-y-auto p-4 custom-scrollbar bg-slate-50/50">
-                    <div class="grid grid-cols-5 gap-2">
-                        <template x-for="(qId, index) in questionIds" :key="qId">
-                            <button @click="gotoQuestion(index)"
-                                class="aspect-square rounded-lg font-black text-xs transition-all border-2 flex items-center justify-center"
-                                :class="{
-                                    'bg-indigo-600 text-white border-indigo-600 scale-110 z-10 shadow-md': currentIndex === index,
-                                    'bg-amber-100 text-amber-600 border-amber-400': flags.includes(qId) && currentIndex !== index,
-                                    'bg-blue-500 text-white border-blue-500': hasAnswer(qId) && !flags.includes(qId) && currentIndex !== index,
-                                    'bg-white text-slate-400 border-slate-200': !hasAnswer(qId) && !flags.includes(qId) && currentIndex !== index
-                                }">
-                                <span x-text="index + 1"></span>
-                            </button>
-                        </template>
-                    </div>
+                    <template x-for="section in sections" :key="section.id">
+                        <div class="mb-5">
+                            <h4 x-show="sectionCount > 1" class="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-2" x-text="section.name"></h4>
+                            <div class="grid grid-cols-5 gap-2">
+                                <template x-for="qId in section.question_ids" :key="qId">
+                                    <button @click="gotoQuestion(questionIds.indexOf(qId))"
+                                        class="aspect-square rounded-lg font-black text-xs transition-all border-2 flex items-center justify-center"
+                                        :class="{
+                                            'bg-indigo-600 text-white border-indigo-600 scale-110 z-10 shadow-md': currentIndex === questionIds.indexOf(qId),
+                                            'bg-amber-100 text-amber-600 border-amber-400': flags.includes(qId) && currentIndex !== questionIds.indexOf(qId),
+                                            'bg-blue-500 text-white border-blue-500': hasAnswer(qId) && !flags.includes(qId) && currentIndex !== questionIds.indexOf(qId),
+                                            'bg-white text-slate-400 border-slate-200': !hasAnswer(qId) && !flags.includes(qId) && currentIndex !== questionIds.indexOf(qId)
+                                        }">
+                                        <span x-text="questionNumber(qId)"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
                 </div>
                 <div class="p-4 border-t border-slate-100 bg-white space-y-1.5">
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Keterangan</p>
@@ -601,7 +611,7 @@
             <div class="flex flex-col items-center gap-0.5">
                 <span class="text-[10px] font-bold text-slate-400 tracking-wider uppercase">Soal</span>
                 <div class="flex items-center gap-1">
-                    <span class="text-lg font-black text-slate-800" x-text="currentIndex + 1"></span>
+                    <span class="text-lg font-black text-slate-800" x-text="questionNumber(questionIds[currentIndex])"></span>
                     <span class="text-slate-300">/</span>
                     <span class="text-sm font-bold text-slate-400" x-text="questionIds.length"></span>
                 </div>
@@ -637,7 +647,7 @@
                 </div>
             </div>
             <div class="flex-1 overflow-y-auto p-5">
-                <div id="mobile-nav-grid" class="grid grid-cols-5 gap-2"></div>
+                <div id="mobile-nav-grid"></div>
             </div>
             <div class="p-5 border-t border-slate-100 bg-slate-50">
                 <div class="flex justify-between text-sm mb-3">
@@ -745,8 +755,9 @@
             });
 
             // ── Runner Ujian (AJAX) ──
-            Alpine.data('examRunner', (questionIds, initialTime, existingAnswers, initialFlags, userId, config, hashedExamId) => ({
+            Alpine.data('examRunner', (questionIds, initialTime, existingAnswers, initialFlags, userId, config, hashedExamId, sections) => ({
                 questionIds,
+                sections: sections || [],
                 hashedExamId,       // FIX: string hashid
                 q: null,
                 isLoading: true,
@@ -763,11 +774,30 @@
                 timerInterval: null,
                 isSubmitting: false,
                 zoomLevel: 1,
+                get sectionCount() { return this.sections.length; },
+                get displayQuestionIds() {
+                    return this.sections.flatMap(section => [...section.question_ids]);
+                },
+                questionNumber(qId) {
+                    const index = this.displayQuestionIds.indexOf(qId);
+                    return index >= 0 ? index + 1 : '';
+                },
+                get currentSection() {
+                    return this.sections.find(section => section.question_ids.includes(this.questionIds[this.currentIndex])) || null;
+                },
+                get currentSectionName() { return this.currentSection?.name || 'Sesi Utama'; },
 
                 init() {
                     if (this.config.random_question) {
-                        this.questionIds = this.shuffleArray([...this.questionIds], '_EXAM_ORDER_' + this.hashedExamId);
+                        this.sections = this.sections.map(section => ({
+                            ...section,
+                            question_ids: this.shuffleArray(
+                                [...section.question_ids],
+                                '_SECTION_' + section.id + '_' + this.hashedExamId
+                            ),
+                        }));
                     }
+                    this.questionIds = this.sections.flatMap(section => [...section.question_ids]);
 
                     this.$watch('$store.examState.started', (val) => {
                         if (val) {
@@ -1066,20 +1096,35 @@ shuffleArray(array, seedSuffix) {
             const answered = runner.questionIds.filter(id => runner.hasAnswer(id)).length;
             if (count) count.textContent = `${answered} / ${runner.questionIds.length}`;
             grid.innerHTML = '';
-            runner.questionIds.forEach((qId, index) => {
-                const btn = document.createElement('button');
-                btn.textContent = index + 1;
-                const isCurrent = runner.currentIndex === index;
-                const isFlagged = runner.flags.includes(qId);
-                const isAnswered = runner.hasAnswer(qId);
-                let cls = 'aspect-square rounded-xl font-black text-xs border-2 flex items-center justify-center w-full transition-all ';
-                if (isCurrent)       cls += 'bg-indigo-600 text-white border-indigo-600 scale-105 shadow-md';
-                else if (isFlagged)  cls += 'bg-amber-100 text-amber-600 border-amber-400';
-                else if (isAnswered) cls += 'bg-blue-500 text-white border-blue-500';
-                else                 cls += 'bg-white text-slate-400 border-slate-200';
-                btn.className = cls;
-                btn.onclick = () => { runner.gotoQuestion(index); toggleMobileNav(); };
-                grid.appendChild(btn);
+            runner.sections.forEach(section => {
+                const group = document.createElement('div');
+                group.className = 'mb-5';
+                if (runner.sections.length > 1) {
+                    const heading = document.createElement('h4');
+                    heading.className = 'text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-2';
+                    heading.textContent = section.name;
+                    group.appendChild(heading);
+                }
+                const sectionGrid = document.createElement('div');
+                sectionGrid.className = 'grid grid-cols-5 gap-2';
+                section.question_ids.forEach(qId => {
+                    const index = runner.questionIds.indexOf(qId);
+                    const btn = document.createElement('button');
+                    btn.textContent = runner.questionNumber(qId);
+                    const isCurrent = runner.currentIndex === index;
+                    const isFlagged = runner.flags.includes(qId);
+                    const isAnswered = runner.hasAnswer(qId);
+                    let cls = 'aspect-square rounded-xl font-black text-xs border-2 flex items-center justify-center w-full transition-all ';
+                    if (isCurrent) cls += 'bg-indigo-600 text-white border-indigo-600 scale-105 shadow-md';
+                    else if (isFlagged) cls += 'bg-amber-100 text-amber-600 border-amber-400';
+                    else if (isAnswered) cls += 'bg-blue-500 text-white border-blue-500';
+                    else cls += 'bg-white text-slate-400 border-slate-200';
+                    btn.className = cls;
+                    btn.onclick = () => { runner.gotoQuestion(index); toggleMobileNav(); };
+                    sectionGrid.appendChild(btn);
+                });
+                group.appendChild(sectionGrid);
+                grid.appendChild(group);
             });
         }
     </script>

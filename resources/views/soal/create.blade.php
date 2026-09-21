@@ -47,37 +47,53 @@
                     </div>
 
                     {{-- Dropdown Mapel & Level --}}
-                    <div
-                        class="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-4 w-full pt-1 lg:pt-0">
+                    {{-- Dropdown Seksi, Mapel & Level --}}
+                    <div class="lg:col-span-4 flex flex-col gap-4 w-full pt-1 lg:pt-0">
 
-                        {{-- Dropdown Mapel --}}
+                        {{-- Dropdown Seksi Ujian (WAJIB) --}}
                         <div class="flex-1 w-full">
                             <label
-                                class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Mapel</label>
-                            <select x-model="form.subject_id"
-                                x-init="if (!form.subject_id) form.subject_id = '{{ $exam->subject_id ?? '' }}'"
-                                class="w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-bold text-slate-700 py-3 px-4 focus:ring-indigo-500 cursor-pointer truncate">
-                                <option value="">Umum</option>
-                                @foreach($subjects as $s)
-                                <option value="{{ $s->id }}">{{ $s->name }}</option>
+                                class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Seksi
+                                Ujian <span class="text-rose-500">*</span></label>
+                            <select x-model="form.exam_section_id"
+                                x-init="if (!form.exam_section_id) form.exam_section_id = '{{ $defaultSectionId ?? ($sections->first()->id ?? '') }}'"
+                                class="w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-bold text-slate-700 py-3 px-4 focus:ring-indigo-500 cursor-pointer truncate"
+                                required>
+                                @foreach($sections as $sec)
+                                <option value="{{ $sec->id }}">{{ $sec->section?->abbreviation }} - {{ $sec->section?->name }}</option>
                                 @endforeach
                             </select>
                         </div>
 
-                        {{-- Dropdown Level --}}
-                        <div class="flex-1 w-full">
-                            <label
-                                class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Level</label>
-                            <select x-model="form.level_id"
-                                x-init="if (!form.level_id) form.level_id = '{{ $exam->level_id ?? '' }}'"
-                                class="w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-bold text-slate-700 py-3 px-4 focus:ring-indigo-500 cursor-pointer truncate">
-                                <option value="">Umum</option>
-                                @foreach($levels as $l)
-                                <option value="{{ $l->id }}">{{ $l->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                        <div class="flex flex-row gap-4 w-full">
+                            {{-- Dropdown Mapel --}}
+                            <div class="flex-1 w-full">
+                                <label
+                                    class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Mapel</label>
+                                <select x-model="form.subject_id"
+                                    x-init="if (!form.subject_id) form.subject_id = '{{ $exam->subject_id ?? '' }}'"
+                                    class="w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-bold text-slate-700 py-3 px-4 focus:ring-indigo-500 cursor-pointer truncate">
+                                    <option value="">Umum</option>
+                                    @foreach($subjects as $s)
+                                    <option value="{{ $s->id }}">{{ $s->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
 
+                            {{-- Dropdown Level --}}
+                            <div class="flex-1 w-full">
+                                <label
+                                    class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Level</label>
+                                <select x-model="form.level_id"
+                                    x-init="if (!form.level_id) form.level_id = '{{ $exam->level_id ?? '' }}'"
+                                    class="w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-bold text-slate-700 py-3 px-4 focus:ring-indigo-500 cursor-pointer truncate">
+                                    <option value="">Umum</option>
+                                    @foreach($levels as $l)
+                                    <option value="{{ $l->id }}">{{ $l->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -115,16 +131,21 @@
                     <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar w-full">
 
                         {{-- PG & PG Kompleks --}}
-                        <template x-if="['single_choice', 'complex_choice'].includes(form.type)">
+                        <template x-if="['single_choice', 'complex_choice', 'tkp'].includes(form.type)">
                             <div class="space-y-3 w-full">
                                 <template x-for="(opt, index) in form.options" :key="index">
                                     <div class="flex items-start gap-3 p-3 bg-slate-50 border rounded-xl transition-all w-full"
                                         :class="opt.is_correct ? 'border-emerald-400 bg-emerald-50/30' : 'border-slate-200'">
-                                        <div class="pt-2 shrink-0">
+                                        <div class="pt-2 shrink-0" x-show="form.type !== 'tkp'">
                                             <input :type="form.type === 'single_choice' ? 'radio' : 'checkbox'"
                                                 :checked="opt.is_correct" @change="toggleCorrect(index)"
                                                 name="correct_ans"
                                                 class="w-5 h-5 text-emerald-500 border-slate-300 focus:ring-emerald-500 cursor-pointer">
+                                        </div>
+                                        <div x-show="form.type === 'tkp'" class="w-24 shrink-0">
+                                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Bobot</label>
+                                            <input type="number" min="0" step="0.01" x-model.number="opt.score_weight"
+                                                class="w-full rounded-lg border-slate-200 text-sm font-bold text-indigo-600 py-2 px-2">
                                         </div>
                                         <div class="option-editor-wrap flex-1 min-w-0" :data-opt-id="'opt-' + index">
                                             <div x-ignore class="w-full">

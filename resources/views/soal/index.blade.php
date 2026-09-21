@@ -33,6 +33,10 @@
         .prose-custom .katex {
             font-size: 1.1em;
         }
+
+        .hide-scroll::-webkit-scrollbar {
+            display: none;
+        }
     </style>
 
     <x-slot name="header">
@@ -70,7 +74,7 @@
 
             <div class="flex items-center justify-start lg:justify-end gap-2 flex-wrap w-full lg:w-auto mt-2 lg:mt-0">
 
-                <form action="{{ route('admin.exams.soal.import', $exam->id) }}" method="POST"
+                <form action="{{ route('admin.exams.soal.import.preview', $exam->hashid) }}" method="POST"
                     enctype="multipart/form-data" id="formImportExcel" class="hidden">
                     @csrf
                     <input type="file" name="file_excel" id="fileExcel" accept=".xlsx,.xls,.csv"
@@ -115,7 +119,7 @@
 
                 <div class="w-px h-8 bg-slate-200 hidden sm:block mx-0.5 lg:mx-1"></div>
 
-                <a href="{{ route('admin.exams.soal.create', $exam) }}"
+                <a href="{{ route('admin.exams.soal.create', ['exam' => $exam->hashid, 'section_id' => request('section_id')]) }}"
                     class="inline-flex items-center gap-2 px-4 lg:px-5 py-2 lg:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition-all shadow-md shadow-indigo-200">
                     <i class="fas fa-plus text-xs"></i>
                     <span>Buat Soal</span>
@@ -127,9 +131,37 @@
     <div class="py-10 min-h-screen">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
+            {{-- ════════ NAVIGASI TAB SEKSI (Hanya muncul jika lebih dari 1 seksi) ════════ --}}
+            @if($sections->count() > 1)
+            <div class="flex gap-3 overflow-x-auto pb-4 mb-2 hide-scroll">
+                {{-- Tombol Semua Seksi --}}
+                <a href="{{ route('admin.exams.soal.index', $exam) }}"
+                    class="px-7 py-3 rounded-2xl text-sm font-black transition-all shrink-0 bounce-active border {{ !request('section_id') ? 'bg-slate-800 text-white border-slate-800 shadow-xl shadow-slate-200' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50' }}">
+                    <i class="fas fa-layer-group mr-2 opacity-50"></i> Semua Soal
+                </a>
+
+                {{-- Looping Tab Seksi --}}
+                @foreach($exam->sections->sortBy('order') as $sec)
+                <a href="{{ route('admin.exams.soal.index', ['exam' => $exam, 'section_id' => $sec->id]) }}"
+                    class="px-7 py-3 rounded-2xl text-sm font-black transition-all shrink-0 bounce-active border {{ request('section_id') == $sec->id ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl shadow-indigo-200' : 'bg-white text-slate-500 border-slate-200 hover:bg-indigo-50 hover:text-indigo-600' }}">
+                    <span>{{ $sec->section?->abbreviation }} - {{ $sec->section?->name }}</span>
+                    <span
+                        class="ml-2 px-2 py-0.5 rounded-lg text-[10px] {{ request('section_id') == $sec->id ? 'bg-indigo-500/50' : 'bg-slate-100 text-slate-400' }}">
+                        {{ $sec->questions()->count() }}
+                    </span>
+                </a>
+                @endforeach
+            </div>
+            @endif
+
             {{-- Toolbar Pencarian & Filter Server-Side --}}
             <form method="GET" action="{{ route('admin.exams.soal.index', $exam) }}"
                 class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+
+                {{-- Pertahankan filter section_id saat melakukan pencarian --}}
+                @if(request('section_id'))
+                <input type="hidden" name="section_id" value="{{ request('section_id') }}">
+                @endif
 
                 <div class="relative w-full md:w-96">
                     <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
@@ -169,6 +201,8 @@
                 'essay' => ['label' => 'Isian Singkat', 'icon' => 'fa-keyboard', 'color' => 'bg-blue-400', 'badge' =>
                 'bg-blue-50 text-blue-600 border-blue-100'],
                 ];
+                $types['tkp'] = ['label' => 'TKP Berbobot', 'icon' => 'fa-weight-hanging', 'color' => 'bg-orange-400',
+                'badge' => 'bg-orange-50 text-orange-600 border-orange-100'];
                 $t = $types[$q->type] ?? ['label' => $q->type, 'icon' => 'fa-question', 'color' => 'bg-slate-300',
                 'badge' => 'bg-slate-50 text-slate-400'];
                 @endphp
@@ -193,6 +227,15 @@
                                         class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wide border-2 {{ $t['badge'] }}">
                                         <i class="fas {{ $t['icon'] }} mr-1.5"></i> {{ $t['label'] }}
                                     </span>
+
+                                    {{-- Tampilkan Label Seksi Jika Sedang View "Semua Soal" --}}
+                                    @if(!request('section_id') && $q->section)
+                                    <span
+                                        class="px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 text-[10px] font-bold uppercase">
+                                        <i class="fas fa-layer-group mr-1"></i> {{ $q->section->section?->name }}
+                                    </span>
+                                    @endif
+
                                     @if($q->subject)
                                     <span
                                         class="px-3 py-1.5 rounded-full bg-slate-50 border border-slate-100 text-slate-500 text-[10px] font-bold uppercase">
@@ -229,7 +272,7 @@
                                 <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Kunci
                                     Jawaban:</h5>
 
-                                @if(in_array($q->type, ['single_choice', 'complex_choice']))
+                                @if(in_array($q->type, ['single_choice', 'complex_choice', 'tkp']))
                                 <div class="space-y-2">
                                     @foreach($q->options as $opt)
                                     <div
@@ -298,7 +341,8 @@
                         {{ request('search') ? 'Soal Tidak Ditemukan' : 'Belum Ada Soal' }}
                     </h3>
                     <p class="text-slate-500 font-medium mb-8">
-                        {{ request('search') ? 'Ubah kata kunci pencarian Anda.' : 'Ujian ini masih kosong.' }}
+                        {{ request('search') ? 'Ubah kata kunci pencarian Anda.' : 'Ujian ini atau seksi ini masih
+                        kosong.' }}
                     </p>
                 </div>
                 @endforelse

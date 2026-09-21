@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\ExamSession;
 use App\Models\ExamSessionUser;
+use App\Models\ExamAttempt;
 use App\Models\RegistrationSetting;
 use App\Models\StudentAnswer;
+use App\Services\AttemptScoringService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,7 +22,7 @@ class StudentExamController extends Controller
 
         // Ambil sesi ujian via relasi Many-to-Many
         $mySessions = $user->examSessions()
-            ->withPivot('status', 'score')
+            ->withPivot('status', 'raw_score', 'final_score')
             ->with(['exam' => function ($query) {
                 $query->withCount('questions');
             }])
@@ -29,7 +31,7 @@ class StudentExamController extends Controller
             ->map(function ($session) {
                 $session->is_open = now()->between($session->start_time, $session->end_time);
                 $session->user_status = $session->pivot->status;
-                $session->user_score = $session->pivot->score;
+                $session->user_score = $session->pivot->final_score;
 
                 return $session;
             });
@@ -112,15 +114,42 @@ class StudentExamController extends Controller
         // ==============================================================
         // PERUBAHAN AJAX: HANYA AMBIL ARRAY ID SOAL
         // ==============================================================
-        $questionIds = $exam->questions()->pluck('questions.id')->toArray();
+        if (! $exam->sections()->exists()) {
+            $defaultSection = \App\Models\Section::firstOrCreate(
+                ['abbreviation' => 'UTAMA'],
+                ['name' => 'Sesi Utama']
+            );
+            $exam->sections()->create([
+                'section_id' => $defaultSection->id,
+                'scoring_profile_id' => $exam->scoring_profile_id,
+                'order' => 1,
+            ]);
+        }
 
-        $existingAnswers = StudentAnswer::where('exam_session_id', $session->id)
-            ->where('user_id', $user->id)
+        $sections = $exam->sections()
+            ->with(['section', 'questions' => fn ($query) => $query
+                ->select(['questions.id', 'questions.exam_section_id'])
+                ->orderBy('id')])
+            ->orderBy('order')
+            ->orderBy('id')
+            ->get()
+            ->map(fn ($section) => [
+                'id' => $section->id,
+                'name' => $section->section?->name ?? 'Sesi Utama',
+                'question_ids' => $section->questions->pluck('id')->values()->all(),
+            ])
+            ->values()
+            ->all();
+        $questionIds = collect($sections)
+            ->flatMap(fn ($section) => $section['question_ids'])
+            ->values()
+            ->all();
+
+        $existingAnswers = StudentAnswer::where('exam_attempt_id', $examUser->id)
             ->pluck('answer', 'question_id')
             ->toArray();
 
-        $flags = StudentAnswer::where('exam_session_id', $session->id)
-            ->where('user_id', $user->id)
+        $flags = StudentAnswer::where('exam_attempt_id', $examUser->id)
             ->where('is_doubtful', true)
             ->pluck('question_id')
             ->toArray();
@@ -135,6 +164,7 @@ class StudentExamController extends Controller
         return view('student.exams.run', [
             'exam' => $session->exam,
             'questionIds' => $questionIds, // Ganti questions dengan questionIds
+            'sections' => $sections,
             'config' => $config,
             'timeLeftSeconds' => (int) $timeLeftSeconds,
             'existingAnswers' => $existingAnswers,
@@ -173,7 +203,7 @@ class StudentExamController extends Controller
         // Keamanan otomatis terjamin karena kita mencari dari dalam relasi ujian tersebut
         $question = $exam->questions()
             ->where('questions.id', $question_id) // Gunakan prefix questions. untuk keamanan query
-            ->select(['questions.id', 'questions.type', 'questions.content']) // HAPUS 'exam_id' DARI SINI
+            ->select(['questions.id', 'questions.type', 'questions.content', 'questions.explanation'])
             ->with([
                 'options' => fn ($q) => $q->select(['id', 'question_id', 'option_text']),
                 'matches' => fn ($q) => $q->select(['id', 'question_id', 'premise_text', 'target_text']),
@@ -203,10 +233,14 @@ class StudentExamController extends Controller
             ], 403);
         }
 
+        $questionBelongsToExam = Exam::findOrFail($request->exam_id)->questions()
+            ->where('questions.id', $request->question_id)
+            ->exists();
+        abort_unless($questionBelongsToExam, 404);
+
         StudentAnswer::updateOrCreate(
             [
-                'exam_session_id' => $examUser->exam_session_id,
-                'user_id' => $user->id,
+                'exam_attempt_id' => $examUser->id,
                 'question_id' => $request->question_id,
             ],
             [
@@ -231,114 +265,36 @@ class StudentExamController extends Controller
     private function forceFinish($session)
     {
         $user = Auth::user();
-        $pivot = $session->students()->where('users.id', $user->id)->first()->pivot;
-        $finalScore = $pivot->score ?? 0;
+        $attempt = ExamAttempt::where('exam_session_id', $session->id)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
 
-        if ($pivot->status !== 'completed') {
-            $answers = StudentAnswer::where('exam_session_id', $session->id)
-                ->where('user_id', $user->id)
-                ->with(['question.options', 'question.matches'])
-                ->get();
-
-            $totalScore = 0;
-            $totalQuestions = $session->exam->questions()->count();
-
-            foreach ($answers as $ans) {
-                $q = $ans->question;
-                $poin = 0;
-                $studentAns = $ans->answer;
-
-                if (is_string($studentAns) && in_array($q->type, ['complex_choice', 'matching', 'true_false', 'true_false_multi'])) {
-                    $decoded = json_decode($studentAns, true);
-                    if (json_last_error() === JSON_ERROR_NONE) {
-                        $studentAns = $decoded;
-                    }
-                }
-
-                if ($q->type === 'single_choice') {
-                    $correctOption = $q->options->where('is_correct', true)->first();
-                    if ($correctOption && $studentAns == $correctOption->id) {
-                        $poin = 1;
-                    }
-                } elseif ($q->type === 'complex_choice') {
-                    $correctIds = $q->options->where('is_correct', true)->pluck('id')->sort()->values()->toArray();
-                    $studentIds = is_array($studentAns) ? $studentAns : [];
-                    sort($studentIds);
-                    if ($correctIds == $studentIds) {
-                        $poin = 1;
-                    }
-                } elseif (in_array($q->type, ['true_false', 'true_false_multi'])) {
-                    $correctCount = 0;
-                    $totalOptions = $q->options->count();
-                    $userAnswers = is_array($studentAns) ? $studentAns : [];
-                    foreach ($q->options as $opt) {
-                        $expectedKey = $opt->is_correct ? 'benar' : 'salah';
-                        $userValue = isset($userAnswers[$opt->id]) ? strtolower($userAnswers[$opt->id]) : null;
-                        if ($userValue === $expectedKey) {
-                            $correctCount++;
-                        }
-                    }
-                    if ($totalOptions > 0) {
-                        $poin = $correctCount / $totalOptions;
-                    }
-                } elseif ($q->type === 'matching') {
-                    $matches = is_array($studentAns) ? $studentAns : [];
-                    $totalPairs = $q->matches->count();
-                    $correctPairs = 0;
-                    if ($totalPairs > 0) {
-                        foreach ($matches as $premiseId => $targetId) {
-                            if ($premiseId == $targetId) {
-                                $correctPairs++;
-                            }
-                        }
-                        $poin = $correctPairs / $totalPairs;
-                    }
-                } elseif ($q->type === 'essay') {
-                    $cleanUser = trim(strip_tags($studentAns));
-                    $poin = 0;
-
-                    foreach ($q->options as $opt) {
-                        $correctRaw = $opt->option_text ?? '';
-                        $cleanCorrect = trim(strip_tags(html_entity_decode($correctRaw)));
-
-                        // 1. Cek kecocokan teks persis (Case Insensitive)
-                        if (strcasecmp($cleanCorrect, $cleanUser) === 0) {
-                            $poin = 1;
-                            break;
-                        } else {
-                            // 2. Normalisasi format angka Indonesia ke standar komputer
-                            // Hapus titik (ribuan), lalu ubah koma (desimal) menjadi titik
-                            $numCorrect = str_replace(['.', ','], ['', '.'], $cleanCorrect);
-                            $numUser = str_replace(['.', ','], ['', '.'], $cleanUser);
-
-                            // Jika setelah dinormalisasi keduanya valid sebagai angka
-                            if (is_numeric($numCorrect) && is_numeric($numUser)) {
-                                if ((float) $numCorrect === (float) $numUser) {
-                                    $poin = 1;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                $ans->update(['score' => $poin]);
-                $totalScore += $poin;
-            }
-
-            $finalScore = ($totalQuestions > 0) ? ($totalScore / $totalQuestions) * 100 : 0;
-            $finalScore = round($finalScore, 2);
-
-            $user->examSessions()->updateExistingPivot($session->id, [
-                'status' => 'completed',
-                'finished_at' => now(),
-                'score' => $finalScore,
-            ]);
+        if ($attempt->status === 'completed') {
+            return redirect()->route('student.exam.result', $session->exam);
         }
 
+        $result = app(AttemptScoringService::class)->scoreAttempt($attempt);
         session()->forget('verified_exam_'.$session->exam_id);
 
-        return redirect()->route('student.index')->with('success', 'Ujian berhasil dikumpulkan! Nilai Anda: '.$finalScore);
+        return redirect()->route('student.exam.result', $session->exam);
+    }
+
+    public function result(Exam $exam)
+    {
+        $attempt = ExamAttempt::whereHas('session', fn ($query) => $query->where('exam_id', $exam->id))
+            ->where('user_id', Auth::id())
+            ->where('status', 'completed')
+            ->latest('finished_at')
+            ->firstOrFail();
+
+        $scoring = app(AttemptScoringService::class);
+        $sectionResults = $scoring->sectionResults($attempt);
+        $averageScore = round($sectionResults->avg('score') ?? 0, 2);
+        $resultMode = $exam->scoringProfile
+            ? $scoring->resultMode($exam->scoringProfile)
+            : ($sectionResults->first()['result_mode'] ?? 'average');
+
+        return view('student.exams.result', compact('exam', 'attempt', 'sectionResults', 'averageScore', 'resultMode'));
     }
 
     public function recordViolation(Request $request)
@@ -458,20 +414,36 @@ class StudentExamController extends Controller
     {
         $user = auth()->user();
 
+        $sessions = $user->examSessions()
+            ->withPivot('status', 'final_score', 'started_at', 'finished_at', 'is_locked')
+            ->with('exam:id,title,duration_minutes')
+            ->orderBy('start_time')
+            ->get();
+
+        $now = now();
         $stats = [
-            'total_ujian' => 0,
-            'ujian_selesai' => 0,
+            'total_ujian' => $sessions->count(),
+            'ujian_selesai' => $sessions->where('pivot.status', 'completed')->count(),
+            'ujian_aktif' => $sessions->filter(fn ($session) => $now->between($session->start_time, $session->end_time)
+                && $session->pivot->status !== 'completed'
+                && ! $session->pivot->is_locked)->count(),
+            'rata_nilai' => $sessions->where('pivot.status', 'completed')->avg(fn ($session) => $session->pivot->final_score),
         ];
 
-        try {
-            $stats['total_ujian'] = ExamSession::whereHas('students', function ($q) use ($user) {
-                $q->where('users.id', $user->id);
-            })->count();
-        } catch (\Throwable $th) {
-            $stats['total_ujian'] = 0;
-        }
+        $upcomingSessions = $sessions->filter(fn ($session) => $session->end_time->isFuture()
+            && $session->pivot->status !== 'completed'
+            && ! $session->pivot->is_locked)->take(4);
+        $recentResults = $sessions->filter(fn ($session) => $session->pivot->status === 'completed')
+            ->sortByDesc(fn ($session) => $session->pivot->finished_at ?? $session->end_time)->take(4);
+        $classrooms = $user->classrooms()->pluck('name');
 
-        return view('student.dashboard', compact('user', 'stats'));
+        return view('student.dashboard', compact(
+            'user',
+            'stats',
+            'upcomingSessions',
+            'recentResults',
+            'classrooms'
+        ));
     }
 
     public function checkStatus(Exam $exam)

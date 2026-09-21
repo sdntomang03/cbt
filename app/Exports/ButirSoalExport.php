@@ -39,16 +39,17 @@ class ButirSoalExport implements FromView, ShouldAutoSize, WithStyles
             $totalSiswaMenjawab = 0;
             $totalBenar = 0;
 
-            $answers = StudentAnswer::where('exam_session_id', $this->examSessionId)
+            $answers = StudentAnswer::whereHas('attempt', function ($query) {
+                $query->where('exam_session_id', $this->examSessionId)
+                    ->where('status', 'completed');
+            })
                 ->where('question_id', $q->id)
                 ->get();
 
             foreach ($answers as $ans) {
-                if ($students->contains('id', $ans->user_id)) {
-                    $totalSiswaMenjawab++;
-                    if ($ans->score > 0) {
-                        $totalBenar++;
-                    }
+                $totalSiswaMenjawab++;
+                if ($ans->score > 0) {
+                    $totalBenar++;
                 }
             }
 

@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\ExamSession;
 use App\Models\ExamSessionUser;
+use App\Models\ExamAttempt;
 use App\Models\MathExamQuestion;
 use App\Models\MathExamUser;
 use App\Models\StudentAnswer;
+use App\Services\AttemptScoringService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,7 +25,7 @@ class ApiStudentExamController extends Controller
     {
         $user = Auth::user();
         $mySessions = $user->examSessions()
-            ->withPivot('status', 'score', 'is_locked')
+            ->withPivot('status', 'raw_score', 'final_score', 'is_locked')
             ->with(['exam' => function ($query) {
                 $query->withCount('questions');
             }])
@@ -40,7 +42,7 @@ class ApiStudentExamController extends Controller
                     'is_open' => now()->between($session->start_time, $session->end_time),
                     'require_token' => (bool) $session->exam->require_token,
                     'status' => $session->pivot->status,
-                    'score' => $session->pivot->score,
+                    'score' => $session->pivot->final_score,
                     'is_locked' => (bool) $session->pivot->is_locked,
                     'total_questions' => $session->exam->questions_count,
                 ];
@@ -117,10 +119,10 @@ class ApiStudentExamController extends Controller
 
         // Ambil Data State Ujian
         $questionIds = $exam->questions()->pluck('questions.id')->toArray();
-        $existingAnswers = StudentAnswer::where('exam_session_id', $session->id)
-            ->where('user_id', $user->id)->pluck('answer', 'question_id')->toArray();
-        $flags = StudentAnswer::where('exam_session_id', $session->id)
-            ->where('user_id', $user->id)->where('is_doubtful', true)->pluck('question_id')->toArray();
+        $existingAnswers = StudentAnswer::where('exam_attempt_id', $examUser->id)
+            ->pluck('answer', 'question_id')->toArray();
+        $flags = StudentAnswer::where('exam_attempt_id', $examUser->id)
+            ->where('is_doubtful', true)->pluck('question_id')->toArray();
 
         return response()->json([
             'status' => 'success',
@@ -172,8 +174,13 @@ class ApiStudentExamController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Ujian terkunci/selesai.'], 403);
         }
 
+        $questionBelongsToExam = Exam::findOrFail($request->exam_id)->questions()
+            ->where('questions.id', $request->question_id)
+            ->exists();
+        abort_unless($questionBelongsToExam, 404);
+
         StudentAnswer::updateOrCreate(
-            ['exam_session_id' => $examUser->exam_session_id, 'user_id' => $user->id, 'question_id' => $request->question_id],
+            ['exam_attempt_id' => $examUser->id, 'question_id' => $request->question_id],
             ['answer' => $request->answer, 'is_doubtful' => $request->is_doubtful ?? false]
         );
 
@@ -219,6 +226,19 @@ class ApiStudentExamController extends Controller
     private function forceFinishJSON($session)
     {
         $user = Auth::user();
+        $attempt = ExamAttempt::where('exam_session_id', $session->id)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        if ($attempt->status === 'completed') {
+            return response()->json(['status' => 'success', 'message' => 'Ujian sudah selesai.', 'data' => ['score' => $attempt->final_score]]);
+        }
+
+        $result = app(AttemptScoringService::class)->scoreAttempt($attempt);
+        return response()->json(['status' => 'success', 'message' => 'Ujian selesai.', 'data' => ['score' => $result['finalScore']]]);
+
+        // Legacy calculation kept temporarily below for audit only; execution
+        // returns through AttemptScoringService above.
         $pivot = $session->students()->where('users.id', $user->id)->first()->pivot;
         $finalScore = $pivot->score ?? 0;
 

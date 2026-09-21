@@ -55,6 +55,15 @@
                                 {!! $item['content'] !!}
                             </div>
 
+                            @if(!empty($item['explanation']) || !empty($item['pembahasan']))
+                            <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                                <div class="mb-1 text-xs font-bold uppercase tracking-wide text-amber-700">Pembahasan</div>
+                                <div class="prose prose-sm max-w-none text-amber-900">
+                                    {!! $item['explanation'] ?? $item['pembahasan'] !!}
+                                </div>
+                            </div>
+                            @endif
+
                             @if(isset($item['options']) && is_array($item['options']))
                             <ul class="space-y-2">
                                 @foreach($item['options'] as $opsi)

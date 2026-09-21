@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 class RegisteredUserController extends Controller
 {
@@ -33,23 +35,25 @@ class RegisteredUserController extends Controller
         // 1. Validasi Input (Termasuk Username)
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'max:255', 'unique:'.User::class],
+            'username' => ['nullable', 'string', 'max:255', 'unique:'.User::class],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Password::defaults()],
-            'sekolah' => ['required', 'string', 'max:255'],
+            'sekolah' => ['nullable', 'string', 'max:255'],
         ]);
+
+        $username = $request->username ?: Str::before($request->email, '@').'-'.Str::lower(Str::random(6));
 
         // 3. Buat User Siswa
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'username' => $request->username,
+            'username' => $username,
             'password' => Hash::make($request->password),
             'sekolah' => $request->sekolah,
         ]);
 
         // Beri role 'siswa'
-        $user->assignRole('siswa');
+        $user->assignRole(Role::findOrCreate('siswa'));
 
         event(new Registered($user));
 

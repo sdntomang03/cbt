@@ -14,8 +14,8 @@ class ItemAnalysisService
     public function analyze(int $examId, int $sessionId): array
     {
         // 1. Ambil semua jawaban siswa dalam sesi ini
-        $answers = StudentAnswer::where('exam_session_id', $sessionId)
-            ->with(['question.options', 'question.matches'])
+        $answers = StudentAnswer::whereHas('attempt', fn ($query) => $query->where('exam_session_id', $sessionId))
+            ->with(['attempt', 'question.options', 'question.matches'])
             ->get();
 
         if ($answers->isEmpty()) {
@@ -69,10 +69,10 @@ class ItemAnalysisService
         $matrix = [];
 
         foreach ($answers as $ans) {
-            $uid = $ans->user_id;
+            $uid = $ans->attempt?->user_id;
             $q = $ans->question;
 
-            if (! $q) {
+            if (! $q || ! $uid) {
                 continue;
             }
 
@@ -247,9 +247,10 @@ class ItemAnalysisService
 
     private function distractorEffectiveness($q, int $sessionId, array $studentIds, int $N): array
     {
-        $rawAnswers = StudentAnswer::where('exam_session_id', $sessionId)
+        $rawAnswers = StudentAnswer::whereHas('attempt', function ($query) use ($sessionId, $studentIds) {
+            $query->where('exam_session_id', $sessionId)->whereIn('user_id', $studentIds);
+        })
             ->where('question_id', $q->id)
-            ->whereIn('user_id', $studentIds)
             ->pluck('answer')
             ->toArray();
 

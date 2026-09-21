@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Imports\QuestionImport;
+use App\Imports\QuestionPreviewImport;
+use App\Exports\QuestionTemplateExport;
 use App\Models\Exam;
 use App\Models\Level;
 use App\Models\Question;
@@ -19,54 +21,60 @@ use Intervention\Image\Drivers\Imagick\Driver;
 use Intervention\Image\Encoders\WebpEncoder;
 use Intervention\Image\ImageManager;
 use Maatwebsite\Excel\Facades\Excel;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SoalController extends Controller
 {
     public function index(Request $request, Exam $exam)
     {
-        // Tangkap parameter dari URL (jika ada)
+        $sections = $this->ensureExamSections($exam);
         $search = $request->input('search');
-        $perPage = $request->input('per_page', 10); // Default tampilkan 10 baris
+        $perPage = $request->input('per_page', 10);
+        $sectionId = $request->input('section_id');
 
         $questions = $exam->questions()
-            ->with(['options', 'matches', 'subject', 'level'])
+            ->with(['options', 'matches', 'subject', 'level', 'section.section'])
             ->when($search, function ($query) use ($search) {
-                // Pencarian berdasarkan isi narasi pertanyaan
                 $query->where('content', 'LIKE', "%{$search}%");
             })
+            ->when($sectionId, function ($query) use ($sectionId, $sections) {
+                $query->whereIn('exam_section_id', $sections->where('id', $sectionId)->pluck('id'));
+            })
             ->latest()
-            // Ganti get() dengan paginate() dan bawa parameter URL-nya
             ->paginate($perPage)
             ->withQueryString();
 
-        return view('soal.index', compact('exam', 'questions'));
+        return view('soal.index', compact('exam', 'questions', 'sections'));
     }
 
-    public function create(Exam $exam)
+    public function create(Request $request, Exam $exam)
     {
         $subjects = Subject::all();
         $levels = Level::all();
+        $sections = $this->ensureExamSections($exam);
+        $defaultSectionId = $request->input('section_id', $sections->first()->id ?? null);
 
-        return view('soal.create', compact('exam', 'subjects', 'levels'));
+        return view('soal.create', compact('exam', 'subjects', 'levels', 'sections', 'defaultSectionId'));
     }
 
     public function store(Request $request, Exam $exam)
     {
-        // Tambahkan subject_id dan level_id ke dalam validasi agar tidak dibuang
+        // 1. TAMBAHKAN 'exam_section_id' KE DALAM VALIDASI
         $data = $request->validate([
-            'type' => 'required|in:single_choice,complex_choice,essay,true_false,matching',
+            'type' => 'required|in:single_choice,complex_choice,tkp,essay,true_false,matching',
             'content' => 'required',
+            'exam_section_id' => 'required|integer',
             'explanation' => 'nullable',
             'options' => 'array',
-            'subject_id' => 'nullable', // Wajib ada agar masuk ke array $data
-            'level_id' => 'nullable',   // Wajib ada agar masuk ke array $data
+            'subject_id' => 'nullable',
+            'level_id' => 'nullable',
         ]);
 
         try {
             return DB::transaction(function () use ($data, $request, $exam) {
-                // Gunakan operator ?? null untuk keamanan tambahan
-                $question = $exam->questions()->create([
+                $section = $exam->sections()->findOrFail($data['exam_section_id']);
+
+                // 3. SIMPAN SOAL MELALUI RELASI SEKSI ($section->questions) BUKAN $exam->questions
+                $question = $section->questions()->create([
                     'user_id' => Auth::id(),
                     'type' => $data['type'],
                     'content' => base64_decode($data['content']),
@@ -76,7 +84,7 @@ class SoalController extends Controller
                     'school_id' => Auth::user()->school_id ?? Auth::user()->sekolah_id,
                 ]);
 
-                // Panggil detail saver
+                // 4. Panggil detail saver (menyimpan opsi/matching)
                 $this->saveQuestionDetails($question, $request->options, $data['type']);
 
                 return response()->json([
@@ -96,36 +104,49 @@ class SoalController extends Controller
 
     public function edit(Exam $exam, Question $soal)
     {
+        $this->ensureQuestionBelongsToExam($exam, $soal);
         $soal->load(['options', 'matches']);
         $subjects = Subject::all();
         $levels = Level::all();
 
-        return view('soal.edit', compact('exam', 'soal', 'subjects', 'levels'));
+        $sections = $this->ensureExamSections($exam);
+
+        return view('soal.edit', compact('exam', 'soal', 'subjects', 'levels', 'sections'));
     }
 
     public function update(Request $request, Exam $exam, Question $soal)
     {
+        $this->ensureQuestionBelongsToExam($exam, $soal);
+
+        // 1. TAMBAHKAN 'exam_section_id' KE DALAM VALIDASI
         $data = $request->validate([
-            'type' => 'required|in:single_choice,complex_choice,essay,true_false,matching',
+            'type' => 'required|in:single_choice,complex_choice,tkp,essay,true_false,matching',
             'content' => 'required',
+            'exam_section_id' => 'required|integer',
             'explanation' => 'nullable',
             'options' => 'array',
             'subject_id' => 'nullable|exists:subjects,id',
             'level_id' => 'nullable|exists:levels,id',
         ]);
 
-        return DB::transaction(function () use ($data, $request, $soal) {
+        return DB::transaction(function () use ($data, $request, $soal, $exam) {
+            $exam->sections()->findOrFail($data['exam_section_id']);
+
+            // 2. UPDATE DATA SOAL TERMASUK 'exam_section_id'
             $soal->update([
                 'type' => $data['type'],
                 'content' => base64_decode($data['content']),
+                'exam_section_id' => $data['exam_section_id'], // <-- PERBARUI RELASI SEKSI JIKA DIUBAH GURU
                 'subject_id' => $data['subject_id'],
                 'level_id' => $data['level_id'],
                 'explanation' => base64_decode($data['explanation'] ?? ''),
             ]);
 
+            // Bersihkan data opsi/matching lama
             $soal->options()->delete();
             $soal->matches()->delete();
 
+            // Simpan opsi/matching baru
             $this->saveQuestionDetails($soal, $request->options, $data['type']);
 
             return response()->json(['message' => 'Soal berhasil diperbarui!']);
@@ -134,8 +155,8 @@ class SoalController extends Controller
 
     public function destroy(Exam $exam, Question $soal)
     {
-        // Hanya melepas kaitan soal dari ujian ini
-        $exam->questions()->detach($soal->id);
+        $this->ensureQuestionBelongsToExam($exam, $soal);
+        $soal->delete();
 
         return response()->json(['message' => 'Soal berhasil dikeluarkan dari ujian']);
     }
@@ -165,6 +186,7 @@ class SoalController extends Controller
                         $question->options()->create([
                             'option_text' => base64_decode($item['option_text']), // Decode Base64 di sini jika perlu
                             'is_correct' => filter_var($item['is_correct'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                            'score_weight' => $type === 'tkp' ? (float) ($item['score_weight'] ?? 0) : 0,
                             'school_id' => $schoolId,
                         ]);
                     }
@@ -176,16 +198,9 @@ class SoalController extends Controller
         }
     }
 
-    public function downloadTemplate(): BinaryFileResponse
+    public function downloadTemplate()
     {
-        $path = public_path('templates/template_import_soal.xlsx');
-
-        // Pastikan Anda menaruh file template.xlsx di folder public/templates/
-        if (! file_exists($path)) {
-            abort(404, 'Template file not found.');
-        }
-
-        return response()->download($path);
+        return Excel::download(new QuestionTemplateExport(), 'template_import_soal.xlsx');
     }
 
     /**
@@ -198,13 +213,71 @@ class SoalController extends Controller
         ]);
 
         try {
-            Excel::import(new QuestionImport($exam, Auth::id(), Auth::user()->school_id), $request->file('file_excel'));
+            $section = $this->ensureExamSections($exam)->first();
+            Excel::import(new QuestionImport($exam, $section->id, Auth::id(), Auth::user()->school_id), $request->file('file_excel'));
 
             return redirect()->back()->with('success', 'Soal berhasil diimport dari Excel!');
         } catch (Exception $e) {
             return redirect()->back()->with('error', 'Gagal mengimport soal. Pastikan format sesuai template. Error: '.$e->getMessage());
         }
     }
+
+    public function previewImportExcel(Request $request, Exam $exam)
+        {
+            $request->validate([
+                'file_excel' => 'required|mimes:xlsx,xls,csv|max:5120',
+            ]);
+
+            try {
+                $previewImport = new QuestionPreviewImport();
+                Excel::import($previewImport, $request->file('file_excel'));
+                $rows = $previewImport->rows ?? collect();
+
+                if ($rows->isEmpty()) {
+                    return back()->withErrors(['file_excel' => 'Tidak ada baris soal yang valid pada file Excel.']);
+                }
+
+                $jsonDataEncoded = base64_encode(json_encode($rows->map(fn ($row) => $row->toArray())->values()));
+
+                return view('soal.preview_excel', [
+                    'exam' => $exam,
+                    'rows' => $rows,
+                    'jsonDataEncoded' => $jsonDataEncoded,
+                ]);
+            } catch (Exception $e) {
+                return back()->withErrors(['file_excel' => 'Gagal membaca file Excel: '.$e->getMessage()]);
+            }
+        }
+
+    public function storeImportExcel(Request $request, Exam $exam)
+        {
+            $request->validate([
+                'excel_data' => 'required|string',
+                'selected_indexes' => 'required|array',
+                'selected_indexes.*' => 'integer|min:0',
+            ]);
+
+            $rows = json_decode(base64_decode($request->excel_data), true);
+            if (! is_array($rows)) {
+                return back()->withErrors(['excel_data' => 'Data preview Excel tidak valid. Silakan unggah ulang file.']);
+            }
+
+            try {
+                $section = $this->ensureExamSections($exam)->first();
+                (new QuestionImport(
+                    $exam->id,
+                    $section->id,
+                    Auth::id(),
+                    Auth::user()->school_id,
+                    array_map('intval', $request->selected_indexes)
+                ))->collection(collect($rows));
+
+                return redirect()->route('admin.exams.soal.index', $exam)
+                    ->with('success', 'Soal Excel terpilih berhasil diimport.');
+            } catch (Exception $e) {
+                return back()->withErrors(['error' => 'Gagal menyimpan soal Excel: '.$e->getMessage()]);
+            }
+        }
 
     public function showImportJson(Exam $exam)
     {
@@ -273,6 +346,7 @@ class SoalController extends Controller
             $schoolId = Auth::user()->school_id ?? Auth::user()->sekolah_id;
             $userId = Auth::id();
             $jumlahDisimpan = 0;
+            $section = $this->ensureExamSections($exam)->first();
 
             // Looping hanya untuk index soal yang dicentang oleh user
             foreach ($selectedIndexes as $index) {
@@ -289,11 +363,12 @@ class SoalController extends Controller
                 $kontenSoal = $isBase64 ? base64_decode($item['content']) : $item['content'];
 
                 // 1. Simpan Induk Soal
-                $question = $exam->questions()->create([
+                $question = $section->questions()->create([
                     'user_id' => $userId,
                     'school_id' => $schoolId,
                     'type' => $item['type'],
                     'content' => $kontenSoal,
+                    'explanation' => $item['explanation'] ?? $item['pembahasan'] ?? null,
                     'subject_id' => $item['subject_id'] ?? null,
                     'level_id' => $item['level_id'] ?? null,
                 ]);
@@ -423,7 +498,9 @@ class SoalController extends Controller
 
         $existingQuestionIds = $exam->questions()->pluck('questions.id')->toArray();
 
+        $schoolId = Auth::user()->school_id ?? Auth::user()->sekolah_id;
         $bankQuestions = Question::with(['subject', 'level'])
+            ->where('school_id', $schoolId)
             ->whereNotIn('id', $existingQuestionIds)
             ->when($search, function ($query) use ($search) {
                 $query->where('content', 'LIKE', "%{$search}%");
@@ -449,12 +526,63 @@ class SoalController extends Controller
             'question_ids.*' => 'exists:questions,id',
         ]);
 
-        // Gunakan syncWithoutDetaching agar soal lama di ujian ini tidak terhapus,
-        // dan soal dari bank soal yang baru dicentang akan ditambahkan.
-        $exam->questions()->syncWithoutDetaching($request->question_ids);
+        $schoolId = Auth::user()->school_id ?? Auth::user()->sekolah_id;
+        $section = $this->ensureExamSections($exam)->first();
+        $sourceQuestions = Question::with(['options', 'matches'])
+            ->where('school_id', $schoolId)
+            ->whereIn('id', $request->question_ids)
+            ->get();
+
+        foreach ($sourceQuestions as $source) {
+            $copy = $source->replicate();
+            $copy->exam_section_id = $section->id;
+            $copy->user_id = Auth::id();
+            $copy->save();
+
+            foreach ($source->options as $option) {
+                $newOption = $option->replicate();
+                $newOption->question_id = $copy->id;
+                $newOption->save();
+            }
+
+            foreach ($source->matches as $match) {
+                $newMatch = $match->replicate();
+                $newMatch->question_id = $copy->id;
+                $newMatch->save();
+            }
+        }
 
         return redirect()->route('admin.exams.soal.index', $exam)
-            ->with('success', 'Berhasil menambahkan '.count($request->question_ids).' soal dari Bank Soal.');
+            ->with('success', 'Berhasil menambahkan '.$sourceQuestions->count().' soal dari Bank Soal.');
+    }
+
+    private function ensureExamSections(Exam $exam)
+    {
+        if (! $exam->sections()->exists()) {
+            $defaultSection = \App\Models\Section::firstOrCreate(
+                ['abbreviation' => 'UTAMA'],
+                ['name' => 'Sesi Utama']
+            );
+            $exam->sections()->create([
+                'section_id' => $defaultSection->id,
+                'scoring_profile_id' => $exam->scoring_profile_id,
+                'order' => 1,
+            ]);
+        }
+
+        return $exam->sections()
+            ->with('section')
+            ->orderBy('order')
+            ->orderBy('id')
+            ->get();
+    }
+
+    private function ensureQuestionBelongsToExam(Exam $exam, Question $question): void
+    {
+        abort_unless(
+            $exam->sections()->whereKey($question->exam_section_id)->exists(),
+            404
+        );
     }
 
     public function chartGenerator()
@@ -473,6 +601,90 @@ class SoalController extends Controller
         $levels = Level::all();
 
         return view('soal.ai_generator', compact('exam', 'subjects', 'levels'));
+    }
+
+    public function aiGenerate(Request $request, Exam $exam)
+    {
+        $request->validate([
+            'prompt' => ['required', 'string', 'max:30000'],
+        ]);
+
+        $apiKey = config('services.deepseek.key');
+        if (! is_string($apiKey) || trim($apiKey) === '') {
+            return response()->json([
+                'message' => 'DEEPSEEK_API_KEY belum dikonfigurasi di file .env.',
+            ], 503);
+        }
+
+        try {
+            $response = Http::withToken($apiKey)
+                ->acceptJson()
+                ->timeout(90)
+                ->post(config('services.deepseek.url'), [
+                    'model' => config('services.deepseek.model', 'deepseek-chat'),
+                    'temperature' => 0.7,
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => 'Anda adalah generator soal pendidikan. Ikuti format JSON yang diminta secara ketat.',
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => $request->string('prompt')->toString(),
+                        ],
+                    ],
+                ]);
+        } catch (Exception $e) {
+            Log::error('DeepSeek request failed.', [
+                'exam_id' => $exam->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Tidak dapat terhubung ke layanan DeepSeek.',
+            ], 502);
+        }
+
+        if ($response->failed()) {
+            Log::error('DeepSeek API returned an error.', [
+                'exam_id' => $exam->id,
+                'status' => $response->status(),
+                'body' => $response->json(),
+            ]);
+
+            return response()->json([
+                'message' => $response->json('error.message')
+                    ?? 'DeepSeek gagal membuat soal.',
+            ], 502);
+        }
+
+        $content = $response->json('choices.0.message.content');
+        if (! is_string($content) || trim($content) === '') {
+            Log::error('DeepSeek response did not contain generated content.', [
+                'exam_id' => $exam->id,
+            ]);
+
+            return response()->json([
+                'message' => 'Respons DeepSeek tidak memiliki hasil soal.',
+            ], 502);
+        }
+
+        $jsonContent = preg_replace('/```(?:json)?\s*(.*?)\s*```/s', '$1', $content);
+        $decodedContent = json_decode(trim($jsonContent), true);
+        if (json_last_error() !== JSON_ERROR_NONE || ! is_array($decodedContent)) {
+            Log::error('DeepSeek returned invalid question JSON.', [
+                'exam_id' => $exam->id,
+                'json_error' => json_last_error_msg(),
+            ]);
+
+            return response()->json([
+                'message' => 'DeepSeek mengembalikan format soal yang tidak valid. Silakan coba lagi.',
+            ], 502);
+        }
+
+        return response()->json([
+            'content' => json_encode($decodedContent, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        ]);
     }
 
     /**

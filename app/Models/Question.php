@@ -38,4 +38,10 @@ class Question extends Model
     {
         return $this->hasMany(QuestionMatch::class);
     }
+
+    // Relasi ke Bagian Ujian
+    public function section()
+    {
+        return $this->belongsTo(ExamSection::class);
+    }
 }

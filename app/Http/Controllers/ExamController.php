@@ -8,6 +8,8 @@ use App\Models\Exam; // Pastikan Enum sudah dibuat sebelumnya
 use App\Models\ExamType;
 use App\Models\Level;
 use App\Models\School;
+use App\Models\Section;
+use App\Models\ScoringProfile;
 use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -79,7 +81,12 @@ class ExamController extends Controller
             'meta_keywords' => 'nullable|string|max:255',
             'content' => 'nullable|string',
             'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'scoring_profile_id' => 'nullable|exists:scoring_profiles,id',
 
+            'has_sections' => 'boolean',
+            'sections' => 'nullable|array',
+            'sections.*.section_id' => 'nullable|required_if:has_sections,1|exists:sections,id',
+            'sections.*.scoring_profile_id' => 'nullable|exists:scoring_profiles,id',
         ]);
 
         try {
@@ -134,7 +141,29 @@ class ExamController extends Controller
                 }
             }
 
-            Exam::create($validated);
+            $exam = Exam::create($validated);
+            if ($request->has_sections && ! empty($request->sections)) {
+                // Jika admin mencentang "Gunakan Seksi" dan mengisi form seksi
+                $order = 1;
+                foreach ($request->sections as $sectionData) {
+                    $exam->sections()->create([
+                        'section_id' => $sectionData['section_id'],
+                        'scoring_profile_id' => $sectionData['scoring_profile_id'] ?? null,
+                        'order' => $order++,
+                    ]);
+                }
+            } else {
+                // Jika tidak menggunakan seksi khusus, buat 1 seksi default
+                $defaultSection = Section::firstOrCreate(
+                    ['abbreviation' => 'UTAMA'],
+                    ['name' => 'Sesi Utama']
+                );
+                $exam->sections()->create([
+                    'section_id' => $defaultSection->id,
+                    'scoring_profile_id' => $exam->scoring_profile_id,
+                    'order' => 1,
+                ]);
+            }
 
             return redirect()->route('admin.exams.index')->with('success', 'Ujian berhasil dibuat!');
 
@@ -162,6 +191,11 @@ class ExamController extends Controller
             'meta_keywords' => 'nullable|string|max:255',
             'content' => 'nullable|string',
             'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'scoring_profile_id' => 'nullable|exists:scoring_profiles,id',
+            'has_sections' => 'boolean',
+            'sections' => 'nullable|array',
+            'sections.*.section_id' => 'nullable|required_if:has_sections,1|exists:sections,id',
+            'sections.*.scoring_profile_id' => 'nullable|exists:scoring_profiles,id',
         ]);
 
         try {
@@ -220,6 +254,52 @@ class ExamController extends Controller
             }
 
             $exam->update($validated);
+
+            // =========================================================
+            // PROSES UPDATE SEKSI UJIAN (BARU)
+            // =========================================================
+            if ($request->has_sections && ! empty($request->sections)) {
+                $order = 1;
+                $keptSectionIds = [];
+
+                foreach ($request->sections as $sectionData) {
+                    if (isset($sectionData['id']) && $sectionData['id']) {
+                        // Update seksi yang sudah ada
+                        $section = $exam->sections()->find($sectionData['id']);
+                        if ($section) {
+                            $section->update([
+                                'section_id' => $sectionData['section_id'],
+                                'scoring_profile_id' => $sectionData['scoring_profile_id'] ?? null,
+                                'order' => $order++,
+                            ]);
+                            $keptSectionIds[] = $section->id;
+                        }
+                    } else {
+                        // Buat seksi baru
+                        $newSection = $exam->sections()->create([
+                            'section_id' => $sectionData['section_id'],
+                            'scoring_profile_id' => $sectionData['scoring_profile_id'] ?? null,
+                            'order' => $order++,
+                        ]);
+                        $keptSectionIds[] = $newSection->id;
+                    }
+                }
+                // Hapus seksi lama yang tidak ada di form (Opsional/Hati-hati jika sudah ada soal)
+                // $exam->sections()->whereNotIn('id', $keptSectionIds)->delete();
+
+            } else {
+                if (! $exam->sections()->exists()) {
+                    $defaultSection = Section::firstOrCreate(
+                        ['abbreviation' => 'UTAMA'],
+                        ['name' => 'Sesi Utama']
+                    );
+                    $exam->sections()->create([
+                        'section_id' => $defaultSection->id,
+                        'scoring_profile_id' => $exam->scoring_profile_id,
+                        'order' => 1,
+                    ]);
+                }
+            }
 
             return redirect()->route('admin.exams.index')->with('success', 'Ujian berhasil diperbarui!');
         } catch (\Exception $e) {
@@ -294,7 +374,13 @@ class ExamController extends Controller
         $levels = Level::where('school_id', $schoolId)->get();
         $subjects = Subject::where('school_id', $schoolId)->get();
 
-        return view('exams.form', compact('examTypes', 'levels', 'subjects'));
+        // ADD THIS: Fetch Scoring Profiles
+        $scoringProfiles = ScoringProfile::where('school_id', $schoolId)
+            ->orWhereNull('school_id') // Include global profiles
+            ->get();
+        $sections = Section::orderBy('name')->get();
+
+        return view('exams.form', compact('examTypes', 'levels', 'subjects', 'scoringProfiles', 'sections'));
     }
 
     /**
@@ -304,12 +390,28 @@ class ExamController extends Controller
     {
         abort_if($exam->teacher_id !== Auth::id() && ! Auth::user()->hasRole('admin'), 403);
 
+        if (! $exam->sections()->exists()) {
+            $defaultSection = Section::firstOrCreate(
+                ['abbreviation' => 'UTAMA'],
+                ['name' => 'Sesi Utama']
+            );
+            $exam->sections()->create([
+                'section_id' => $defaultSection->id,
+                'scoring_profile_id' => $exam->scoring_profile_id,
+                'order' => 1,
+            ]);
+        }
+
         $schoolId = Auth::user()->school_id;
         $examTypes = ExamType::where('school_id', $schoolId)->get();
         $levels = Level::where('school_id', $schoolId)->get();
         $subjects = Subject::where('school_id', $schoolId)->get();
+        $scoringProfiles = ScoringProfile::where('school_id', $schoolId)
+            ->orWhereNull('school_id')
+            ->get();
+        $sections = Section::orderBy('name')->get();
 
-        return view('exams.form', compact('exam', 'examTypes', 'levels', 'subjects'));
+        return view('exams.form', compact('exam', 'examTypes', 'levels', 'subjects', 'scoringProfiles', 'sections'));
     }
 
     public function preview(Request $request)

@@ -30,8 +30,18 @@
                 </div>
             </div>
 
+            @php($hasTkp = $answers->contains(fn ($answer) => $answer->question?->type === 'tkp'))
             <!-- Legenda -->
             <div class="flex gap-4 mb-6 px-2">
+                @if($hasTkp)
+                <div class="flex items-center gap-2 text-xs font-bold text-slate-600">
+                    <div class="w-4 h-4 rounded-md bg-indigo-100 flex items-center justify-center">
+                        <i class="fas fa-weight-hanging text-[8px] text-indigo-600"></i>
+                    </div>
+                    Bobot pilihan TKP
+                </div>
+                @endif
+                @if(!$hasTkp)
                 <div class="flex items-center gap-2 text-xs font-bold text-slate-600">
                     <div
                         class="w-4 h-4 rounded-md border-2 border-emerald-500 bg-emerald-50 flex items-center justify-center">
@@ -48,6 +58,7 @@
                             class="fas fa-check text-[8px] text-white"></i></div>
                     Jawaban Siswa (Benar)
                 </div>
+                @endif
             </div>
 
             <!-- Daftar Soal & Jawaban -->
@@ -57,6 +68,7 @@
                 $q = $ans->question;
                 $isCorrect = $ans->score > 0;
                 $studentAns = $ans->formatted_answer;
+                $isTkp = $q->type === 'tkp';
                 @endphp
 
                 <div
@@ -64,8 +76,8 @@
 
                     <!-- Pita Status -->
                     <div
-                        class="absolute top-0 right-0 px-5 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-bl-2xl {{ $isCorrect ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white' }}">
-                        {{ $isCorrect ? 'Poin: ' . $ans->score : 'Salah (0)' }}
+                        class="absolute top-0 right-0 px-5 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-bl-2xl {{ $isTkp ? 'bg-indigo-500 text-white' : ($isCorrect ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white') }}">
+                        {{ $isTkp ? 'Bobot Pilihan: ' . number_format((float) $ans->score, 2) : ($isCorrect ? 'Poin: ' . $ans->score : 'Salah (0)') }}
                     </div>
 
                     <!-- Konten Soal -->
@@ -83,7 +95,29 @@
                     <div class="ml-14 mt-6">
 
                         {{-- TIPE: PILIHAN GANDA (SINGLE & COMPLEX) --}}
-                        @if($q->type === 'single_choice' || $q->type === 'complex_choice')
+                        @if($q->type === 'tkp')
+                        <div class="space-y-3">
+                            @php
+                            $abjad = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+                            $selectedTkpId = is_array($studentAns) ? null : (int) $studentAns;
+                            @endphp
+                            @foreach($q->options as $opt)
+                            @php($isSelectedTkp = $selectedTkpId === (int) $opt->id)
+                            <div class="relative p-4 rounded-xl border-2 flex gap-4 items-center {{ $isSelectedTkp ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500' : 'border-slate-200 bg-white' }}">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm shrink-0 {{ $isSelectedTkp ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500' }}">
+                                    {{ $abjad[$loop->index] ?? '*' }}
+                                </div>
+                                <div class="prose prose-sm max-w-none flex-1 leading-snug">{!! $opt->option_text !!}</div>
+                                <span class="shrink-0 px-3 py-1.5 rounded-lg {{ $isSelectedTkp ? 'bg-indigo-500 text-white' : 'bg-indigo-50 text-indigo-700' }} text-xs font-black">
+                                    Bobot {{ number_format((float) ($opt->score_weight ?? 0), 2) }}
+                                </span>
+                                @if($isSelectedTkp)
+                                <span class="absolute -top-2 -right-2 px-2 py-1 rounded-full bg-indigo-600 text-white text-[9px] font-black uppercase">Pilihan siswa</span>
+                                @endif
+                            </div>
+                            @endforeach
+                        </div>
+                        @elseif($q->type === 'single_choice' || $q->type === 'complex_choice')
                         <div class="space-y-3">
                             @php
                             $abjad = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];

@@ -13,21 +13,30 @@ class QuestionImport implements ToCollection, WithHeadingRow
 {
     protected $examId;
 
+    protected $sectionId;
+
     protected $userId;
 
     protected $schoolId;
 
-    public function __construct($examId, $userId, $schoolId)
+    protected $selectedIndexes;
+
+    public function __construct($examId, $sectionId, $userId, $schoolId, ?array $selectedIndexes = null)
     {
         $this->examId = $examId;
+        $this->sectionId = $sectionId;
         $this->userId = $userId;
         $this->schoolId = $schoolId;
+        $this->selectedIndexes = $selectedIndexes;
     }
 
     public function collection(Collection $rows)
     {
         DB::transaction(function () use ($rows) {
-            foreach ($rows as $row) {
+            foreach ($rows as $index => $row) {
+                if ($this->selectedIndexes !== null && ! in_array($index, $this->selectedIndexes, true)) {
+                    continue;
+                }
                 // Lewati baris jika narasi soal kosong
                 if (! isset($row['narasi_soal']) || empty(trim($row['narasi_soal']))) {
                     continue;
@@ -39,11 +48,12 @@ class QuestionImport implements ToCollection, WithHeadingRow
 
                 // 1. Simpan Pertanyaan Utama
                 $question = Question::create([
-                    'exam_id' => $this->examId,
+                    'exam_section_id' => $this->sectionId,
                     'user_id' => $this->userId,
                     'school_id' => $this->schoolId,
                     'type' => $type,
                     'content' => $row['narasi_soal'],
+                    'explanation' => $row['pembahasan'] ?? $row['explanation'] ?? null,
                     // Abaikan subject_id & level_id saat import agar fleksibel,
                     // atau tambahkan kolom di Excel jika memang diperlukan.
                     'subject_id' => null,

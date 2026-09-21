@@ -207,7 +207,7 @@
                                                 target="_blank"
                                                 class="inline-flex items-center justify-center gap-1.5 hover:text-indigo-600 hover:underline transition-colors decoration-2 underline-offset-4"
                                                 title="Buka Analisis Jawaban">
-                                                <span x-text="student.pivot.score"></span>
+                                                <span x-text="student.pivot.status === 'completed' ? (student.pivot.final_score ?? 0) : '-'"></span>
                                                 <i class="fas fa-external-link-alt text-[10px] text-slate-400"></i>
                                             </a>
                                         </template>
@@ -290,7 +290,7 @@
     const dataToCopy = this.filteredStudents.map(student => {
         return {
             nisn: student.username, // Username disimpan menjadi nisn
-            nilai: student.pivot.status === 'completed' ? student.pivot.score : 0 // Default 0 jika belum selesai
+            nilai: student.pivot.status === 'completed' ? (student.pivot.final_score ?? 0) : 0 // Default 0 jika belum selesai
         };
     });
 

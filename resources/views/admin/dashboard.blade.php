@@ -51,12 +51,72 @@
                     Selamat datang di Ruang Tata Usaha Digital SDN Tomang 03 Pagi. Anda dapat mengelola data pengajar,
                     pendaftaran siswa baru, dan mengatur jadwal sesi ujian dengan mudah di sini.
                 </p>
+                @elseif($isTeacher)
+                <p class="text-indigo-100 font-medium text-sm sm:text-base max-w-xl leading-relaxed">
+                    Selamat datang di ruang kerja guru. Kelola ujian yang Anda susun dan pantau perkembangan pengerjaan
+                    peserta dari satu tempat.
+                </p>
                 @else
                 <p class="text-indigo-100 font-medium text-sm sm:text-base max-w-xl leading-relaxed">
-                    Selamat datang di Dashboard Akademik Guru. Mari siapkan materi ujian, pantau progres evaluasi harian
-                    kelas 4B, dan pastikan kelancaran ujian siswa-siswi SDN Tomang 03 Pagi secara terpadu.
+                    Selamat datang di dashboard operasional sekolah. Kelola data akademik, jadwal ujian, dan peserta
+                    secara terpadu.
                 </p>
                 @endif
+            </div>
+        </div>
+
+        {{-- ========================================== --}}
+        {{-- RINGKASAN OPERASIONAL --}}
+        {{-- ========================================== --}}
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm">
+                <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Ujian</p>
+                <p class="text-2xl font-black text-indigo-600 mt-1">{{ number_format($stats['total_ujian']) }}</p>
+                <p class="text-xs text-slate-500 mt-1">{{ $isTeacher ? 'Ujian saya' : 'Terdaftar di sistem' }}</p>
+            </div>
+            <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm">
+                <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Sesi Aktif</p>
+                <p class="text-2xl font-black text-emerald-600 mt-1">{{ number_format($stats['sesi_aktif']) }}</p>
+                <p class="text-xs text-slate-500 mt-1">Sedang berlangsung</p>
+            </div>
+            <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm">
+                <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Sesi</p>
+                <p class="text-2xl font-black text-blue-600 mt-1">{{ number_format($stats['total_sesi']) }}</p>
+                <p class="text-xs text-slate-500 mt-1">Jadwal terpublikasi</p>
+            </div>
+            <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm">
+                <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Peserta Selesai</p>
+                <p class="text-2xl font-black text-amber-600 mt-1">{{ number_format($stats['peserta_selesai']) }}</p>
+                <p class="text-xs text-slate-500 mt-1">Akumulasi pengerjaan</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <h3 class="font-black text-slate-800">Jadwal Terbaru</h3>
+                    <p class="text-xs text-slate-400 mt-1">Pantau sesi ujian yang paling baru dibuat</p>
+                </div>
+                <a href="{{ route('admin.exam-sessions.index') }}" class="text-xs font-black text-indigo-600 hover:text-indigo-800">
+                    Lihat semua <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+            <div class="divide-y divide-slate-100">
+                @forelse($recentSessions as $session)
+                <div class="px-5 py-3 flex items-center justify-between gap-4">
+                    <div class="min-w-0">
+                        <p class="font-bold text-sm text-slate-700 truncate">{{ $session->exam->title }}</p>
+                        <p class="text-xs text-slate-400 mt-1">
+                            {{ $session->start_time->format('d M Y, H:i') }} · {{ $session->students_count }} peserta
+                        </p>
+                    </div>
+                    <span class="shrink-0 text-[10px] font-black uppercase px-2 py-1 rounded-full {{ $session->isOpen() ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500' }}">
+                        {{ $session->isOpen() ? 'Aktif' : ($session->start_time->isFuture() ? 'Terjadwal' : 'Selesai') }}
+                    </span>
+                </div>
+                @empty
+                <p class="px-5 py-8 text-center text-sm text-slate-400">Belum ada jadwal ujian.</p>
+                @endforelse
             </div>
         </div>
 
@@ -116,7 +176,7 @@
                     <h3 class="text-3xl font-black text-slate-800 tracking-tight">{{
                         number_format($stats['total_staff']) }}</h3>
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
-                        {{ $isAdmin ? 'Super Admin' : 'Staf Operator' }}
+                        {{ $isAdmin ? 'Super Admin' : ($isTeacher ? 'Kelas Binaan' : 'Staf Operator') }}
                     </p>
                 </div>
             </div>

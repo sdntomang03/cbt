@@ -10,7 +10,11 @@ class ExamSessionUser extends Model
 {
     use BelongsToSchool,HasFactory;
 
-    protected $table = 'exam_session_user';
+    /**
+     * Compatibility alias for legacy controllers. New code must depend on
+     * ExamAttempt directly; both names now address the canonical table.
+     */
+    protected $table = 'exam_attempts';
 
     protected $fillable = [
         'exam_session_id',
@@ -18,7 +22,8 @@ class ExamSessionUser extends Model
         'status',
         'started_at',
         'finished_at',
-        'score',
+        'raw_score',
+        'final_score',
         'violation_count',
         'is_locked',
     ];
@@ -28,7 +33,15 @@ class ExamSessionUser extends Model
         'violation_count' => 'integer',
         'started_at' => 'datetime',
         'finished_at' => 'datetime',
+        'raw_score' => 'decimal:2',
+        'final_score' => 'decimal:2',
     ];
+
+    /** Legacy read alias. Do not persist to a non-existent `score` column. */
+    public function getScoreAttribute(): float
+    {
+        return (float) $this->final_score;
+    }
 
     /**
      * Relasi ke ExamSession (Sesi Ujian)

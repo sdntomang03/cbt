@@ -25,12 +25,13 @@ class ExamSession extends Model
     // Relasi ke Siswa (Many to Many)
     public function students()
     {
-        return $this->belongsToMany(User::class, 'exam_session_user')
+        return $this->belongsToMany(User::class, 'exam_attempts')
             ->withPivot([
                 'status',
                 'started_at',
                 'finished_at',
-                'score',
+                'raw_score',
+                'final_score',
                 'violation_count', // <- TAMBAHKAN INI
                 'is_locked',        // <- TAMBAHKAN INI
             ])

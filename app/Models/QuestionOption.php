@@ -14,6 +14,7 @@ class QuestionOption extends Model
 
     protected $casts = [
         'is_correct' => 'boolean',
+        'score_weight' => 'float',
     ];
 
     public function question(): BelongsTo

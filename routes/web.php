@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RegistrationSettingController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SchoolController;
+use App\Http\Controllers\Admin\ScoringProfileController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\ImageUploadController;
@@ -19,7 +20,6 @@ use App\Http\Controllers\OfflineDatabaseController;
 use App\Http\Controllers\ProctorController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicExamController;
-use App\Http\Controllers\QuestionAjaxController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SoalController;
 use App\Http\Controllers\Student\MathExamController as StudentMathExamController;
@@ -101,6 +101,8 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         Route::post('/exams/{exam}/sync-invites', [ExamController::class, 'syncInvites'])->name('exams.sync-invites');
         Route::get('/exams/{exam}/export', [ExamController::class, 'exportGrades'])->name('exams.export');
         Route::resource('exams', ExamController::class);
+        Route::resource('scoring-profiles', ScoringProfileController::class)
+            ->only(['index', 'store', 'update', 'destroy']);
         Route::post('/exam-types', [ExamController::class, 'storeType'])->name('exam-types.store');
         Route::post('/preview', [ExamController::class, 'preview'])->name('preview');
         Route::get('/live-preview', [ExamController::class, 'livePreview'])->name('live-preview');
@@ -112,6 +114,8 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         // Import/Export Soal
         Route::get('/soal/download-template', [SoalController::class, 'downloadTemplate'])->name('soal.template');
         Route::post('/exams/{exam}/soal/import', [SoalController::class, 'import'])->name('exams.soal.import');
+        Route::post('/exams/{exam}/soal/import/preview', [SoalController::class, 'previewImportExcel'])->name('exams.soal.import.preview');
+        Route::post('/exams/{exam}/soal/import/store', [SoalController::class, 'storeImportExcel'])->name('exams.soal.import.store');
         Route::get('/exams/{exam}/import-json', [SoalController::class, 'showImportJson'])->name('soal.import_json_view');
         Route::post('/exams/{exam}/import-json/preview', [SoalController::class, 'previewImportJson'])->name('soal.import_json_preview');
         Route::post('/exams/{exam}/import-json/store', [SoalController::class, 'storeImportJson'])->name('soal.import_json_store');
@@ -120,16 +124,12 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         // Soal AI
         Route::get('/exams/{exam}/soal/ai-generator', [SoalController::class, 'aiGenerator'])
             ->name('exams.soal.ai_generator');
+        Route::post('/exams/{exam}/soal/ai-generate', [SoalController::class, 'aiGenerate'])
+            ->name('exams.soal.ai_generate');
 
         // Memproses hasil JSON dari AI dan melemparkannya ke halaman Preview
         Route::post('/exams/{exam}/soal/ai-preview', [SoalController::class, 'aiPreview'])
             ->name('exams.soal.ai_preview');
-        // Manajemen Soal (AJAX)
-        Route::get('/exams/{exam}/questions', [QuestionAjaxController::class, 'index'])->name('ajax.questions.index');
-        Route::post('/exams/{exam}/questions', [QuestionAjaxController::class, 'store'])->name('ajax.questions.store');
-        Route::put('/questions/{question}', [QuestionAjaxController::class, 'update'])->name('ajax.questions.update');
-        Route::delete('/questions/{question}', [QuestionAjaxController::class, 'destroy'])->name('ajax.questions.destroy');
-
         // Upload Gambar (Summernote/CKEditor)
         Route::post('/upload-image', [ImageUploadController::class, 'store'])->name('image.upload');
 
@@ -201,6 +201,7 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->group(function () {
     Route::get('/exam/{exam}/run', [StudentExamController::class, 'run'])->name('student.exam.run');
     Route::post('/exam/save-answer', [StudentExamController::class, 'saveAnswer'])->name('student.exam.save');
     Route::post('/exam/{exam}/finish', [StudentExamController::class, 'finish'])->name('student.exam.finish');
+    Route::get('/exam/{exam}/result', [StudentExamController::class, 'result'])->name('student.exam.result');
     Route::post('/exam/record-violation', [StudentExamController::class, 'recordViolation'])->name('student.exam.violation');
     Route::get('/exam/{exam}/status', [StudentExamController::class, 'checkStatus'])
         ->name('student.exam.status');

@@ -6,9 +6,11 @@ use App\Exports\ButirSoalExport;
 use App\Models\Exam;
 use App\Models\ExamSession;
 use App\Models\ExamSessionUser;
+use App\Models\ExamAttempt;
 use App\Models\School;
 use App\Models\StudentAnswer;
 use App\Models\User;
+use App\Services\AttemptScoringService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -102,10 +104,19 @@ class ProctorController extends Controller
      */
     private function forceFinishLogic(ExamSession $examSession, User $student)
     {
-        $examUser = ExamSessionUser::where('exam_session_id', $examSession->id)
+        $attempt = ExamAttempt::where('exam_session_id', $examSession->id)
             ->where('user_id', $student->id)
             ->first();
 
+        if ($attempt && $attempt->status !== 'completed') {
+            app(AttemptScoringService::class)->scoreAttempt($attempt);
+        }
+
+        return;
+
+        $examUser = ExamSessionUser::where('exam_session_id', $examSession->id)
+            ->where('user_id', $student->id)
+            ->first();
         if ($examUser && $examUser->status !== 'completed') {
 
             $answers = StudentAnswer::where('exam_session_id', $examSession->id)
@@ -224,6 +235,17 @@ class ProctorController extends Controller
             ->where('user_id', $student->id)
             ->firstOrFail();
 
+        if ($examUser->status !== 'completed') {
+            $result = app(AttemptScoringService::class)->scoreAttempt($examUser);
+        } else {
+            $result = ['finalScore' => (float) $examUser->final_score];
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Ujian siswa {$student->name} diselesaikan. Nilai akhir: {$result['finalScore']}",
+        ]);
+
         // Jika status belum completed, kita hitung nilainya dan selesaikan
         if ($examUser->status !== 'completed') {
 
@@ -340,8 +362,7 @@ class ProctorController extends Controller
             ->firstOrFail();
 
         // Hapus semua jawaban siswa untuk sesi ini
-        StudentAnswer::where('exam_session_id', $examSession->id)
-            ->where('user_id', $student->id)
+        StudentAnswer::where('exam_attempt_id', $examUser->id)
             ->delete();
 
         // Kembalikan status ke belum mulai
@@ -349,7 +370,8 @@ class ProctorController extends Controller
             'status' => 'not_started',
             'started_at' => null,
             'finished_at' => null,
-            'score' => null,
+            'raw_score' => 0,
+            'final_score' => 0,
             'is_locked' => false,
             'violation_count' => 0,
         ]);
@@ -390,8 +412,7 @@ class ProctorController extends Controller
         }
 
         // Ambil data jawaban beserta relasinya
-        $answers = StudentAnswer::where('exam_session_id', $examSession->id)
-            ->where('user_id', $student->id)
+        $answers = StudentAnswer::where('exam_attempt_id', $examUser->id)
             ->with(['question.options', 'question.matches'])
             ->get()
             ->map(function ($answer) {

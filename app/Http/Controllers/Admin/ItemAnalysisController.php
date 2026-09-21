@@ -18,7 +18,7 @@ class ItemAnalysisController extends Controller
     {
         $sessions = ExamSession::where('exam_id', $exam->id)
             ->withCount([
-                'students as completed_count' => fn ($q) => $q->where('exam_session_user.status', 'completed'),
+                'students as completed_count' => fn ($q) => $q->where('exam_attempts.status', 'completed'),
             ])
             ->orderByDesc('start_time')
             ->get();

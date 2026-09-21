@@ -36,6 +36,14 @@
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+
+        @media (max-width: 639px) {
+
+            .exam-table td,
+            .exam-table th {
+                white-space: normal;
+            }
+        }
     </style>
 
     {{-- Topbar & Server Clock --}}
@@ -71,52 +79,52 @@
     </div>
 
     {{-- Main App / Alpine Datatable Logic --}}
-    <div class="min-h-screen py-6 sm:py-10" x-data="datatableManager()">
+    <div class="min-h-screen py-4 sm:py-6" x-data="datatableManager()">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
             {{-- Banner Welcome --}}
             <div
-                class="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl sm:rounded-[2.5rem] p-6 sm:p-8 md:p-10 mb-6 sm:mb-8 text-white shadow-2xl shadow-indigo-200 relative overflow-hidden">
+                class="bg-gradient-to-r from-indigo-600 to-violet-700 rounded-2xl sm:rounded-3xl p-4 sm:p-5 md:p-6 mb-3 sm:mb-4 text-white shadow-xl shadow-indigo-200 relative overflow-hidden">
                 <div
-                    class="absolute right-0 top-0 w-80 h-80 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 mix-blend-overlay">
+                    class="absolute right-0 top-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-16 -mt-20 mix-blend-overlay">
                 </div>
-                <div class="absolute left-0 bottom-0 w-60 h-60 bg-indigo-500/30 rounded-full blur-3xl -ml-16 -mb-16">
+                <div class="absolute left-0 bottom-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl -ml-10 -mb-10">
                 </div>
 
                 <div
-                    class="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 lg:gap-8">
+                    class="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 lg:gap-6">
                     <div class="w-full lg:w-auto">
                         <div
-                            class="inline-flex items-center gap-2 mb-3 bg-white/10 px-3 py-1 rounded-full border border-white/10 backdrop-blur-md">
-                            <span class="text-base sm:text-lg">👋</span>
+                            class="inline-flex items-center gap-2 mb-2 bg-white/10 px-2.5 py-1 rounded-full border border-white/10 backdrop-blur-md">
+                            <span class="text-sm sm:text-base">👋</span>
                             <span
-                                class="font-bold text-indigo-100 uppercase tracking-widest text-[9px] sm:text-[10px]">Selamat
+                                class="font-bold text-indigo-100 uppercase tracking-widest text-[8px] sm:text-[9px]">Selamat
                                 Datang</span>
                         </div>
                         <h1
-                            class="text-2xl sm:text-3xl md:text-5xl font-black mb-2 sm:mb-4 leading-tight tracking-tight">
+                            class="text-xl sm:text-2xl md:text-3xl font-black mb-1 sm:mb-2 leading-tight tracking-tight">
                             Halo, {{ Auth::user()->name }}!</h1>
                         <p
-                            class="text-indigo-100 font-medium max-w-xl text-xs sm:text-sm md:text-lg leading-relaxed opacity-90">
+                            class="text-indigo-100 font-medium max-w-xl text-[11px] sm:text-xs md:text-sm leading-relaxed opacity-90">
                             Siap untuk menguji kemampuanmu? Pastikan koneksi internet stabil dan kerjakan dengan jujur
                             ya!
                         </p>
                     </div>
 
-                    <div class="flex gap-3 sm:gap-4 shrink-0 w-full lg:w-auto">
+                    <div class="flex gap-2 sm:gap-3 shrink-0 w-full lg:w-auto">
                         <div
-                            class="flex-1 lg:flex-none bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 text-center border border-white/20 lg:min-w-[100px]">
-                            <span class="block text-2xl sm:text-3xl font-black mb-1">{{
+                            class="flex-1 lg:flex-none bg-white/10 backdrop-blur-md rounded-xl p-3 sm:p-3.5 text-center border border-white/20 lg:min-w-[88px]">
+                            <span class="block text-xl sm:text-2xl font-black mb-0.5">{{
                                 collect($mySessions)->where('is_open', true)->count() }}</span>
                             <span
-                                class="text-[9px] sm:text-[10px] font-bold text-indigo-200 uppercase tracking-wider">Tersedia</span>
+                                class="text-[8px] sm:text-[9px] font-bold text-indigo-200 uppercase tracking-wider">Tersedia</span>
                         </div>
                         <div
-                            class="flex-1 lg:flex-none bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 text-center border border-white/20 lg:min-w-[100px]">
-                            <span class="block text-2xl sm:text-3xl font-black mb-1">{{
+                            class="flex-1 lg:flex-none bg-white/10 backdrop-blur-md rounded-xl p-3 sm:p-3.5 text-center border border-white/20 lg:min-w-[88px]">
+                            <span class="block text-xl sm:text-2xl font-black mb-0.5">{{
                                 collect($mySessions)->where('user_status', 'completed')->count() }}</span>
                             <span
-                                class="text-[9px] sm:text-[10px] font-bold text-indigo-200 uppercase tracking-wider">Selesai</span>
+                                class="text-[8px] sm:text-[9px] font-bold text-indigo-200 uppercase tracking-wider">Selesai</span>
                         </div>
                     </div>
                 </div>
@@ -124,7 +132,7 @@
 
             {{-- Datatable Toolbar --}}
             <div
-                class="bg-white p-4 rounded-t-2xl sm:rounded-t-[2rem] border border-slate-200 border-b-0 shadow-sm flex flex-col xl:flex-row justify-between items-center gap-4 mt-8">
+                class="bg-white p-4 rounded-t-2xl sm:rounded-t-[2rem] border border-slate-200 border-b-0 shadow-sm flex flex-col xl:flex-row justify-between items-center gap-4 mt-4">
 
                 {{-- Toggle Filter Tabs --}}
                 <div class="flex bg-slate-100 p-1 rounded-xl w-full xl:w-auto overflow-hidden">
@@ -164,16 +172,16 @@
             <div
                 class="bg-white rounded-b-2xl sm:rounded-b-[2rem] border border-slate-200 shadow-sm overflow-hidden relative">
                 <div class="overflow-x-auto custom-scrollbar">
-                    <table class="w-full text-left border-collapse whitespace-nowrap min-w-[800px]">
+                    <table class="exam-table w-full text-left border-collapse whitespace-nowrap min-w-[800px]">
                         <thead
                             class="bg-slate-50 border-y border-slate-200 text-slate-500 text-[10px] sm:text-xs uppercase font-black tracking-wider">
                             <tr>
-                                <th class="px-4 py-3 sm:px-6 sm:py-4 rounded-tl-[2rem]">Ujian & Sesi</th>
-                                <th class="px-4 py-3 sm:px-6 sm:py-4">Jadwal Pelaksanaan</th>
-                                <th class="px-4 py-3 sm:px-6 sm:py-4">Detail</th>
-                                <th class="px-4 py-3 sm:px-6 sm:py-4 text-center">Status</th>
-                                <th class="px-4 py-3 sm:px-6 sm:py-4 text-center">Nilai</th>
-                                <th class="px-4 py-3 sm:px-6 sm:py-4 text-right rounded-tr-[2rem]">Aksi</th>
+                                <th class="px-3 py-2.5 sm:px-4 sm:py-3 rounded-tl-[2rem]">Ujian & Sesi</th>
+                                <th class="px-3 py-2.5 sm:px-4 sm:py-3">Jadwal</th>
+                                <th class="px-3 py-2.5 sm:px-4 sm:py-3">Detail</th>
+                                <th class="px-3 py-2.5 sm:px-4 sm:py-3 text-center">Status</th>
+                                <th class="px-3 py-2.5 sm:px-4 sm:py-3 text-center">Nilai</th>
+                                <th class="px-3 py-2.5 sm:px-4 sm:py-3 text-right rounded-tr-[2rem]">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 text-xs sm:text-sm font-medium text-slate-700">
@@ -185,22 +193,46 @@
                                 style="display: none;">
 
                                 {{-- Kolom 1 --}}
-                                <td class="px-4 py-3 sm:px-6 sm:py-4">
-                                    <div class="flex flex-col gap-1.5">
+                                <td class="px-3 py-3 sm:px-4 sm:py-3 min-w-[190px]">
+                                    <div class="flex flex-col gap-1">
                                         <span
-                                            class="inline-flex max-w-max bg-slate-100 text-slate-600 text-[9px] sm:text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider">
+                                            class="inline-flex max-w-max bg-slate-100 text-slate-600 text-[8px] sm:text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
                                             {{ $session->session_name }}
                                         </span>
+                                        @if($session->exam)
+                                        @if($session->user_status == 'completed')
+                                        <a href="{{ route('student.exam.result', $session->exam) }}"
+                                            class="group/exam inline-flex items-start gap-1.5 font-black text-indigo-700 hover:text-indigo-500 text-xs sm:text-sm max-w-[220px] sm:max-w-xs whitespace-normal leading-tight">
+                                            <span>{{ $session->exam->title }}</span>
+                                            <i
+                                                class="fas fa-arrow-up-right-from-square text-[10px] mt-1.5 opacity-50 group-hover/exam:opacity-100 shrink-0"></i>
+                                        </a>
+                                        @elseif($session->is_open && (!isset($session->pivot) || !
+                                        $session->pivot->is_locked))
+                                        <a href="{{ route('student.exam.verify.show', $session->exam) }}"
+                                            class="group/exam inline-flex items-start gap-1.5 font-black text-indigo-700 hover:text-indigo-500 text-xs sm:text-sm max-w-[220px] sm:max-w-xs whitespace-normal leading-tight">
+                                            <span>{{ $session->exam->title }}</span>
+                                            <i
+                                                class="fas fa-play text-[10px] mt-1.5 opacity-50 group-hover/exam:opacity-100 shrink-0"></i>
+                                        </a>
+                                        @else
                                         <span
-                                            class="font-black text-slate-800 text-sm sm:text-base max-w-[200px] sm:max-w-xs truncate whitespace-normal leading-tight">
-                                            {{ $session->exam?->title ?? 'Ujian Tidak Tersedia (Dihapus)' }}
+                                            class="font-black text-slate-800 text-xs sm:text-sm max-w-[220px] sm:max-w-xs whitespace-normal leading-tight">
+                                            {{ $session->exam->title }}
                                         </span>
+                                        @endif
+                                        @else
+                                        <span
+                                            class="font-black text-slate-400 text-xs sm:text-sm whitespace-normal leading-tight">
+                                            Ujian Tidak Tersedia (Dihapus)
+                                        </span>
+                                        @endif
                                     </div>
                                 </td>
 
                                 {{-- Kolom 2 --}}
-                                <td class="px-4 py-3 sm:px-6 sm:py-4">
-                                    <div class="flex flex-col gap-1 text-[11px] sm:text-xs">
+                                <td class="px-3 py-2.5 sm:px-4 sm:py-3 min-w-[145px]">
+                                    <div class="flex flex-col gap-0.5 text-[10px] sm:text-[11px]">
                                         <div class="flex items-center gap-2 text-emerald-600">
                                             <i class="fas fa-play-circle"></i>
                                             <span class="font-bold">{{
@@ -217,8 +249,8 @@
                                 </td>
 
                                 {{-- Kolom 3 --}}
-                                <td class="px-4 py-3 sm:px-6 sm:py-4">
-                                    <div class="flex flex-col gap-1 text-slate-500 text-[11px] sm:text-xs">
+                                <td class="px-3 py-2.5 sm:px-4 sm:py-3">
+                                    <div class="flex flex-col gap-0.5 text-slate-500 text-[10px] sm:text-[11px]">
                                         <span class="flex items-center gap-2">
                                             <i class="fas fa-stopwatch w-4 text-center"></i> {{
                                             $session->exam?->duration_minutes ?? 0 }} Menit
@@ -231,7 +263,7 @@
                                 </td>
 
                                 {{-- Kolom 4 --}}
-                                <td class="px-4 py-3 sm:px-6 sm:py-4 text-center">
+                                <td class="px-3 py-2.5 sm:px-4 sm:py-3 text-center">
                                     @if($session->user_status == 'completed')
                                     <span
                                         class="inline-flex bg-emerald-50 text-emerald-600 text-[9px] sm:text-[10px] font-black px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-emerald-100 items-center gap-1.5 uppercase">
@@ -262,7 +294,7 @@
                                 </td>
 
                                 {{-- Kolom 5 --}}
-                                <td class="px-4 py-3 sm:px-6 sm:py-4 text-center">
+                                <td class="px-3 py-2.5 sm:px-4 sm:py-3 text-center">
                                     @if($session->user_status == 'completed')
                                     <div
                                         class="inline-flex items-center justify-center min-w-[2.5rem] sm:min-w-[3rem] px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-900 text-white rounded-lg font-black text-xs sm:text-sm">
@@ -274,36 +306,42 @@
                                 </td>
 
                                 {{-- Kolom 6 --}}
-                                <td class="px-4 py-3 sm:px-6 sm:py-4 text-right">
-                                    @if($session->user_status == 'completed')
-                                    @if(isset($exam) ? $exam->show_explanation : $session->exam->show_explanation)
-                                    <a href="{{ route('student.exams.explanation', Hashids::encode($session->id)) }}"
-                                        class="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg sm:rounded-xl font-bold text-[11px] sm:text-xs transition-all border border-indigo-100 shadow-sm">
-                                        <i class="fas fa-lightbulb"></i> Pembahasan
-                                    </a>
-                                    @else
-                                    <span class="text-[11px] sm:text-xs text-slate-400 font-bold italic">Selesai
-                                        Dikerjakan</span>
-                                    @endif
+                                <td class="px-3 py-2.5 sm:px-4 sm:py-3 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        @if($session->user_status == 'completed')
+                                        <a href="{{ route('student.exam.result', $session->exam) }}" title="Lihat Hasil"
+                                            class="inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg sm:rounded-xl transition-all border border-emerald-100 shadow-sm focus:ring-2 focus:ring-emerald-200">
+                                            <i class="fas fa-chart-line text-sm sm:text-base"></i>
+                                        </a>
 
-                                    @elseif(isset($session->pivot) && $session->pivot->is_locked)
-                                    <button disabled
-                                        class="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-rose-50 text-rose-500 rounded-lg sm:rounded-xl font-bold text-[11px] sm:text-xs cursor-not-allowed border border-rose-200">
-                                        <i class="fas fa-ban"></i> Terblokir
-                                    </button>
+                                        @if(isset($exam) ? $exam->show_explanation : $session->exam->show_explanation)
+                                        <a href="{{ route('student.exams.explanation', Hashids::encode($session->id)) }}"
+                                            title="Lihat Pembahasan"
+                                            class="inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg sm:rounded-xl transition-all border border-indigo-100 shadow-sm focus:ring-2 focus:ring-indigo-200">
+                                            <i class="fas fa-lightbulb text-sm sm:text-base"></i>
+                                        </a>
+                                        @endif
 
-                                    @elseif($session->is_open)
-                                    <a href="{{ route('student.exam.verify.show', $session->exam) }}"
-                                        class="inline-flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg sm:rounded-xl font-black text-[11px] sm:text-xs transition-all shadow-md hover:shadow-lg active:scale-95">
-                                        <i class="fas fa-play"></i> Kerjakan
-                                    </a>
+                                        @elseif(isset($session->pivot) && $session->pivot->is_locked)
+                                        <button disabled title="Akses Terblokir"
+                                            class="inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 bg-rose-50 text-rose-400 rounded-lg sm:rounded-xl cursor-not-allowed border border-rose-100">
+                                            <i class="fas fa-ban text-sm sm:text-base"></i>
+                                        </button>
 
-                                    @else
-                                    <button disabled
-                                        class="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-100 text-slate-400 rounded-lg sm:rounded-xl font-bold text-[11px] sm:text-xs cursor-not-allowed">
-                                        <i class="fas fa-lock"></i> Ditutup
-                                    </button>
-                                    @endif
+                                        @elseif($session->is_open)
+                                        <a href="{{ route('student.exam.verify.show', $session->exam) }}"
+                                            title="Kerjakan Ujian"
+                                            class="inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg sm:rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95 focus:ring-2 focus:ring-indigo-300">
+                                            <i class="fas fa-play text-sm sm:text-base translate-x-[1px]"></i>
+                                        </a>
+
+                                        @else
+                                        <button disabled title="Ujian Ditutup"
+                                            class="inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 bg-slate-50 text-slate-400 rounded-lg sm:rounded-xl cursor-not-allowed border border-slate-200">
+                                            <i class="fas fa-lock text-sm sm:text-base"></i>
+                                        </button>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                             @empty

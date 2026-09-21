@@ -44,6 +44,7 @@
                             class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 border border-slate-200 px-3 py-1 rounded-full">
                             @if($q->type === 'single_choice') Pilihan Ganda
                             @elseif($q->type === 'complex_choice') PG Kompleks
+                            @elseif($q->type === 'tkp') TKP Berbobot
                             @elseif($q->type === 'true_false' || $q->type === 'true_false_multi') Benar / Salah
                             @elseif($q->type === 'matching') Menjodohkan
                             @elseif($q->type === 'essay') Isian Singkat
@@ -71,7 +72,7 @@
                     @endphp
 
                     {{-- 1. PREVIEW: PILIHAN GANDA & KOMPLEKS --}}
-                    @if(in_array($q->type, ['single_choice', 'complex_choice']))
+                    @if(in_array($q->type, ['single_choice', 'complex_choice', 'tkp']))
                     <div class="space-y-3 mb-8 pl-0 sm:pl-4 border-l-2 border-slate-100">
                         @foreach($q->options as $opt)
                         @php
@@ -86,7 +87,10 @@
                         $bgClass = 'bg-slate-50 border-slate-100 opacity-70';
                         $iconClass = 'fas fa-circle text-slate-300';
 
-                        if ($opt->is_correct) {
+                        if ($q->type === 'tkp') {
+                        $bgClass = 'bg-slate-50 border-slate-100';
+                        $iconClass = 'fas fa-weight-hanging text-indigo-400 text-lg';
+                        } elseif ($opt->is_correct) {
                         $bgClass = 'bg-emerald-50 border-emerald-400';
                         $iconClass = 'fas fa-check-circle text-emerald-500 text-xl';
                         } elseif ($isStudentAnswer && !$opt->is_correct) {
@@ -101,12 +105,18 @@
                                 class="flex-1 prose prose-sm max-w-none text-slate-700 overflow-x-auto __se__katex_container">
                                 {!! $opt->option_text !!}
                             </div>
+                            @if($q->type === 'tkp')
+                            <span class="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-black">
+                                Bobot {{ number_format((float) $opt->score_weight, 2) }}
+                            </span>
+                            @endif
 
                             @if($isStudentAnswer)
                             <div class="shrink-0 mt-0.5">
                                 <span
-                                    class="text-[10px] bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full font-black tracking-widest uppercase shadow-sm">Jawaban
-                                    Kamu</span>
+                                    class="text-[10px] bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full font-black tracking-widest uppercase shadow-sm">
+                                    {{ $q->type === 'tkp' ? 'Pilihan Kamu' : 'Jawaban Kamu' }}
+                                </span>
                             </div>
                             @endif
                         </div>
@@ -130,9 +140,17 @@
                                     @foreach($q->options as $opt)
                                     @php
                                     $studentOptAns = is_array($studentAns) ? ($studentAns[$opt->id] ?? null) : null;
-                                    $correctVal = $opt->is_correct ? 1 : 0;
                                     $isAnswered = $studentOptAns !== null;
-                                    $isCorrect = ($isAnswered && $studentOptAns == $correctVal);
+                                    $correctVal = $opt->is_correct ? 'benar' : 'salah';
+                                    $studentVal = is_bool($studentOptAns)
+                                        ? ($studentOptAns ? 'benar' : 'salah')
+                                        : strtolower(trim((string) $studentOptAns));
+                                    if (in_array($studentVal, ['1', 'true'], true)) {
+                                        $studentVal = 'benar';
+                                    } elseif (in_array($studentVal, ['0', 'false'], true)) {
+                                        $studentVal = 'salah';
+                                    }
+                                    $isCorrect = ($isAnswered && $studentVal === $correctVal);
                                     @endphp
                                     <tr class="hover:bg-slate-50 transition-colors">
                                         <td class="px-5 py-4 font-bold text-slate-700 __se__katex_container">
@@ -149,7 +167,7 @@
                                             <span
                                                 class="px-3 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase shadow-sm inline-flex items-center gap-1.5 {{ $isCorrect ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white' }}">
                                                 <i class="fas {{ $isCorrect ? 'fa-check' : 'fa-times' }}"></i>
-                                                {{ $studentOptAns ? 'BENAR' : 'SALAH' }}
+                                                {{ strtoupper($studentVal) }}
                                             </span>
                                             @else
                                             <span class="text-xs text-slate-400 italic font-bold">- Kosong -</span>
