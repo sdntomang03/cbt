@@ -182,6 +182,7 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         Route::post('/sessions/{exam_session}/force-finish/{student}', [ProctorController::class, 'forceFinish'])->name('force-finish');
         Route::post('/sessions/{exam_session}/reset/{student}', [ProctorController::class, 'reset'])->name('reset');
         Route::get('/sessions/{exam_session}/export-analysis', [ProctorController::class, 'exportAnalysis'])->name('sessions.export-analysis');
+        Route::get('/sessions/{exam_session}/export-json', [ProctorController::class, 'exportJson'])->name('sessions.export-json');
         Route::get('/sessions/{examSession}/analysis/{student}', [ProctorController::class, 'showStudentAnalysis'])
             ->name('sessions.student-analysis');
     });
@@ -247,6 +248,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:guru|admin'])-
 
     Route::get('/exams/{exam}/analysis/{session}/export', [ItemAnalysisController::class, 'export'])
         ->name('analysis.export');
+    Route::post('/exams/{exam}/analysis/{session}/conclusion', [ItemAnalysisController::class, 'conclusion'])
+        ->name('analysis.conclusion');
     Route::post('/upload-image', [SoalController::class, 'uploadImage'])->name('soal.upload-image');
 });
 

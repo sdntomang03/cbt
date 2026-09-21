@@ -119,9 +119,15 @@
                             <span>Analisis</span>
                         </a>
 
-                        <button @click="copyJSON"
-                            class="bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200/50 px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap active:scale-95 w-full sm:w-auto">
-                            <i class="fas fa-copy text-[10px]"></i>
+                        <a href="{{ route('admin.analysis.show', [$examSession->exam, $examSession]) }}"
+                            class="bg-purple-700 hover:bg-purple-800 text-white shadow-md shadow-purple-200/50 px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap active:scale-95 w-full sm:w-auto">
+                            <i class="fas fa-chart-bar text-[10px]"></i>
+                            <span>Grafik Analisis</span>
+                        </a>
+
+                        <button @click="openJsonModal"
+                            class="bg-sky-600 hover:bg-sky-700 text-white shadow-md shadow-sky-200/50 px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap active:scale-95 w-full sm:w-auto">
+                            <i class="fas fa-file-code text-[10px]"></i>
                             <span>JSON</span>
                         </button>
                     </div>
@@ -248,6 +254,35 @@
         </div>
     </div>
 
+    <div x-show="jsonModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+        @keydown.escape.window="jsonModalOpen = false">
+        <div class="w-full max-w-2xl rounded-2xl bg-white shadow-2xl overflow-hidden" @click.outside="jsonModalOpen = false">
+            <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+                <div>
+                    <h3 class="font-black text-slate-800">JSON Nilai Peserta</h3>
+                    <p class="text-xs text-slate-500 mt-1">Format siap disalin ke sistem lain.</p>
+                </div>
+                <button type="button" @click="jsonModalOpen = false" class="text-slate-400 hover:text-slate-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-5">
+                <textarea x-model="jsonText" readonly rows="14"
+                    class="w-full rounded-xl border border-slate-200 bg-slate-950 p-4 font-mono text-xs text-emerald-300 focus:ring-0"></textarea>
+                <div class="mt-4 flex justify-end gap-2">
+                    <button type="button" @click="jsonModalOpen = false"
+                        class="rounded-lg border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600">
+                        Tutup
+                    </button>
+                    <button type="button" @click="copyJsonText"
+                        class="rounded-lg bg-sky-600 px-4 py-2 text-xs font-bold text-white hover:bg-sky-700">
+                        <i class="fas fa-copy mr-1"></i> Copy JSON
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         function proctorMonitor() {
             return {
@@ -256,6 +291,8 @@
                 students: @json($students),
                 isAutoUpdate: true,
                 interval: null,
+                jsonModalOpen: false,
+                jsonText: '[]',
 
                 init() {
                     this.startInterval();
@@ -285,32 +322,29 @@
                     this.isAutoUpdate = !this.isAutoUpdate;
                 },
 
-                copyJSON() {
-    // Map data dari siswa yang sedang terfilter (mendukung filter per sekolah)
-    const dataToCopy = this.filteredStudents.map(student => {
-        return {
-            nisn: student.username, // Username disimpan menjadi nisn
-            nilai: student.pivot.status === 'completed' ? (student.pivot.final_score ?? 0) : 0 // Default 0 jika belum selesai
-        };
-    });
+                openJsonModal() {
+                    this.jsonText = JSON.stringify(this.filteredStudents.map(student => ({
+                        nisn: student.username,
+                        nilai: student.pivot.status === 'completed'
+                            ? Number(student.pivot.final_score ?? 0)
+                            : 0
+                    })), null, 2);
+                    this.jsonModalOpen = true;
+                },
 
-    // Ubah format data menjadi string JSON (indentasi 2 spasi agar rapi)
-    const jsonString = JSON.stringify(dataToCopy, null, 2);
-
-    // Salin ke Clipboard
-    navigator.clipboard.writeText(jsonString).then(() => {
-        Swal.fire({
-            icon: 'success',
-            title: 'Berhasil Disalin!',
-            text: 'Data JSON siap di-paste ke website Siakad.',
-            timer: 2000,
-            showConfirmButton: false
-        });
-    }).catch(err => {
-        console.error("Gagal menyalin text: ", err);
-        Swal.fire('Gagal', 'Terjadi kesalahan saat menyalin data ke clipboard.', 'error');
-    });
-},
+                copyJsonText() {
+                    navigator.clipboard.writeText(this.jsonText).then(() => {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'JSON disalin',
+                            text: 'Data JSON berhasil disalin ke clipboard.',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    }).catch(() => {
+                        Swal.fire('Gagal', 'Browser tidak mengizinkan penyalinan otomatis.', 'error');
+                    });
+                },
 
                 fetchData() {
                     axios.get(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })

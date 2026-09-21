@@ -21,6 +21,10 @@
                 class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-200 transition active:scale-95 flex items-center justify-center gap-2">
                 <i class="fas fa-file-export"></i> Export JSON
             </a>
+            <button type="button" onclick="requestConclusion()"
+                class="bg-violet-600 hover:bg-violet-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-violet-200 transition active:scale-95 flex items-center justify-center gap-2">
+                <i class="fas fa-robot"></i> Kesimpulan AI
+            </button>
         </div>
     </x-slot>
 
@@ -120,11 +124,51 @@
                         :class="activeTab === 'dist' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-700'">
                         <i class="fas fa-chart-pie mr-2"></i> Efektivitas Distraktor
                     </button>
+                    <button @click="activeTab = 'chart'"
+                        class="pb-3 text-sm font-black whitespace-nowrap transition-colors border-b-2"
+                        :class="activeTab === 'chart' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-700'">
+                        <i class="fas fa-chart-bar mr-2"></i> Grafik Dinamis
+                    </button>
                     <button @click="activeTab = 'ref'"
                         class="pb-3 text-sm font-black whitespace-nowrap transition-colors border-b-2"
                         :class="activeTab === 'ref' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-700'">
                         <i class="fas fa-info-circle mr-2"></i> Keterangan Kriteria
                     </button>
+                </div>
+
+                <div x-show="activeTab === 'chart'" x-cloak class="space-y-5">
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
+                            <div>
+                                <h3 class="font-black text-slate-800">Grafik Analisis Semua Butir</h3>
+                                <p class="text-xs text-slate-500 mt-1">Pilih beberapa soal untuk membandingkan indeksnya.</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="button" onclick="selectChartItems(true)" class="text-xs font-bold text-indigo-600">Pilih Semua</button>
+                                <button type="button" onclick="selectChartItems(false)" class="text-xs font-bold text-slate-500">Kosongkan</button>
+                                <button type="button" id="aiConclusionButton" onclick="requestConclusion()"
+                                    class="px-3 py-2 rounded-lg bg-violet-600 text-white text-xs font-bold">
+                                    <i class="fas fa-robot mr-1"></i> Kesimpulan AI
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 mb-5 max-h-32 overflow-y-auto">
+                            @foreach($items as $i => $item)
+                            <label class="text-xs font-bold text-slate-600 flex items-center gap-1">
+                                <input type="checkbox" class="chart-item rounded text-indigo-600" value="{{ $item['id'] }}" checked onchange="renderItemChart()">
+                                Soal {{ $i + 1 }}
+                            </label>
+                            @endforeach
+                        </div>
+                        <div class="relative h-[360px]">
+                            <canvas id="itemAnalysisChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="aiConclusion" class="hidden mb-6 bg-violet-50 border border-violet-200 rounded-2xl p-5">
+                    <div class="text-xs font-black uppercase tracking-wider text-violet-700 mb-2">Kesimpulan DeepSeek</div>
+                    <div id="aiConclusionContent" class="prose prose-sm max-w-none text-slate-700"></div>
                 </div>
 
                 {{-- TAB 1: TABEL UTAMA --}}
@@ -388,4 +432,69 @@
 
                 </div>
             </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+const analysisItems = @json($items);
+let itemChart = null;
+
+function selectChartItems(selected) {
+    document.querySelectorAll('.chart-item').forEach(input => input.checked = selected);
+    renderItemChart();
+}
+
+function renderItemChart() {
+    const selectedIds = [...document.querySelectorAll('.chart-item:checked')].map(input => String(input.value));
+    const selected = analysisItems.filter(item => selectedIds.includes(String(item.id)));
+    const canvas = document.getElementById('itemAnalysisChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    if (itemChart) itemChart.destroy();
+    itemChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: selected.map(item => 'Soal ' + item.number),
+            datasets: [
+                { label: 'Kesukaran (P)', data: selected.map(item => item.tk), backgroundColor: '#38bdf8' },
+                { label: 'Daya Beda (D)', data: selected.map(item => item.db), backgroundColor: '#818cf8' },
+                { label: 'Validitas (r)', data: selected.map(item => item.validity), backgroundColor: '#34d399' }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { min: -1, max: 1, title: { display: true, text: 'Indeks' } } },
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+}
+
+async function requestConclusion() {
+    const button = document.getElementById('aiConclusionButton');
+    const box = document.getElementById('aiConclusion');
+    const content = document.getElementById('aiConclusionContent');
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menganalisis...';
+    try {
+        const response = await fetch('{{ route('admin.analysis.conclusion', [$exam, $session]) }}', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            }
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Gagal mengambil kesimpulan.');
+        content.innerHTML = data.content;
+        box.classList.remove('hidden');
+    } catch (error) {
+        content.textContent = error.message;
+        box.classList.remove('hidden');
+    } finally {
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-robot mr-1"></i> Kesimpulan AI';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', renderItemChart);
+</script>
 </x-app-layout>

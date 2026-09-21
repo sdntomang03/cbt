@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             LevelSeeder::class,
             QuestionSeeder::class,
             AcademicSeeder::class,
+            ExamParticipantSeeder::class,
             RolePermissionSeeder::class,
         ]);
     }

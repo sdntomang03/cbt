@@ -14,15 +14,17 @@ class ItemAnalysisService
     public function analyze(int $examId, int $sessionId): array
     {
         // 1. Ambil semua jawaban siswa dalam sesi ini
-        $answers = StudentAnswer::whereHas('attempt', fn ($query) => $query->where('exam_session_id', $sessionId))
-            ->with(['attempt', 'question.options', 'question.matches'])
+        $answers = StudentAnswer::whereHas('attempt', fn ($query) => $query
+            ->where('exam_session_id', $sessionId)
+            ->where('status', 'completed'))
+            ->with(['attempt', 'question.options', 'question.matches', 'question.section.scoringProfile'])
             ->get();
 
         if ($answers->isEmpty()) {
             return ['error' => 'Belum ada jawaban yang masuk pada sesi ini.'];
         }
 
-        // 2. Kelompokkan per siswa → ambil skor dari DB
+        // 2. Kelompokkan per siswa dan normalisasi skor terhadap skor maksimum butir.
         $studentScores = $this->buildStudentScoreMatrix($answers);
 
         if (count($studentScores) < 2) {
@@ -31,7 +33,7 @@ class ItemAnalysisService
 
         // 3. Ambil semua soal
         $questions = Exam::find($examId)->questions()
-            ->with(['options', 'matches'])
+            ->with(['options', 'matches', 'section.scoringProfile'])
             ->get();
 
         $totalStudents = count($studentScores);
@@ -39,8 +41,8 @@ class ItemAnalysisService
 
         // 4. Hitung per butir soal
         $items = [];
-        foreach ($questions as $q) {
-            $items[] = $this->analyzeItem($q, $studentScores, $studentIds, $totalStudents, $sessionId);
+        foreach ($questions as $index => $q) {
+            $items[] = $this->analyzeItem($q, $studentScores, $studentIds, $totalStudents, $sessionId, $index + 1);
         }
 
         // 5. Reliabilitas Cronbach Alpha (seluruh soal)
@@ -78,10 +80,13 @@ class ItemAnalysisService
 
             // PERBAIKAN FATAL: Langsung ambil skor dari Database,
             // Jangan dihitung ulang agar mendukung nilai Essay atau nilai override manual dari guru.
-            $matrix[$uid]['items'][$q->id] = (float) $ans->score;
+            $maximum = $this->itemMaximum($q);
+            $matrix[$uid]['items'][$q->id] = $maximum > 0
+                ? min(1, max(0, (float) $ans->score / $maximum))
+                : 0.0;
         }
 
-        // Hitung total skor per siswa (hanya dari butir soal yang dianalisis)
+        // Total berupa proporsi skor agar soal berbobot tidak mendominasi analisis.
         foreach ($matrix as $uid => &$data) {
             $data['total'] = array_sum($data['items']);
         }
@@ -93,7 +98,7 @@ class ItemAnalysisService
     // PRIVATE: Analisis Per Butir
     // =========================================================================
 
-    private function analyzeItem($q, array $studentScores, array $studentIds, int $N, int $sessionId): array
+    private function analyzeItem($q, array $studentScores, array $studentIds, int $N, int $sessionId, int $number): array
     {
         // Kumpulkan skor item per siswa
         $itemScores = [];
@@ -118,7 +123,7 @@ class ItemAnalysisService
 
         return [
             'id' => $q->id,
-            'number' => $q->id,
+            'number' => $number,
             'content' => strip_tags($q->content),
             'type' => $q->type,
             'tk' => round($tk, 4),
@@ -127,8 +132,24 @@ class ItemAnalysisService
             'db_label' => $this->dbLabel($db),
             'validity' => round($validity, 4),
             'valid' => $validity >= 0.3, // Ambang batas r hitung umum (0.3)
+            'answered' => $N,
+            'average_score' => round(array_sum($itemScores) / max(1, $N) * 100, 2),
             'distractors' => $distractors,
         ];
+    }
+
+    private function itemMaximum($question): float
+    {
+        $profile = $question->section?->scoringProfile;
+        $rules = $profile?->rules ?? [];
+
+        if ($question->type === 'tkp') {
+            return max(0.0, (float) $question->options->max(
+                fn ($option) => (float) ($option->score_weight ?? 0)
+            ));
+        }
+
+        return max(0.0, (float) ($rules['correct'] ?? 1));
     }
 
     // =========================================================================
@@ -168,11 +189,11 @@ class ItemAnalysisService
         }
 
         $X = []; // skor item
-        $Y = []; // skor total
+        $Y = []; // skor total tanpa butir yang sedang diuji
 
         foreach ($studentIds as $uid) {
             $X[] = $itemScores[$uid] ?? 0;
-            $Y[] = $studentScores[$uid]['total'];
+            $Y[] = $studentScores[$uid]['total'] - ($itemScores[$uid] ?? 0);
         }
 
         $sumX = array_sum($X);

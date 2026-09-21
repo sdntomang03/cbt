@@ -397,6 +397,62 @@ class ProctorController extends Controller
         return Excel::download(new ButirSoalExport($examSession->id), $fileName);
     }
 
+    public function exportJson(ExamSession $examSession)
+    {
+        $user = auth()->user();
+        if (! $user->hasRole('admin') && $examSession->exam->teacher_id !== $user->id
+            && ! $examSession->exam->invitedTeachers()->where('user_id', $user->id)->exists()) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $attempts = ExamAttempt::with(['user:id,name,username', 'answers.question:id,content,type'])
+            ->where('exam_session_id', $examSession->id)
+            ->orderBy('user_id')
+            ->get()
+            ->map(fn ($attempt) => [
+                'attempt_id' => $attempt->id,
+                'student' => [
+                    'id' => $attempt->user_id,
+                    'name' => $attempt->user?->name,
+                    'username' => $attempt->user?->username,
+                ],
+                'status' => $attempt->status,
+                'started_at' => $attempt->started_at?->toISOString(),
+                'finished_at' => $attempt->finished_at?->toISOString(),
+                'raw_score' => (float) $attempt->raw_score,
+                'final_score' => (float) $attempt->final_score,
+                'violation_count' => $attempt->violation_count,
+                'answers' => $attempt->answers->map(fn ($answer) => [
+                    'question_id' => $answer->question_id,
+                    'question_type' => $answer->question?->type,
+                    'answer' => $answer->answer,
+                    'score' => (float) $answer->score,
+                    'is_doubtful' => (bool) $answer->is_doubtful,
+                ])->values()->all(),
+            ])->values()->all();
+
+        $payload = [
+            'exam' => [
+                'id' => $examSession->exam->id,
+                'title' => $examSession->exam->title,
+            ],
+            'session' => [
+                'id' => $examSession->id,
+                'name' => $examSession->session_name,
+                'start_time' => $examSession->start_time?->toISOString(),
+                'end_time' => $examSession->end_time?->toISOString(),
+            ],
+            'exported_at' => now()->toISOString(),
+            'participants' => $attempts,
+        ];
+
+        return response()->streamDownload(function () use ($payload) {
+            echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }, 'nilai_ujian_'.Str::slug($examSession->exam->title).'_'.now()->format('Ymd_His').'.json', [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ]);
+    }
+
     /**
      * Menampilkan halaman analisis jawaban siswa secara detail.
      */
