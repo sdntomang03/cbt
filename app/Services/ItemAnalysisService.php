@@ -131,7 +131,9 @@ class ItemAnalysisService
             'db' => round($db, 4),
             'db_label' => $this->dbLabel($db),
             'validity' => round($validity, 4),
-            'valid' => $validity >= 0.3, // Ambang batas r hitung umum (0.3)
+            'validity_label' => $this->validityLabel($validity),
+            'valid' => $validity >= 0.30,
+            'recommendation' => $this->recommendation($tk, $db, $validity),
             'answered' => $N,
             'average_score' => round(array_sum($itemScores) / max(1, $N) * 100, 2),
             'distractors' => $distractors,
@@ -348,19 +350,52 @@ class ItemAnalysisService
         return 'Sangat Jelek (Revisi/Buang)'; // Daya beda negatif sangat fatal
     }
 
+    private function validityLabel(float $validity): string
+    {
+        if ($validity >= 0.40) {
+            return 'Sangat Baik';
+        }
+        if ($validity >= 0.30) {
+            return 'Baik';
+        }
+        if ($validity >= 0.20) {
+            return 'Cukup (Revisi)';
+        }
+
+        return 'Tidak Valid';
+    }
+
+    private function recommendation(float $tk, float $db, float $validity): string
+    {
+        if ($db < 0 || $validity < 0.20) {
+            return 'Buang atau telaah kunci dan konstruksi soal';
+        }
+        if ($db < 0.20 || $validity < 0.30 || $tk < 0.20 || $tk > 0.90) {
+            return 'Revisi';
+        }
+
+        return 'Pertahankan';
+    }
+
     private function alphaLabel(float $alpha): string
     {
         if ($alpha >= 0.90) {
             return 'Sangat Tinggi';
         }
-        if ($alpha >= 0.70) {
+        if ($alpha >= 0.80) {
             return 'Tinggi';
         }
+        if ($alpha >= 0.70) {
+            return 'Dapat Diterima';
+        }
+        if ($alpha >= 0.60) {
+            return 'Perlu Ditinjau';
+        }
         if ($alpha >= 0.50) {
-            return 'Cukup';
+            return 'Rendah';
         }
 
-        return 'Rendah';
+        return 'Sangat Rendah';
     }
 
     private function buildSummary(array $items, float $alpha, int $N): array

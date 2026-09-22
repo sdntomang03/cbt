@@ -252,7 +252,6 @@
                 </div>
             </div>
         </div>
-    </div>
 
     <div x-show="jsonModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
         @keydown.escape.window="jsonModalOpen = false">
@@ -281,6 +280,7 @@
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <script>

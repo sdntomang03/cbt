@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\AttemptScoringService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class ExamParticipantSeeder extends Seeder
 {
@@ -37,8 +38,35 @@ class ExamParticipantSeeder extends Seeder
         $students = User::role('siswa')
             ->where('school_id', $session->school_id)
             ->orderBy('id')
-            ->limit(10)
+            ->limit(25)
             ->get();
+
+        if ($students->count() < 25) {
+            $studentRole = \Spatie\Permission\Models\Role::firstOrCreate([
+                'name' => 'siswa',
+                'guard_name' => 'web',
+            ]);
+
+            for ($number = $students->count() + 1; $number <= 25; $number++) {
+                $student = User::firstOrCreate(
+                    ['username' => 'analisis_siswa_'.$number],
+                    [
+                        'name' => 'Peserta Analisis '.$number,
+                        'email' => 'analisis.siswa'.$number.'@cbt.local',
+                        'school_id' => $session->school_id,
+                        'password' => Hash::make('password'),
+                        'email_verified_at' => now(),
+                    ]
+                );
+                $student->assignRole($studentRole);
+            }
+
+            $students = User::role('siswa')
+                ->where('school_id', $session->school_id)
+                ->orderBy('id')
+                ->limit(25)
+                ->get();
+        }
 
         if ($students->isEmpty()) {
             $this->command->warn('ExamParticipantSeeder dilewati: siswa pada sekolah yang sama tidak ditemukan.');
@@ -57,8 +85,15 @@ class ExamParticipantSeeder extends Seeder
 
         $scoring = app(AttemptScoringService::class);
 
-        DB::transaction(function () use ($students, $session, $questions, $scoring): void {
+        $abilities = collect(range(0, 24))
+            ->map(fn (int $index): float => 0.25 + ($index * 0.03))
+            ->shuffle()
+            ->values()
+            ->all();
+
+        DB::transaction(function () use ($students, $session, $questions, $scoring, $abilities): void {
             foreach ($students as $studentIndex => $student) {
+                $ability = $abilities[$studentIndex] ?? 0.60;
                 $attempt = ExamAttempt::updateOrCreate(
                     [
                         'exam_session_id' => $session->id,
@@ -83,7 +118,7 @@ class ExamParticipantSeeder extends Seeder
                         'exam_attempt_id' => $attempt->id,
                         'question_id' => $question->id,
                         'school_id' => $student->school_id,
-                        'answer' => $this->answerFor($question, $studentIndex, $questionIndex),
+                        'answer' => $this->answerFor($question, $studentIndex, $questionIndex, $ability),
                         'score' => 0,
                         'is_doubtful' => ($studentIndex + $questionIndex) % 5 === 0,
                     ]);
@@ -96,7 +131,7 @@ class ExamParticipantSeeder extends Seeder
         $this->command->info('Seed peserta dan jawaban analisis berhasil dibuat untuk '.$students->count().' siswa.');
     }
 
-    private function answerFor($question, int $studentIndex, int $questionIndex): mixed
+    private function answerFor($question, int $studentIndex, int $questionIndex, float $ability): mixed
     {
         $options = $question->options;
 
@@ -116,8 +151,8 @@ class ExamParticipantSeeder extends Seeder
             $baseProb = $questionIndex < 3 ? 0.75 : ($questionIndex < 7 ? 0.6 : 0.4);
         }
 
-        // Per-student skill variation (-0.15 .. +0.15)
-        $skillOffset = ((($studentIndex % 7) - 3) / 20); // -0.15..+0.15
+        // Kemampuan peserta dibuat bervariasi dari rendah sampai tinggi.
+        $skillOffset = $ability - 0.60;
         $pCorrect = max(0.05, min(0.95, $baseProb + $skillOffset));
 
         // Random draw
