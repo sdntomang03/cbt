@@ -37,6 +37,7 @@ class UsersImport implements ToCollection, WithHeadingRow
                 // Pastikan mengecek jika ada kolom password di Excel, jika tidak fallback ke password default
                 'password' => ! empty($row['password']) ? bcrypt($row['password']) : bcrypt('password123'),
                 'school_id' => $realSchoolId,
+                'keterangan' => ! empty($row['keterangan']) ? trim($row['keterangan']) : null,
                 'email_verified_at' => now(),
             ]);
 

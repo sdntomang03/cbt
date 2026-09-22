@@ -148,7 +148,15 @@ class ClassroomController extends Controller
             ->orderBy('name', 'asc')
             ->get();
 
-        return view('admin.classrooms.students', compact('classroom', 'unassignedStudents'));
+        $studentKeterangan = User::where('school_id', $schoolId)
+            ->role('siswa')
+            ->whereNotNull('keterangan')
+            ->where('keterangan', '<>', '')
+            ->distinct()
+            ->orderBy('keterangan')
+            ->pluck('keterangan');
+
+        return view('admin.classrooms.students', compact('classroom', 'unassignedStudents', 'studentKeterangan'));
     }
 
     public function syncStudents(Request $request, Classroom $classroom)
