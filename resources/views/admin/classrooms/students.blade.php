@@ -95,6 +95,8 @@
                             </th>
                             <th class="py-4 px-6 text-xs font-black text-slate-500 uppercase tracking-widest">Username /
                                 Email</th>
+                            <th class="py-4 px-6 text-xs font-black text-slate-500 uppercase tracking-widest">Keterangan
+                            </th>
                             <th
                                 class="py-4 px-6 text-xs font-black text-slate-500 uppercase tracking-widest text-center w-32">
                                 Aksi</th>
@@ -107,6 +109,7 @@
                             <td class="py-4 px-6 font-black text-slate-800">{{ $student->name }}</td>
                             <td class="py-4 px-6 font-bold text-slate-500">{{ $student->username ?? $student->email }}
                             </td>
+                            <td class="py-4 px-6 text-xs font-bold text-slate-500">{{ $student->keterangan ?? '-' }}</td>
                             <td class="py-4 px-6 text-center">
                                 <form
                                     action="{{ route('admin.classrooms.detach-student', ['classroom' => $classroom->id, 'student' => $student->id]) }}"
@@ -123,7 +126,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="4" class="py-12 text-center text-slate-500 font-bold">
+                            <td colspan="5" class="py-12 text-center text-slate-500 font-bold">
                                 <i class="fas fa-users-slash text-3xl mb-3 text-slate-300 block"></i>
                                 Belum ada siswa di kelas ini.
                             </td>
@@ -175,8 +178,17 @@
                             </div>
                             @else
                             <div class="mb-4 shrink-0">
-                                <input type="text" id="searchInput" placeholder="Cari nama siswa..."
-                                    class="block w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700 shadow-sm text-sm">
+                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <input type="text" id="searchInput" placeholder="Cari nama siswa atau username..."
+                                        class="block w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700 shadow-sm text-sm">
+                                    <select id="keteranganFilter"
+                                        class="block w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700 shadow-sm text-sm">
+                                        <option value="">Semua keterangan</option>
+                                        @foreach($studentKeterangan as $keterangan)
+                                        <option value="{{ strtolower($keterangan) }}">{{ $keterangan }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
                             {{-- Tabel di dalam modal dibuat flex-1 agar merespons sisa layar --}}
                             <div class="flex-1 overflow-y-auto custom-scrollbar border border-slate-100 rounded-xl">
@@ -193,11 +205,17 @@
                                             <th
                                                 class="py-3 px-4 text-xs font-black text-slate-500 uppercase tracking-widest">
                                                 Username</th>
+                                            <th
+                                                class="py-3 px-4 text-xs font-black text-slate-500 uppercase tracking-widest">
+                                                Keterangan</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-100">
                                         @foreach($unassignedStudents as $student)
                                         <tr class="hover:bg-indigo-50/50 transition cursor-pointer student-row"
+                                            data-name="{{ strtolower($student->name) }}"
+                                            data-username="{{ strtolower($student->username) }}"
+                                            data-keterangan="{{ strtolower($student->keterangan ?? '') }}"
                                             onclick="toggleCheckbox('checkbox-{{ $student->id }}')">
                                             <td class="py-3 px-4 text-center">
                                                 <input type="checkbox" name="student_ids[]" value="{{ $student->id }}"
@@ -208,6 +226,7 @@
                                                 $student->name }}</td>
                                             <td class="py-3 px-4 font-bold text-slate-500 text-xs">{{ $student->username
                                                 }}</td>
+                                            <td class="py-3 px-4 text-xs font-bold text-slate-500">{{ $student->keterangan ?? '-' }}</td>
                                         </tr>
                                         @endforeach
                                     </tbody>
@@ -281,20 +300,25 @@
 
             // Logika Search/Filter
             const searchInput = document.getElementById('searchInput');
-            if(searchInput) {
-                searchInput.addEventListener('keyup', function() {
-                    const filter = this.value.toLowerCase();
-                    const rows = document.querySelectorAll('.student-row');
+            const keteranganFilter = document.getElementById('keteranganFilter');
 
-                    rows.forEach(row => {
-                        const name = row.querySelector('.student-name').textContent.toLowerCase();
-                        if (name.includes(filter)) {
-                            row.style.display = '';
-                        } else {
-                            row.style.display = 'none';
-                        }
-                    });
+            function filterStudents() {
+                const search = (searchInput?.value || '').toLowerCase();
+                const keterangan = (keteranganFilter?.value || '').toLowerCase();
+
+                document.querySelectorAll('.student-row').forEach(row => {
+                    const matchesSearch = row.dataset.name.includes(search)
+                        || row.dataset.username.includes(search);
+                    const matchesKeterangan = !keterangan || row.dataset.keterangan === keterangan;
+                    row.style.display = matchesSearch && matchesKeterangan ? '' : 'none';
                 });
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('input', filterStudents);
+            }
+            if (keteranganFilter) {
+                keteranganFilter.addEventListener('change', filterStudents);
             }
         });
     </script>

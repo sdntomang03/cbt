@@ -40,6 +40,7 @@ class UsersExport implements FromQuery, WithHeadings, WithMapping
             'Username/NISN',
             'Email',
             'Sekolah',
+            'Keterangan',
             'Role',
         ];
     }
@@ -55,6 +56,7 @@ class UsersExport implements FromQuery, WithHeadings, WithMapping
             $user->username,
             $user->email ?? '-',
             $user->school ? $user->school->name : '-',
+            $user->keterangan ?? '-',
             strtoupper($roleName),
         ];
     }

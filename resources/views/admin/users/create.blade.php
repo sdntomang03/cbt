@@ -46,6 +46,14 @@
                     @endif
                 </div>
 
+                <div>
+                    <label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Keterangan</label>
+                    <input type="text" name="keterangan" value="{{ old('keterangan') }}"
+                        placeholder="Contoh: Kelas 7A, Reguler, atau Beasiswa"
+                        class="w-full bg-slate-50 border-transparent focus:border-indigo-500 focus:bg-white focus:ring-0 rounded-xl font-bold text-slate-700 py-3 px-4">
+                    @error('keterangan') <p class="text-rose-500 text-xs font-bold mt-1">{{ $message }}</p> @enderror
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label

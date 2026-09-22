@@ -26,6 +26,7 @@ class UsersTemplateExport implements FromArray, ShouldAutoSize, WithHeadings
             'password',
             'role',
             'school_id',
+            'keterangan',
         ];
     }
 
@@ -43,7 +44,7 @@ class UsersTemplateExport implements FromArray, ShouldAutoSize, WithHeadings
                 '12345678',
                 'siswa',
                 $hashedSchoolId,
-                'COPY PASTE DATA KODE SEKOLAH INI KE BARIS-BARIS SELANJUTNYA JIKA INGIN IMPORT KE SEKOLAH YANG SAMA',
+                'Kelas 7A',
             ],
             [
                 'Siti Aminah',
@@ -52,6 +53,7 @@ class UsersTemplateExport implements FromArray, ShouldAutoSize, WithHeadings
                 '12345678',
                 'guru',
                 $hashedSchoolId,
+                'Guru Mata Pelajaran',
             ],
         ];
     }

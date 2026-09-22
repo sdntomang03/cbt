@@ -155,6 +155,7 @@
                             <th class="px-6 py-4">Nama & Email</th>
                             <th class="px-6 py-4">Username</th>
                             <th class="px-6 py-4">Nama Sekolah</th>
+                            <th class="px-6 py-4">Keterangan</th>
                             <th class="px-6 py-4 text-center">Peran (Role)</th>
                             <th class="px-6 py-4 text-right">Aksi</th>
                         </tr>
@@ -176,6 +177,12 @@
                             </td>
                             <td class="px-6 py-4">
                                 <div class="text-xs text-slate-500">{{ $user->school->name ?? '-' }}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex max-w-48 truncate rounded-lg bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600"
+                                    title="{{ $user->keterangan ?? '-' }}">
+                                    {{ $user->keterangan ?? '-' }}
+                                </span>
                             </td>
 
                             {{-- KOLOM ROLE (DROPDOWN AJAX) --}}
