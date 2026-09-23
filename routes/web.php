@@ -242,6 +242,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:guru|admin'])-
     // Analisis Butir Soal
     Route::get('/exams/{exam}/analysis', [ItemAnalysisController::class, 'index'])
         ->name('analysis.index');
+    Route::get('/exams/{exam}/analysis/combined', [ItemAnalysisController::class, 'combined'])
+        ->name('analysis.combined');
+    Route::get('/exams/{exam}/analysis/combined/export', [ItemAnalysisController::class, 'combinedExport'])
+        ->name('analysis.combined.export');
+    Route::post('/exams/{exam}/analysis/combined/conclusion', [ItemAnalysisController::class, 'combinedConclusion'])
+        ->name('analysis.combined.conclusion');
 
     Route::get('/exams/{exam}/analysis/{session}', [ItemAnalysisController::class, 'show'])
         ->name('analysis.show');

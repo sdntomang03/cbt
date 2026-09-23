@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\ExamSession;
+use App\Models\ItemAnalysisConclusion;
 use App\Services\ItemAnalysisService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -50,6 +51,42 @@ class ItemAnalysisController extends Controller
             'alpha' => $result['alpha'],
             'summary' => $result['summary'],
             'total_students' => $result['total_students'],
+            'analysisRoute' => route('admin.analysis.export', [$exam, $session]),
+            'conclusionRoute' => route('admin.analysis.conclusion', [$exam, $session]),
+            'analysisScope' => 'Sesi: '.($session->session_name ?? $session->start_time?->format('d M Y')),
+            'conclusion' => ItemAnalysisConclusion::where('exam_id', $exam->id)
+                ->where('exam_session_id', $session->id)
+                ->first(),
+        ]);
+    }
+
+    public function combined(Request $request, Exam $exam)
+    {
+        $sessionIds = $this->validatedSessionIds($request, $exam);
+        $result = $this->service->analyze($exam->id, $sessionIds);
+
+        if (isset($result['error'])) {
+            return back()->with('error', $result['error']);
+        }
+
+        $sessionIds = $result['session_ids'];
+        $conclusion = ItemAnalysisConclusion::where('exam_id', $exam->id)
+            ->whereNull('exam_session_id')
+            ->get()
+            ->first(fn ($item) => $this->sameSessionIds($item->session_ids, $sessionIds));
+
+        return view('admin.analysis.show', [
+            'exam' => $exam,
+            'session' => null,
+            'items' => $result['items'],
+            'alpha' => $result['alpha'],
+            'summary' => $result['summary'],
+            'total_students' => $result['total_students'],
+            'analysisRoute' => route('admin.analysis.combined.export', $exam).'?'.http_build_query(['session_ids' => $sessionIds]),
+            'conclusionRoute' => route('admin.analysis.combined.conclusion', $exam),
+            'analysisScope' => 'Gabungan '.count($sessionIds).' sesi terpilih',
+            'selectedSessionIds' => $sessionIds,
+            'conclusion' => $conclusion,
         ]);
     }
 
@@ -65,13 +102,42 @@ class ItemAnalysisController extends Controller
         return response()->json($result);
     }
 
+    public function combinedExport(Request $request, Exam $exam)
+    {
+        return response()->json($this->service->analyze($exam->id, $this->validatedSessionIds($request, $exam)));
+    }
+
     public function conclusion(Request $request, Exam $exam, ExamSession $session)
     {
         abort_if($session->exam_id !== $exam->id, 404);
 
-        $result = $this->service->analyze($exam->id, $session->id);
+        return $this->generateConclusion($request, $exam, [$session->id], $session->id);
+    }
+
+    public function combinedConclusion(Request $request, Exam $exam)
+    {
+        return $this->generateConclusion($request, $exam, $this->validatedSessionIds($request, $exam), null);
+    }
+
+    private function generateConclusion(Request $request, Exam $exam, array $sessionIds, ?int $sessionId)
+    {
+        $result = $this->service->analyze($exam->id, $sessionIds);
         if (isset($result['error'])) {
             return response()->json(['message' => $result['error']], 422);
+        }
+
+        $existing = ItemAnalysisConclusion::where('exam_id', $exam->id)
+            ->when($sessionId, fn ($query) => $query->where('exam_session_id', $sessionId),
+                fn ($query) => $query->whereNull('exam_session_id'))
+            ->get()
+            ->first(fn ($item) => $sessionId || $this->sameSessionIds($item->session_ids, $sessionIds));
+
+        if ($existing && ! $request->user()->hasRole('admin')) {
+            return response()->json([
+                'content' => $existing->content,
+                'generated_at' => $existing->generated_at?->toIso8601String(),
+                'already_generated' => true,
+            ]);
         }
 
         $key = config('services.deepseek.key');
@@ -127,7 +193,41 @@ class ItemAnalysisController extends Controller
             return response()->json(['message' => 'Respons DeepSeek kosong.'], 502);
         }
 
-        return response()->json(['content' => $this->sanitizeConclusion($content)]);
+        $content = $this->sanitizeConclusion($content);
+        $conclusion = $existing ?? new ItemAnalysisConclusion;
+        $conclusion->fill([
+            'exam_id' => $exam->id,
+            'exam_session_id' => $sessionId,
+            'session_ids' => $sessionId ? null : $sessionIds,
+            'content' => $content,
+            'generated_by' => $request->user()->id,
+            'generated_at' => now(),
+        ])->save();
+
+        return response()->json([
+            'content' => $content,
+            'generated_at' => $conclusion->generated_at?->toIso8601String(),
+            'already_generated' => false,
+        ]);
+    }
+
+    private function validatedSessionIds(Request $request, Exam $exam): array
+    {
+        $ids = array_values(array_unique(array_map('intval', (array) $request->input('session_ids', []))));
+        abort_if(empty($ids), 422, 'Pilih minimal satu sesi.');
+        abort_if(ExamSession::where('exam_id', $exam->id)->whereIn('id', $ids)->count() !== count($ids), 404);
+
+        return $ids;
+    }
+
+    private function sameSessionIds(?array $stored, array $current): bool
+    {
+        $stored = array_map('intval', $stored ?? []);
+        $current = array_map('intval', $current);
+        sort($stored);
+        sort($current);
+
+        return $stored === $current;
     }
 
     private function sanitizeConclusion(string $content): string

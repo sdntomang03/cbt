@@ -11,11 +11,18 @@ class ItemAnalysisService
     /**
      * Entry point utama — jalankan semua analisis untuk satu Exam.
      */
-    public function analyze(int $examId, int $sessionId): array
+    public function analyze(int $examId, int|array $sessionIds): array
     {
+        $sessionIds = is_array($sessionIds) ? array_values(array_unique(array_map('intval', $sessionIds))) : [$sessionIds];
+        $sessionIds = array_values(array_filter($sessionIds, fn ($id) => $id > 0));
+
+        if (empty($sessionIds)) {
+            return ['error' => 'Sesi analisis belum dipilih.'];
+        }
+
         // 1. Ambil semua jawaban siswa dalam sesi ini
         $answers = StudentAnswer::whereHas('attempt', fn ($query) => $query
-            ->where('exam_session_id', $sessionId)
+            ->whereIn('exam_session_id', $sessionIds)
             ->where('status', 'completed'))
             ->with(['attempt', 'question.options', 'question.matches', 'question.section.scoringProfile'])
             ->get();
@@ -42,7 +49,7 @@ class ItemAnalysisService
         // 4. Hitung per butir soal
         $items = [];
         foreach ($questions as $index => $q) {
-            $items[] = $this->analyzeItem($q, $studentScores, $studentIds, $totalStudents, $sessionId, $index + 1);
+            $items[] = $this->analyzeItem($q, $studentScores, $studentIds, $totalStudents, $sessionIds, $index + 1);
         }
 
         // 5. Reliabilitas Cronbach Alpha (seluruh soal)
@@ -56,6 +63,7 @@ class ItemAnalysisService
             'alpha' => $alpha,
             'summary' => $summary,
             'total_students' => $totalStudents,
+            'session_ids' => $sessionIds,
         ];
     }
 
@@ -98,7 +106,7 @@ class ItemAnalysisService
     // PRIVATE: Analisis Per Butir
     // =========================================================================
 
-    private function analyzeItem($q, array $studentScores, array $studentIds, int $N, int $sessionId, int $number): array
+    private function analyzeItem($q, array $studentScores, array $studentIds, int $N, array $sessionIds, int $number): array
     {
         // Kumpulkan skor item per siswa
         $itemScores = [];
@@ -118,7 +126,7 @@ class ItemAnalysisService
         // --- Efektivitas Distraktor (hanya untuk pilihan ganda & kompleks) ---
         $distractors = [];
         if (in_array($q->type, ['single_choice', 'complex_choice'])) {
-            $distractors = $this->distractorEffectiveness($q, $sessionId, $studentIds, $N);
+            $distractors = $this->distractorEffectiveness($q, $sessionIds, $studentIds, $N);
         }
 
         return [
@@ -268,10 +276,10 @@ class ItemAnalysisService
         return array_sum($sq) / $n;
     }
 
-    private function distractorEffectiveness($q, int $sessionId, array $studentIds, int $N): array
+    private function distractorEffectiveness($q, array $sessionIds, array $studentIds, int $N): array
     {
-        $rawAnswers = StudentAnswer::whereHas('attempt', function ($query) use ($sessionId, $studentIds) {
-            $query->where('exam_session_id', $sessionId)->whereIn('user_id', $studentIds);
+        $rawAnswers = StudentAnswer::whereHas('attempt', function ($query) use ($sessionIds, $studentIds) {
+            $query->whereIn('exam_session_id', $sessionIds)->whereIn('user_id', $studentIds);
         })
             ->where('question_id', $q->id)
             ->pluck('answer')
