@@ -10,14 +10,13 @@
                     <h2 class="font-black text-2xl text-slate-800 tracking-tight leading-tight">Analisis Butir Soal</h2>
                     <p class="text-indigo-600 font-bold text-sm mt-0.5">
                         {{ $exam->title }} <span class="text-slate-400 mx-1">•</span>
-                        Sesi: {{ $session->session_name ?? \Carbon\Carbon::parse($session->start_time)->format('d M Y')
-                        }}
+                        {{ $analysisScope }}
                         <span class="text-slate-400 mx-1">•</span> {{ $total_students }} Peserta
                     </p>
                 </div>
             </div>
 
-            <a href="{{ route('admin.analysis.export', [$exam, $session]) }}"
+            <a href="{{ $analysisRoute }}"
                 class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-200 transition active:scale-95 flex items-center justify-center gap-2">
                 <i class="fas fa-file-export"></i> Export JSON
             </a>
@@ -490,6 +489,9 @@
             <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
             <script>
                 const analysisItems = @json($items);
+                const existingConclusion = @json($conclusion?->content);
+                const conclusionRoute = @json($conclusionRoute);
+                const isAdmin = @json(auth()->user()->hasRole('admin'));
 let itemChart = null;
 
 function selectChartItems(selected) {
@@ -530,12 +532,14 @@ async function requestConclusion() {
     button.disabled = true;
     button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menganalisis...';
     try {
-        const response = await fetch('{{ route('admin.analysis.conclusion', [$exam, $session]) }}', {
+        const response = await fetch(conclusionRoute, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
+                'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            }
+            },
+            body: JSON.stringify(@json(isset($selectedSessionIds) ? ['session_ids' => $selectedSessionIds] : []))
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || 'Gagal mengambil kesimpulan.');
@@ -555,6 +559,18 @@ async function requestConclusion() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', renderItemChart);
+document.addEventListener('DOMContentLoaded', () => {
+    renderItemChart();
+    if (existingConclusion) {
+        const box = document.getElementById('aiConclusion');
+        const content = document.getElementById('aiConclusionContent');
+        content.insertAdjacentHTML('beforeend', existingConclusion);
+        box.classList.remove('hidden');
+        if (!isAdmin) {
+            document.getElementById('aiConclusionButton').innerHTML =
+                '<i class="fas fa-eye mr-1"></i> Kesimpulan Tersimpan';
+        }
+    }
+});
             </script>
 </x-app-layout>

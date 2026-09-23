@@ -63,6 +63,31 @@
                     Syarat Analisis: Min. 2 Peserta Selesai</span>
             </div>
 
+            <form method="GET" action="{{ route('admin.analysis.combined', $exam) }}"
+                class="mb-5 rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
+                <div class="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h4 class="font-black text-indigo-900">Analisis Gabungan Ujian</h4>
+                        <p class="text-xs font-semibold text-indigo-700">Pilih beberapa sesi untuk menghitung analisis dari seluruh peserta pada sesi tersebut.</p>
+                    </div>
+                    <button type="submit"
+                        class="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-black text-white hover:bg-indigo-700">
+                        <i class="fas fa-layer-group mr-1"></i> Analisis Sesi Terpilih
+                    </button>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    @foreach($sessions as $session)
+                    @if(($session->completed_count ?? 0) >= 2)
+                    <label class="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm">
+                        <input type="checkbox" name="session_ids[]" value="{{ $session->id }}"
+                            class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                        {{ $session->session_name ?? 'Sesi '.$loop->iteration }}
+                    </label>
+                    @endif
+                    @endforeach
+                </div>
+            </form>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 @foreach($sessions as $session)
                 @php
