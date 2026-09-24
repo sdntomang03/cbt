@@ -64,10 +64,17 @@ class StudentAuthApiController extends Controller
 
     private function studentData(User $user): array
     {
+        $user->loadMissing([
+            'school:id,name',
+            'classrooms:id,name',
+        ]);
+
         return [
             'id' => $user->id,
             'name' => $user->name,
             'username' => $user->username,
+            'school_name' => $user->school?->name,
+            'classroom_name' => $user->classrooms->first()?->name,
         ];
     }
 }

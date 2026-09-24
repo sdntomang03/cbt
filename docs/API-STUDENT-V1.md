@@ -164,7 +164,9 @@ Response:
         "student": {
             "id": 1,
             "name": "Nama Siswa",
-            "username": "123456"
+            "username": "123456",
+            "school_name": "SMA Contoh",
+            "classroom_name": "XII IPA 1"
         }
     }
 }
