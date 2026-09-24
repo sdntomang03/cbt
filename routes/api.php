@@ -4,8 +4,31 @@ use App\Http\Controllers\Api\ApiAuthController;
 use App\Http\Controllers\Api\ApiPublicExamController;
 use App\Http\Controllers\Api\ApiStudentExamController;
 use App\Http\Controllers\Api\StudentModuleController;
+use App\Http\Controllers\Api\V1\Student\StudentAuthApiController;
+use App\Http\Controllers\Api\V1\Student\StudentExamApiController;
 use App\Http\Controllers\SubscriptionController;
 use Illuminate\Support\Facades\Route;
+
+Route::prefix('v1/student')->group(function () {
+    Route::post('/login', [StudentAuthApiController::class, 'login']);
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/logout', [StudentAuthApiController::class, 'logout']);
+        Route::get('/profile', [StudentAuthApiController::class, 'profile']);
+        Route::get('/dashboard', [StudentExamApiController::class, 'dashboard']);
+        Route::get('/exams', [StudentExamApiController::class, 'index']);
+        Route::get('/exams/{exam}', [StudentExamApiController::class, 'show']);
+        Route::post('/exams/{exam}/start', [StudentExamApiController::class, 'start']);
+        Route::get('/exams/{exam}/status', [StudentExamApiController::class, 'status']);
+        Route::get('/attempts/{attempt}', [StudentExamApiController::class, 'attempt']);
+        Route::get('/attempts/{attempt}/questions/{question}', [StudentExamApiController::class, 'question']);
+        Route::post('/attempts/{attempt}/answers', [StudentExamApiController::class, 'answer']);
+        Route::get('/attempts/{attempt}/progress', [StudentExamApiController::class, 'progress']);
+        Route::post('/attempts/{attempt}/violation', [StudentExamApiController::class, 'violation']);
+        Route::post('/attempts/{attempt}/submit', [StudentExamApiController::class, 'submit']);
+        Route::get('/attempts/{attempt}/result', [StudentExamApiController::class, 'result']);
+    });
+});
 
 // =========================================================
 // RUTE AUTH PUBLIK (Bisa diakses Flutter tanpa Login)
