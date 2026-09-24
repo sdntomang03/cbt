@@ -31,7 +31,7 @@ class StudentExamApiController extends Controller
         $session = $this->studentSession($request, $exam)->load('exam');
 
         return $this->success('Detail ujian berhasil diambil.', [
-            'id' => $session->exam->id,
+            'id' => $session->exam->hashid,
             'session_id' => $session->id,
             'title' => $session->exam->title,
             'duration_minutes' => (int) $session->exam->duration_minutes,
@@ -81,7 +81,7 @@ class StudentExamApiController extends Controller
 
         return $this->success('Ujian siap dikerjakan.', [
             'exam' => [
-                'id' => $exam->id,
+                'id' => $exam->hashid,
                 'title' => $exam->title,
                 'duration_minutes' => (int) $exam->duration_minutes,
             ],
@@ -146,7 +146,7 @@ class StudentExamApiController extends Controller
 
         return $this->success('Detail attempt berhasil diambil.', [
             'id' => $attempt->id,
-            'exam_id' => $attempt->session->exam->id,
+            'exam_id' => $attempt->session->exam->hashid,
             'status' => $attempt->status,
             'started_at' => $attempt->started_at,
             'finished_at' => $attempt->finished_at,
@@ -300,6 +300,7 @@ class StudentExamApiController extends Controller
     private function ownedAttempt(Request $request, ExamAttempt $attempt): ExamAttempt
     {
         abort_unless((int) $attempt->user_id === (int) $request->user()->id, 404);
+
         return $attempt->loadMissing(['session.exam']);
     }
 
@@ -322,12 +323,14 @@ class StudentExamApiController extends Controller
         if (! $attempt->started_at) {
             return 0;
         }
+
         return (int) Carbon::now('Asia/Jakarta')->diffInSeconds($this->deadline($attempt, $session), false);
     }
 
     private function completeAttempt(ExamAttempt $attempt, string $message)
     {
         $result = app(AttemptScoringService::class)->scoreAttempt($attempt);
+
         return $this->success($message, [
             'attempt_id' => $attempt->id,
             'status' => 'completed',
@@ -347,7 +350,7 @@ class StudentExamApiController extends Controller
 
         return [
             'attempt_id' => $attempt->id,
-            'exam' => ['id' => $attempt->session->exam->id, 'title' => $attempt->session->exam->title],
+            'exam' => ['id' => $attempt->session->exam->hashid, 'title' => $attempt->session->exam->title],
             'status' => $attempt->status,
             'average_score' => round((float) ($sections->avg('score') ?? 0), 2),
             'result_mode' => $mode,
