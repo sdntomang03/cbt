@@ -362,7 +362,7 @@ class StudentExamApiController extends Controller
     private function sessionData($session): array
     {
         return [
-            'id' => $session->exam_id,
+            'id' => $session->exam->hashid,
             'session_id' => $session->id,
             'title' => $session->exam->title,
             'start_time' => $session->start_time,
