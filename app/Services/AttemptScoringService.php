@@ -256,7 +256,11 @@ class AttemptScoringService
             return true;
         }
 
-        return $this->isWeightedProfile($profile);
+        if ($this->isWeightedProfile($profile)) {
+            return true;
+        }
+
+        return false;
     }
 
     private function isWeightedProfile(?ScoringProfile $profile): bool

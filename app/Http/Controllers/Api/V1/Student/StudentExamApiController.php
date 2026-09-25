@@ -452,7 +452,7 @@ class StudentExamApiController extends Controller
             'average_score' => round((float) ($breakdown['sections']->avg('score') ?? 0), 2),
             'result_mode' => $mode,
             'score_display_mode' => $this->scoreDisplayMode($mode),
-            'is_point_based' => $mode === 'total',
+            'is_point_based' => $this->isPointBased($mode, $attempt->session->exam->scoringProfile),
             'scoring_profile' => $breakdown['scoring_profile'],
             'score' => (float) $attempt->final_score,
             'detail_nilai' => $this->detailNilaiRecords($attempt),
@@ -472,6 +472,7 @@ class StudentExamApiController extends Controller
         $sectionDetails = $sections->map(function ($section) use ($attempt) {
             $examSection = $attempt->session->exam->sections()->whereKey($section['id'])->first();
             $sectionProfile = $examSection?->scoringProfile ?? $attempt->session->exam->scoringProfile;
+            $sectionMode = $section['result_mode'] ?? ($sectionProfile ? app(AttemptScoringService::class)->resultMode($sectionProfile) : 'average');
 
             return [
                 'id' => (int) $section['id'],
@@ -481,10 +482,10 @@ class StudentExamApiController extends Controller
                 'maximum' => round((float) ($section['maximum'] ?? 0), 2),
                 'score' => round((float) ($section['score'] ?? 0), 2),
                 'display_score' => round((float) ($section['display_score'] ?? 0), 2),
-                'result_mode' => $section['result_mode'] ?? $mode,
-                'score_display_mode' => $this->scoreDisplayMode($section['result_mode'] ?? $mode),
-                'is_point_based' => ($section['result_mode'] ?? $mode) === 'total',
-                'score_label' => ($section['result_mode'] ?? $mode) === 'total' ? 'Point' : 'Nilai 100',
+                'result_mode' => $sectionMode,
+                'score_display_mode' => $this->scoreDisplayMode($sectionMode),
+                'is_point_based' => $this->isPointBased($sectionMode, $sectionProfile),
+                'score_label' => $this->isPointBased($sectionMode, $sectionProfile) ? 'Point' : 'Nilai 100',
                 'scoring_profile' => $this->scoringProfileMeta($sectionProfile),
             ];
         })->values();
@@ -498,7 +499,7 @@ class StudentExamApiController extends Controller
             ],
             'result_mode' => $mode,
             'score_display_mode' => $this->scoreDisplayMode($mode),
-            'is_point_based' => $mode === 'total',
+            'is_point_based' => $this->isPointBased($mode, $profile),
             'scoring_profile' => $this->scoringProfileMeta($profile),
             'detail_nilai' => $this->detailNilaiRecords($attempt),
             'sections' => $sectionDetails,
