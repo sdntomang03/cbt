@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Models\ExamSession;
+use App\Models\ScoringProfile;
 use App\Models\StudentAnswer;
 use App\Services\AttemptScoringService;
 use Carbon\Carbon;
@@ -236,6 +237,7 @@ class StudentExamApiController extends Controller
     public function result(Request $request, ExamAttempt $attempt)
     {
         $attempt = $this->ownedAttempt($request, $attempt);
+
         if ($attempt->status !== 'completed') {
             return $this->error('Hasil belum tersedia karena ujian belum selesai.', 400);
         }
@@ -243,8 +245,18 @@ class StudentExamApiController extends Controller
         return $this->success('Hasil ujian berhasil diambil.', $this->resultData($attempt));
     }
 
-    public function discussion(Request $request, ExamAttempt $attempt)
+    public function sections(Request $request, ExamAttempt $attempt)
     {
+        $attempt = $this->ownedAttempt($request, $attempt);
+
+        if ($attempt->status !== 'completed') {
+            return $this->error('Detail skor per section belum tersedia karena ujian belum selesai.', 400);
+        }
+
+        return $this->success('Detail nilai per section berhasil diambil.', $this->sectionBreakdown($attempt));
+    }
+
+    public function discussion(Request $request, ExamAttempt $attempt)    {
         $attempt = $this->ownedAttempt($request, $attempt);
         if ($attempt->status !== 'completed') {
             return $this->error('Pembahasan belum tersedia karena ujian belum selesai.', 400);
@@ -405,12 +417,8 @@ class StudentExamApiController extends Controller
 
     private function resultData(ExamAttempt $attempt): array
     {
-        $attempt->loadMissing(['session.exam.scoringProfile']);
-        $scoring = app(AttemptScoringService::class);
-        $sections = $scoring->sectionResults($attempt);
-        $mode = $attempt->session->exam->scoringProfile
-            ? $scoring->resultMode($attempt->session->exam->scoringProfile)
-            : ($sections->first()['result_mode'] ?? 'average');
+        $breakdown = $this->sectionBreakdown($attempt);
+        $mode = $breakdown['result_mode'];
 
         return [
             'attempt_id' => $attempt->id,
@@ -420,11 +428,82 @@ class StudentExamApiController extends Controller
                 'show_explanation' => (bool) $attempt->session->exam->show_explanation,
             ],
             'status' => $attempt->status,
-            'average_score' => round((float) ($sections->avg('score') ?? 0), 2),
+            'average_score' => round((float) ($breakdown['sections']->avg('score') ?? 0), 2),
             'result_mode' => $mode,
+            'score_display_mode' => $this->scoreDisplayMode($mode),
+            'is_point_based' => $mode === 'total',
+            'scoring_profile' => $breakdown['scoring_profile'],
             'score' => (float) $attempt->final_score,
-            'sections' => $sections->values(),
+            'sections' => $breakdown['sections']->values()->all(),
         ];
+    }
+
+    private function sectionBreakdown(ExamAttempt $attempt): array
+    {
+        $attempt->loadMissing(['session.exam.scoringProfile', 'session.exam.sections.scoringProfile', 'session.exam.sections.section']);
+
+        $scoring = app(AttemptScoringService::class);
+        $sections = $scoring->sectionResults($attempt);
+        $profile = $attempt->session->exam->scoringProfile;
+        $mode = $profile ? $scoring->resultMode($profile) : ($sections->first()['result_mode'] ?? 'average');
+
+        $sectionDetails = $sections->map(function ($section) use ($attempt) {
+            $examSection = $attempt->session->exam->sections()->whereKey($section['id'])->first();
+            $sectionProfile = $examSection?->scoringProfile ?? $attempt->session->exam->scoringProfile;
+
+            return [
+                'id' => (int) $section['id'],
+                'name' => $section['name'],
+                'question_count' => (int) ($section['question_count'] ?? 0),
+                'earned' => round((float) ($section['earned'] ?? 0), 2),
+                'maximum' => round((float) ($section['maximum'] ?? 0), 2),
+                'score' => round((float) ($section['score'] ?? 0), 2),
+                'display_score' => round((float) ($section['display_score'] ?? 0), 2),
+                'result_mode' => $section['result_mode'] ?? $mode,
+                'score_display_mode' => $this->scoreDisplayMode($section['result_mode'] ?? $mode),
+                'is_point_based' => ($section['result_mode'] ?? $mode) === 'total',
+                'score_label' => ($section['result_mode'] ?? $mode) === 'total' ? 'Point' : 'Nilai 100',
+                'scoring_profile' => $this->scoringProfileMeta($sectionProfile),
+            ];
+        })->values();
+
+        return [
+            'attempt_id' => $attempt->id,
+            'exam' => [
+                'id' => $attempt->session->exam->hashid,
+                'title' => $attempt->session->exam->title,
+                'show_explanation' => (bool) $attempt->session->exam->show_explanation,
+            ],
+            'result_mode' => $mode,
+            'score_display_mode' => $this->scoreDisplayMode($mode),
+            'is_point_based' => $mode === 'total',
+            'scoring_profile' => $this->scoringProfileMeta($profile),
+            'sections' => $sectionDetails,
+        ];
+    }
+
+    private function scoringProfileMeta(?ScoringProfile $profile): ?array
+    {
+        if (! $profile) {
+            return null;
+        }
+
+        $rules = is_array($profile->rules) ? $profile->rules : [];
+
+        return [
+            'id' => $profile->id,
+            'name' => $profile->name,
+            'code' => $profile->code,
+            'type' => $rules['type'] ?? 'standard',
+            'result_mode' => $rules['result_mode'] ?? 'average',
+            'is_point_based' => ($rules['result_mode'] ?? 'average') === 'total',
+            'rules' => $rules,
+        ];
+    }
+
+    private function scoreDisplayMode(string $mode): string
+    {
+        return $mode === 'total' ? 'points' : 'percentage';
     }
 
     private function orderedQuestions(Exam $exam)
