@@ -124,13 +124,11 @@ class AttemptScoringService
 
     public function resultMode(?ScoringProfile $profile): string
     {
-        $rules = $profile?->rules ?? [];
-
-        if (($rules['result_mode'] ?? null) === 'total') {
+        if ($this->isWeightedProfile($profile)) {
             return 'total';
         }
 
-        return strtolower((string) ($rules['type'] ?? $rules['scoring_type'] ?? '')) === 'weighted'
+        return ($profile?->rules['result_mode'] ?? 'average') === 'total'
             ? 'total'
             : 'average';
     }
@@ -138,8 +136,7 @@ class AttemptScoringService
     public function scoreQuestion(Question $question, mixed $answer, ?ScoringProfile $profile = null): array
     {
         $rules = $profile?->rules ?? [];
-        $weighted = $question->type === 'tkp'
-            || strtolower((string) ($rules['type'] ?? $rules['scoring_type'] ?? '')) === 'weighted';
+        $weighted = $this->isWeightedProfile($profile) || $question->type === 'tkp';
         $answer = $this->normaliseAnswer($answer);
         $empty = $answer === null || $answer === '' || $answer === [];
 
@@ -196,7 +193,22 @@ class AttemptScoringService
                     continue;
                 }
 
-                if ($this->isCorrect($question, $normalised)) {
+                $questionScore = $this->scoreQuestion($question, $normalised, $profile);
+                $isWeighted = $this->isWeightedProfile($profile) || $question->type === 'tkp';
+
+                if ($isWeighted) {
+                    if ((float) ($questionScore['score'] ?? 0) > 0) {
+                        $benar++;
+                    } else {
+                        $salah++;
+                    }
+
+                    continue;
+                }
+
+                $isCorrect = $this->isCorrect($question, $normalised);
+
+                if ($isCorrect) {
                     $benar++;
                 } else {
                     $salah++;
@@ -204,6 +216,7 @@ class AttemptScoringService
             }
 
             $resultMode = $sectionResult['result_mode'] ?? ($profile ? $this->resultMode($profile) : 'average');
+            $isPointBased = $this->isPointBased($resultMode, $profile);
             $sectionScore = (float) ($sectionResult['display_score'] ?? $sectionResult['score'] ?? 0);
 
             DetailNilai::updateOrCreate(
@@ -225,16 +238,33 @@ class AttemptScoringService
                     'earned' => round((float) ($sectionResult['earned'] ?? 0), 2),
                     'maximum' => round((float) ($sectionResult['maximum'] ?? 0), 2),
                     'display_score' => round((float) ($sectionResult['display_score'] ?? $sectionResult['score'] ?? 0), 2),
-                    'is_point_based' => $resultMode === 'total',
-                    'score_label' => $resultMode === 'total' ? 'Point' : 'Nilai 100',
+                    'is_point_based' => $isPointBased,
+                    'score_label' => $isPointBased ? 'Point' : 'Nilai 100',
                     'metadata' => [
                         'section_name' => $sectionResult['name'] ?? 'Sesi Utama',
                         'question_count' => (int) ($sectionResult['question_count'] ?? 0),
-                        'score_display_mode' => $resultMode === 'total' ? 'points' : 'percentage',
+                        'score_display_mode' => $isPointBased ? 'points' : 'percentage',
                     ],
                 ]
             );
         }
+    }
+
+    private function isPointBased(string $resultMode, ?ScoringProfile $profile = null): bool
+    {
+        if ($resultMode === 'total') {
+            return true;
+        }
+
+        return $this->isWeightedProfile($profile);
+    }
+
+    private function isWeightedProfile(?ScoringProfile $profile): bool
+    {
+        $rules = $profile?->rules ?? [];
+        $type = strtolower((string) ($rules['type'] ?? $rules['scoring_type'] ?? ''));
+
+        return $type === 'weighted';
     }
 
     private function isCorrect(Question $question, mixed $answer): bool
