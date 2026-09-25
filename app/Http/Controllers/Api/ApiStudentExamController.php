@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
+use App\Models\ExamAttempt;
 use App\Models\ExamSession;
 use App\Models\ExamSessionUser;
-use App\Models\ExamAttempt;
 use App\Models\MathExamQuestion;
 use App\Models\MathExamUser;
 use App\Models\StudentAnswer;
@@ -43,6 +43,7 @@ class ApiStudentExamController extends Controller
                     'require_token' => (bool) $session->exam->require_token,
                     'status' => $session->pivot->status,
                     'score' => $session->pivot->final_score,
+                    'show_explanation' => (bool) $session->exam->show_explanation,
                     'is_locked' => (bool) $session->pivot->is_locked,
                     'total_questions' => $session->exam->questions_count,
                 ];
@@ -235,6 +236,7 @@ class ApiStudentExamController extends Controller
         }
 
         $result = app(AttemptScoringService::class)->scoreAttempt($attempt);
+
         return response()->json(['status' => 'success', 'message' => 'Ujian selesai.', 'data' => ['score' => $result['finalScore']]]);
 
         // Legacy calculation kept temporarily below for audit only; execution
