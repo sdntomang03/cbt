@@ -440,8 +440,9 @@ class StudentExamApiController extends Controller
 
     private function resultData(ExamAttempt $attempt): array
     {
-        $breakdown = $this->sectionBreakdown($attempt);
-        $mode = $breakdown['result_mode'];
+        $attempt->loadMissing(['session.exam', 'detailNilai.section.section', 'detailNilai.scoringProfile']);
+        $mode = $attempt->session->exam->scoring === 'total' ? 'total' : 'average';
+        $detailNilai = $this->detailNilaiRecords($attempt);
 
         return [
             'attempt_id' => $attempt->id,
@@ -452,47 +453,23 @@ class StudentExamApiController extends Controller
                 'scoring' => $attempt->session->exam->scoring,
             ],
             'status' => $attempt->status,
-            'average_score' => round((float) ($breakdown['sections']->avg('score') ?? 0), 2),
+            'final_score' => (float) $attempt->final_score,
+            'average_score' => $mode === 'average' ? (float) $attempt->final_score : null,
             'result_mode' => $mode,
             'scoring' => $attempt->session->exam->scoring,
             'score_display_mode' => $this->scoreDisplayMode($mode),
             'is_point_based' => $mode === 'total',
-            'scoring_profile' => $breakdown['scoring_profile'],
             'score' => (float) $attempt->final_score,
-            'detail_nilai' => $this->detailNilaiRecords($attempt),
-            'sections' => $breakdown['sections']->values()->all(),
+            'detail_nilai' => $detailNilai,
+            'sections' => $detailNilai,
         ];
     }
 
     private function sectionBreakdown(ExamAttempt $attempt): array
     {
-        $attempt->loadMissing(['session.exam.sections.scoringProfile', 'session.exam.sections.section']);
-
-        $scoring = app(AttemptScoringService::class);
-        $sections = $scoring->sectionResults($attempt);
-        $profile = null;
+        $attempt->loadMissing(['session.exam', 'detailNilai.section.section', 'detailNilai.scoringProfile']);
         $mode = $attempt->session->exam->scoring === 'total' ? 'total' : 'average';
-
-        $sectionDetails = $sections->map(function ($section) use ($attempt) {
-            $examSection = $attempt->session->exam->sections()->whereKey($section['id'])->first();
-            $sectionProfile = $examSection?->scoringProfile;
-            $sectionMode = $section['result_mode'] ?? ($sectionProfile ? app(AttemptScoringService::class)->resultMode($sectionProfile) : 'average');
-
-            return [
-                'id' => (int) $section['id'],
-                'name' => $section['name'],
-                'question_count' => (int) ($section['question_count'] ?? 0),
-                'earned' => round((float) ($section['earned'] ?? 0), 2),
-                'maximum' => round((float) ($section['maximum'] ?? 0), 2),
-                'score' => round((float) ($section['score'] ?? 0), 2),
-                'display_score' => round((float) ($section['display_score'] ?? 0), 2),
-                'result_mode' => $sectionMode,
-                'score_display_mode' => $this->scoreDisplayMode($sectionMode),
-                'is_point_based' => $this->isPointBased($sectionMode, $sectionProfile),
-                'score_label' => $this->isPointBased($sectionMode, $sectionProfile) ? 'Point' : 'Nilai 100',
-                'scoring_profile' => $this->scoringProfileMeta($sectionProfile),
-            ];
-        })->values();
+        $detailNilai = $this->detailNilaiRecords($attempt);
 
         return [
             'attempt_id' => $attempt->id,
@@ -504,10 +481,11 @@ class StudentExamApiController extends Controller
             'result_mode' => $mode,
             'scoring' => $attempt->session->exam->scoring,
             'score_display_mode' => $this->scoreDisplayMode($mode),
-            'is_point_based' => $this->isPointBased($mode, $profile),
-            'scoring_profile' => null,
-            'detail_nilai' => $this->detailNilaiRecords($attempt),
-            'sections' => $sectionDetails,
+            'is_point_based' => $mode === 'total',
+            'final_score' => (float) $attempt->final_score,
+            'score' => (float) $attempt->final_score,
+            'detail_nilai' => $detailNilai,
+            'sections' => $detailNilai,
         ];
     }
 
@@ -552,9 +530,12 @@ class StudentExamApiController extends Controller
 
     private function detailNilaiRecords(ExamAttempt $attempt): array
     {
-        $attempt->loadMissing(['detailNilai.section.section']);
+        $attempt->loadMissing(['detailNilai.section.section', 'detailNilai.scoringProfile']);
 
         return $attempt->detailNilai()->orderBy('section_id')->get()->map(function ($record) {
+            $profile = $record->scoringProfile;
+            $profileMeta = $this->scoringProfileMeta($profile);
+
             return [
                 'id' => $record->id,
                 'user_id' => $record->user_id,
@@ -571,6 +552,8 @@ class StudentExamApiController extends Controller
                 'display_score' => round((float) $record->display_score, 2),
                 'is_point_based' => (bool) $record->is_point_based,
                 'score_label' => $record->score_label,
+                'score_display_mode' => (bool) $record->is_point_based ? 'points' : 'percentage',
+                'scoring_profile' => $profileMeta,
                 'metadata' => $record->metadata ?? [],
             ];
         })->values()->all();

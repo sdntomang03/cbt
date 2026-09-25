@@ -36,7 +36,7 @@ return new class extends Migration
             $table->foreignId('scoring_profile_id')->nullable()->constrained('scoring_profiles')->nullOnDelete(); // TAMBAHAN
             $table->foreignId('level_id')->constrained()->cascadeOnDelete();
             $table->foreignId('subject_id')->constrained()->cascadeOnDelete();
-
+            $table->enum('scoring', ['average', 'total'])->default('average');
             $table->string('title');
             $table->string('slug')->unique();
             $table->integer('duration_minutes')->default(60);

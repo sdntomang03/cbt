@@ -662,6 +662,22 @@ Endpoint ini untuk frontend React agar dapat menampilkan detail nilai tiap secti
 GET {{base_url}}/attempts/{{attempt_id}}/sections
 ```
 
+Endpoint utama untuk frontend React adalah:
+
+```http
+GET {{base_url}}/attempts/{{attempt_id}}/detail-nilai
+```
+
+Endpoint tersebut menggunakan sumber data berikut:
+
+- `data.final_score`: langsung dari `exam_attempts.final_score`.
+- `data.detail_nilai`: langsung dari tabel `detail_nilai`.
+- `data.detail_nilai[].nilai`: nilai section yang tersimpan.
+- `data.detail_nilai[].benar`, `salah`, `tidak_dijawab`: rekap jawaban section yang tersimpan.
+
+Field `sections` dikirim sebagai alias kompatibilitas dengan struktur lama dan berisi
+data yang sama dengan `detail_nilai`. Frontend tidak perlu menghitung ulang nilai.
+
 Response:
 
 ```json
