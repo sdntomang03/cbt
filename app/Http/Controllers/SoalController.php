@@ -565,7 +565,6 @@ class SoalController extends Controller
             );
             $exam->sections()->create([
                 'section_id' => $defaultSection->id,
-                'scoring_profile_id' => $exam->scoring_profile_id,
                 'order' => 1,
             ]);
         }

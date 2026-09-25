@@ -615,6 +615,7 @@ Response:
             "show_explanation": true
         },
         "status": "completed",
+        "scoring": "average",
         "average_score": 85,
         "result_mode": "average",
         "score_display_mode": "percentage",
@@ -640,6 +641,15 @@ Response:
 ```
 
 Result sebelum ujian selesai mengembalikan HTTP `400`.
+
+`scoring` adalah mode agregasi nilai seluruh section pada exam:
+
+- `average`: `final_score` adalah rata-rata nilai section (skala 100).
+- `total`: `final_score` adalah total nilai `display_score` seluruh section (point).
+
+`scoring_profile` tidak lagi disimpan pada tabel `exams`. Profil scoring tetap dapat
+disimpan pada `exam_sections.scoring_profile_id` untuk menentukan aturan penilaian soal
+di section tersebut.
 
 ## 15. Detail Nilai per Section
 

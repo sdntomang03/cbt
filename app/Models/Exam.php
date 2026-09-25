@@ -24,6 +24,7 @@ class Exam extends Model
             'random_question' => 'boolean',
             'random_answer' => 'boolean',
             'is_public' => 'boolean',
+            'scoring' => 'string',
         ];
     }
 
@@ -63,11 +64,6 @@ class Exam extends Model
     public function examType(): BelongsTo
     {
         return $this->belongsTo(ExamType::class);
-    }
-
-    public function scoringProfile(): BelongsTo
-    {
-        return $this->belongsTo(ScoringProfile::class);
     }
 
     /**

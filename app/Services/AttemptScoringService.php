@@ -20,7 +20,6 @@ class AttemptScoringService
     public function scoreAttempt(ExamAttempt $attempt): array
     {
         $attempt->loadMissing([
-            'session.exam.scoringProfile',
             'session.exam.sections.section',
             'session.exam.sections.scoringProfile',
             'answers.question.options',
@@ -34,8 +33,7 @@ class AttemptScoringService
             ->get();
 
         foreach ($questions as $question) {
-            $profile = $question->section?->scoringProfile
-                ?? $attempt->session->exam->scoringProfile;
+            $profile = $question->section?->scoringProfile;
             $answer = $answers->get($question->id);
             $result = $this->scoreQuestion($question, $answer?->answer, $profile);
 
@@ -51,14 +49,9 @@ class AttemptScoringService
 
         $rawScore = (float) $sectionResults->sum('earned');
         $maximumScore = (float) $sectionResults->sum('maximum');
-        $firstResultMode = $sectionResults->first()['result_mode'] ?? null;
-        $examProfile = $attempt->session->exam->scoringProfile;
-        $resultMode = $examProfile
-            ? $this->resultMode($examProfile)
-            : ($firstResultMode ?? 'average');
-        $finalScore = $resultMode === 'total'
-            ? round($rawScore, 2)
-            : ($maximumScore > 0 ? round(($rawScore / $maximumScore) * 100, 2) : 0.0);
+        $aggregate = $this->aggregateSectionScores($attempt->session->exam, $sectionResults);
+        $resultMode = $aggregate['result_mode'];
+        $finalScore = $aggregate['final_score'];
 
         $attempt->update([
             'raw_score' => $rawScore,
@@ -73,7 +66,6 @@ class AttemptScoringService
     public function sectionResults(ExamAttempt $attempt): Collection
     {
         $attempt->loadMissing([
-            'session.exam.scoringProfile',
             'session.exam.sections.section',
             'session.exam.sections.scoringProfile',
             'answers',
@@ -95,7 +87,7 @@ class AttemptScoringService
                 $sectionQuestions = $questionsBySection->get($section->id, collect());
                 $earned = 0.0;
                 $maximum = 0.0;
-                $profile = $section->scoringProfile ?? $exam->scoringProfile;
+                $profile = $section->scoringProfile;
 
                 foreach ($sectionQuestions as $question) {
                     $result = $this->scoreQuestion(
@@ -131,6 +123,26 @@ class AttemptScoringService
         return ($profile?->rules['result_mode'] ?? 'average') === 'total'
             ? 'total'
             : 'average';
+    }
+
+    public function aggregateSectionScores($exam, Collection $sectionResults): array
+    {
+        $scoring = $exam->scoring === 'total' ? 'total' : 'average';
+        $values = $sectionResults->map(fn (array $section): float => (float) (
+            $scoring === 'total'
+                ? ($section['display_score'] ?? $section['earned'] ?? 0)
+                : ($section['score'] ?? 0)
+        ));
+
+        return [
+            'result_mode' => $scoring,
+            'final_score' => round(
+                $scoring === 'total'
+                    ? $values->sum()
+                    : ($values->count() > 0 ? $values->avg() : 0),
+                2
+            ),
+        ];
     }
 
     public function scoreQuestion(Question $question, mixed $answer, ?ScoringProfile $profile = null): array
@@ -179,7 +191,7 @@ class AttemptScoringService
         foreach ($sectionResults as $sectionResult) {
             $sectionId = $sectionResult['id'];
             $questions = $sectionQuestions->get($sectionId, collect());
-            $profile = $exam->sections()->whereKey($sectionId)->first()?->scoringProfile ?? $exam->scoringProfile;
+            $profile = $exam->sections()->whereKey($sectionId)->first()?->scoringProfile;
             $benar = 0;
             $salah = 0;
             $tidakDijawab = 0;

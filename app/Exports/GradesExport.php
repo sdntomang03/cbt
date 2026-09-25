@@ -34,7 +34,7 @@ class GradesExport implements FromQuery, ShouldAutoSize, WithEvents, WithHeading
         $this->examId = $examId;
         $this->schoolId = $schoolId;
 
-        $this->exam = Exam::with(['sections.section', 'sections.scoringProfile', 'scoringProfile'])->findOrFail($examId);
+        $this->exam = Exam::with(['sections.section', 'sections.scoringProfile'])->findOrFail($examId);
         $this->examTitle = $this->exam->title;
         $this->sections = $this->exam->sections->sortBy([
             ['order', 'asc'],
@@ -82,7 +82,9 @@ class GradesExport implements FromQuery, ShouldAutoSize, WithEvents, WithHeading
 
         if ($this->sections->count() > 1) {
             foreach ($this->sections as $section) {
-                $mode = $this->scoringService->resultMode($section->scoringProfile ?? $this->exam->scoringProfile);
+                $mode = $section->scoringProfile
+                    ? $this->scoringService->resultMode($section->scoringProfile)
+                    : 'average';
                 $headings[] = 'Section '.($section->section?->name ?? 'Sesi Utama')
                     .' ('.($mode === 'total' ? 'Total Poin' : 'Rata-rata').')';
             }
@@ -134,9 +136,7 @@ class GradesExport implements FromQuery, ShouldAutoSize, WithEvents, WithHeading
 
     protected function overallResultMode(): string
     {
-        return $this->scoringService->resultMode(
-            $this->exam->scoringProfile ?? $this->sections->first()?->scoringProfile
-        );
+        return $this->exam->scoring === 'total' ? 'total' : 'average';
     }
 
     /**

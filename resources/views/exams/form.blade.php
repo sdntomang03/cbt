@@ -236,7 +236,7 @@
                     </div>
                 </div>
 
-                {{-- Baris 2: Mapel & Scoring Profile --}}
+                {{-- Baris 2: Mapel & Mode Scoring --}}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-2">
@@ -255,22 +255,21 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-2">
-                            Profil Penilaian (Default) <span class="text-slate-400 font-normal">(Opsional)</span>
+                            Rekap Nilai Ujian <span class="text-rose-500">*</span>
                         </label>
-                        <select name="scoring_profile_id"
+                        <select name="scoring"
+                            required
                             class="w-full rounded-xl border-slate-200 focus:ring-indigo-500 font-bold text-slate-700 py-3 px-4 bg-slate-50">
-                            <option value="">-- Gunakan Aturan Bawaan Sistem --</option>
-                            @if(isset($scoringProfiles))
-                            @foreach($scoringProfiles as $profile)
-                            <option value="{{ $profile->id }}" {{ old('scoring_profile_id', $exam->scoring_profile_id ??
-                                '') == $profile->id ? 'selected' : '' }}>
-                                {{ $profile->name }} ({{ $profile->code }})
+                            <option value="average" {{ old('scoring', $exam->scoring ?? 'average') === 'average' ? 'selected' : '' }}>
+                                Rata-rata nilai semua section
                             </option>
-                            @endforeach
-                            @endif
+                            <option value="total" {{ old('scoring', $exam->scoring ?? 'average') === 'total' ? 'selected' : '' }}>
+                                Total nilai semua section
+                            </option>
                         </select>
-                        <p class="text-[10px] text-slate-500 mt-1">Aturan skor utama jika seksi ujian tidak
-                            menentukannya.</p>
+                        <p class="text-[10px] text-slate-500 mt-1">
+                            Mode ini menentukan cara menghitung final score dari seluruh section.
+                        </p>
                     </div>
                 </div>
 

@@ -81,7 +81,7 @@ class ExamController extends Controller
             'meta_keywords' => 'nullable|string|max:255',
             'content' => 'nullable|string',
             'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-            'scoring_profile_id' => 'nullable|exists:scoring_profiles,id',
+            'scoring' => ['required', Rule::in(['average', 'total'])],
 
             'has_sections' => 'boolean',
             'sections' => 'nullable|array',
@@ -160,7 +160,6 @@ class ExamController extends Controller
                 );
                 $exam->sections()->create([
                     'section_id' => $defaultSection->id,
-                    'scoring_profile_id' => $exam->scoring_profile_id,
                     'order' => 1,
                 ]);
             }
@@ -191,7 +190,7 @@ class ExamController extends Controller
             'meta_keywords' => 'nullable|string|max:255',
             'content' => 'nullable|string',
             'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-            'scoring_profile_id' => 'nullable|exists:scoring_profiles,id',
+            'scoring' => ['required', Rule::in(['average', 'total'])],
             'has_sections' => 'boolean',
             'sections' => 'nullable|array',
             'sections.*.section_id' => 'nullable|required_if:has_sections,1|exists:sections,id',
@@ -295,7 +294,6 @@ class ExamController extends Controller
                     );
                     $exam->sections()->create([
                         'section_id' => $defaultSection->id,
-                        'scoring_profile_id' => $exam->scoring_profile_id,
                         'order' => 1,
                     ]);
                 }
@@ -397,7 +395,6 @@ class ExamController extends Controller
             );
             $exam->sections()->create([
                 'section_id' => $defaultSection->id,
-                'scoring_profile_id' => $exam->scoring_profile_id,
                 'order' => 1,
             ]);
         }

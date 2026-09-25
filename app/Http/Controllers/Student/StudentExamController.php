@@ -121,7 +121,6 @@ class StudentExamController extends Controller
             );
             $exam->sections()->create([
                 'section_id' => $defaultSection->id,
-                'scoring_profile_id' => $exam->scoring_profile_id,
                 'order' => 1,
             ]);
         }
@@ -290,9 +289,7 @@ class StudentExamController extends Controller
         $scoring = app(AttemptScoringService::class);
         $sectionResults = $scoring->sectionResults($attempt);
         $averageScore = round($sectionResults->avg('score') ?? 0, 2);
-        $resultMode = $exam->scoringProfile
-            ? $scoring->resultMode($exam->scoringProfile)
-            : ($sectionResults->first()['result_mode'] ?? 'average');
+        $resultMode = $exam->scoring ?? 'average';
 
         $detailNilai = $attempt->detailNilai()->orderBy('section_id')->get();
 

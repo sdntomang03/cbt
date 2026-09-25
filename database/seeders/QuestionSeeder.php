@@ -72,7 +72,7 @@ class QuestionSeeder extends Seeder
             'school_id' => 1,
             'teacher_id' => 1,
             'exam_type_id' => $examType->id,
-            'scoring_profile_id' => $profileStandard->id, // Fallback profile
+            'scoring' => 'average',
             'title' => $title,
             'slug' => Str::slug($title.'-'.Str::random(5)),
             'duration_minutes' => 60,

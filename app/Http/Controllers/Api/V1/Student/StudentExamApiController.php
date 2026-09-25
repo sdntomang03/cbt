@@ -80,6 +80,7 @@ class StudentExamApiController extends Controller
                 'title' => $exam->title,
                 'duration_minutes' => (int) $exam->duration_minutes,
                 'show_explanation' => (bool) $exam->show_explanation,
+                'scoring' => $exam->scoring,
             ],
             'attempt' => [
                 'id' => $attempt->id,
@@ -298,7 +299,7 @@ class StudentExamApiController extends Controller
         $data = $questions->map(function ($question) use ($answers, $scoring, $attempt) {
             $answer = $answers->get($question->id);
             $userAnswer = $this->normaliseDiscussionAnswer($answer?->answer);
-            $profile = $question->section?->scoringProfile ?? $attempt->session->exam->scoringProfile;
+            $profile = $question->section?->scoringProfile;
             $score = $scoring->scoreQuestion($question, $userAnswer, $profile);
 
             return [
@@ -333,6 +334,7 @@ class StudentExamApiController extends Controller
                 'id' => $attempt->session->exam->hashid,
                 'title' => $attempt->session->exam->title,
                 'show_explanation' => (bool) $attempt->session->exam->show_explanation,
+                'scoring' => $attempt->session->exam->scoring,
             ],
             'status' => $attempt->status,
             'questions' => $data,
@@ -447,12 +449,14 @@ class StudentExamApiController extends Controller
                 'id' => $attempt->session->exam->hashid,
                 'title' => $attempt->session->exam->title,
                 'show_explanation' => (bool) $attempt->session->exam->show_explanation,
+                'scoring' => $attempt->session->exam->scoring,
             ],
             'status' => $attempt->status,
             'average_score' => round((float) ($breakdown['sections']->avg('score') ?? 0), 2),
             'result_mode' => $mode,
+            'scoring' => $attempt->session->exam->scoring,
             'score_display_mode' => $this->scoreDisplayMode($mode),
-            'is_point_based' => $this->isPointBased($mode, $attempt->session->exam->scoringProfile),
+            'is_point_based' => $mode === 'total',
             'scoring_profile' => $breakdown['scoring_profile'],
             'score' => (float) $attempt->final_score,
             'detail_nilai' => $this->detailNilaiRecords($attempt),
@@ -462,16 +466,16 @@ class StudentExamApiController extends Controller
 
     private function sectionBreakdown(ExamAttempt $attempt): array
     {
-        $attempt->loadMissing(['session.exam.scoringProfile', 'session.exam.sections.scoringProfile', 'session.exam.sections.section']);
+        $attempt->loadMissing(['session.exam.sections.scoringProfile', 'session.exam.sections.section']);
 
         $scoring = app(AttemptScoringService::class);
         $sections = $scoring->sectionResults($attempt);
-        $profile = $attempt->session->exam->scoringProfile;
-        $mode = $profile ? $scoring->resultMode($profile) : ($sections->first()['result_mode'] ?? 'average');
+        $profile = null;
+        $mode = $attempt->session->exam->scoring === 'total' ? 'total' : 'average';
 
         $sectionDetails = $sections->map(function ($section) use ($attempt) {
             $examSection = $attempt->session->exam->sections()->whereKey($section['id'])->first();
-            $sectionProfile = $examSection?->scoringProfile ?? $attempt->session->exam->scoringProfile;
+            $sectionProfile = $examSection?->scoringProfile;
             $sectionMode = $section['result_mode'] ?? ($sectionProfile ? app(AttemptScoringService::class)->resultMode($sectionProfile) : 'average');
 
             return [
@@ -498,9 +502,10 @@ class StudentExamApiController extends Controller
                 'show_explanation' => (bool) $attempt->session->exam->show_explanation,
             ],
             'result_mode' => $mode,
+            'scoring' => $attempt->session->exam->scoring,
             'score_display_mode' => $this->scoreDisplayMode($mode),
             'is_point_based' => $this->isPointBased($mode, $profile),
-            'scoring_profile' => $this->scoringProfileMeta($profile),
+            'scoring_profile' => null,
             'detail_nilai' => $this->detailNilaiRecords($attempt),
             'sections' => $sectionDetails,
         ];
@@ -662,6 +667,7 @@ class StudentExamApiController extends Controller
             'end_time' => $session->end_time,
             'duration_minutes' => (int) $session->exam->duration_minutes,
             'show_explanation' => (bool) $session->exam->show_explanation,
+            'scoring' => $session->exam->scoring,
             'is_open' => now()->between($session->start_time, $session->end_time),
             'require_token' => (bool) $session->exam->require_token,
             'status' => $status,
