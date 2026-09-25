@@ -35,6 +35,7 @@ class StudentExamApiController extends Controller
             'session_id' => $session->id,
             'title' => $session->exam->title,
             'duration_minutes' => (int) $session->exam->duration_minutes,
+            'show_explanation' => (bool) $session->exam->show_explanation,
             'start_time' => $session->start_time,
             'end_time' => $session->end_time,
             'require_token' => (bool) $session->exam->require_token,
@@ -84,6 +85,7 @@ class StudentExamApiController extends Controller
                 'id' => $exam->hashid,
                 'title' => $exam->title,
                 'duration_minutes' => (int) $exam->duration_minutes,
+                'show_explanation' => (bool) $exam->show_explanation,
             ],
             'attempt' => [
                 'id' => $attempt->id,
@@ -488,6 +490,7 @@ class StudentExamApiController extends Controller
             'start_time' => $session->start_time,
             'end_time' => $session->end_time,
             'duration_minutes' => (int) $session->exam->duration_minutes,
+            'show_explanation' => (bool) $session->exam->show_explanation,
             'status' => $session->pivot->status,
             'is_open' => now()->between($session->start_time, $session->end_time),
             'final_score' => $session->pivot->final_score,

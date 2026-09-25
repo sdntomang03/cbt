@@ -265,6 +265,7 @@ Response hanya berisi exam/session yang diikuti siswa.
             "start_time": "2026-09-24T08:00:00.000000Z",
             "end_time": "2026-09-24T12:00:00.000000Z",
             "duration_minutes": 90,
+            "show_explanation": true,
             "status": "not_started",
             "is_open": true,
             "final_score": null,
@@ -305,6 +306,7 @@ Response:
         "start_time": "2026-09-24T08:00:00.000000Z",
         "end_time": "2026-09-24T12:00:00.000000Z",
         "require_token": false,
+        "show_explanation": true,
         "status": "not_started",
         "is_locked": false,
         "total_questions": 40
@@ -346,7 +348,8 @@ Response:
         "exam": {
             "id": "jR3k",
             "title": "TKA Matematika",
-            "duration_minutes": 90
+            "duration_minutes": 90,
+            "show_explanation": true
         },
         "attempt": {
             "id": 123,
