@@ -20,8 +20,12 @@ class StudentExamApiController extends Controller
             ->with(['exam' => fn ($query) => $query->withCount('questions')])
             ->orderBy('start_time')
             ->get();
+        $attempts = ExamAttempt::where('user_id', $request->user()->id)
+            ->whereIn('exam_session_id', $sessions->pluck('id'))
+            ->get()
+            ->keyBy('exam_session_id');
 
-        $data = $sessions->map(fn ($session) => $this->sessionData($session))->values();
+        $data = $sessions->map(fn ($session) => $this->sessionData($session, $attempts->get($session->id)))->values();
 
         return $this->success('Daftar ujian berhasil diambil.', $data);
     }
@@ -29,20 +33,9 @@ class StudentExamApiController extends Controller
     public function show(Request $request, Exam $exam)
     {
         $session = $this->studentSession($request, $exam)->load('exam');
+        $attempt = $this->attemptForSession($session, $request->user()->id);
 
-        return $this->success('Detail ujian berhasil diambil.', [
-            'id' => $session->exam->hashid,
-            'session_id' => $session->id,
-            'title' => $session->exam->title,
-            'duration_minutes' => (int) $session->exam->duration_minutes,
-            'show_explanation' => (bool) $session->exam->show_explanation,
-            'start_time' => $session->start_time,
-            'end_time' => $session->end_time,
-            'require_token' => (bool) $session->exam->require_token,
-            'status' => $session->pivot->status,
-            'is_locked' => (bool) $session->pivot->is_locked,
-            'total_questions' => $session->exam->questions()->count(),
-        ]);
+        return $this->success('Detail ujian berhasil diambil.', $this->sessionData($session, $attempt));
     }
 
     public function start(Request $request, Exam $exam)
@@ -257,16 +250,17 @@ class StudentExamApiController extends Controller
             return $this->error('Pembahasan belum tersedia karena ujian belum selesai.', 400);
         }
         if (! $attempt->session->exam->show_explanation) {
-            return $this->error('Pembahasan belum diaktifkan untuk ujian ini.', 403);
+            return response()->json([
+                'success' => false,
+                'message' => 'Pembahasan untuk ujian ini tidak diaktifkan.',
+                'data' => null,
+            ], 403);
         }
 
         $scoring = app(AttemptScoringService::class);
         $attempt->loadMissing(['session.exam.sections.section', 'answers']);
         $answers = $attempt->answers->keyBy('question_id');
-        $questions = $attempt->session->exam->questions()
-            ->with(['options', 'matches', 'section.section'])
-            ->orderBy('questions.id')
-            ->get();
+        $questions = $this->orderedQuestions($attempt->session->exam);
 
         $data = $questions->map(function ($question) use ($answers, $scoring, $attempt) {
             $answer = $answers->get($question->id);
@@ -305,7 +299,7 @@ class StudentExamApiController extends Controller
             'exam' => [
                 'id' => $attempt->session->exam->hashid,
                 'title' => $attempt->session->exam->title,
-                'show_explanation' => true,
+                'show_explanation' => (bool) $attempt->session->exam->show_explanation,
             ],
             'status' => $attempt->status,
             'questions' => $data,
@@ -357,8 +351,14 @@ class StudentExamApiController extends Controller
 
     private function attemptFor(ExamSession $session, int $userId): ExamAttempt
     {
+        return $this->attemptForSession($session, $userId)
+            ?? abort(404, 'Attempt ujian tidak ditemukan.');
+    }
+
+    private function attemptForSession(ExamSession $session, int $userId): ?ExamAttempt
+    {
         return ExamAttempt::where('exam_session_id', $session->id)->where('user_id', $userId)
-            ->with(['session.exam'])->firstOrFail();
+            ->with(['session.exam'])->first();
     }
 
     private function ownedAttempt(Request $request, ExamAttempt $attempt): ExamAttempt
@@ -414,13 +414,33 @@ class StudentExamApiController extends Controller
 
         return [
             'attempt_id' => $attempt->id,
-            'exam' => ['id' => $attempt->session->exam->hashid, 'title' => $attempt->session->exam->title],
+            'exam' => [
+                'id' => $attempt->session->exam->hashid,
+                'title' => $attempt->session->exam->title,
+                'show_explanation' => (bool) $attempt->session->exam->show_explanation,
+            ],
             'status' => $attempt->status,
             'average_score' => round((float) ($sections->avg('score') ?? 0), 2),
             'result_mode' => $mode,
             'score' => (float) $attempt->final_score,
             'sections' => $sections->values(),
         ];
+    }
+
+    private function orderedQuestions(Exam $exam)
+    {
+        return $exam->sections()
+            ->with([
+                'section',
+                'questions' => fn ($query) => $query
+                    ->with(['options', 'matches', 'section.section'])
+                    ->orderBy('id'),
+            ])
+            ->orderBy('order')
+            ->orderBy('id')
+            ->get()
+            ->flatMap(fn ($section) => $section->questions)
+            ->values();
     }
 
     private function normaliseDiscussionAnswer(mixed $answer): mixed
@@ -485,8 +505,11 @@ class StudentExamApiController extends Controller
         return false;
     }
 
-    private function sessionData($session): array
+    private function sessionData($session, ?ExamAttempt $attempt = null): array
     {
+        $status = $attempt?->status ?? $session->pivot->status;
+        $isCompleted = $status === 'completed';
+
         return [
             'id' => $session->exam->hashid,
             'session_id' => $session->id,
@@ -495,11 +518,17 @@ class StudentExamApiController extends Controller
             'end_time' => $session->end_time,
             'duration_minutes' => (int) $session->exam->duration_minutes,
             'show_explanation' => (bool) $session->exam->show_explanation,
-            'status' => $session->pivot->status,
             'is_open' => now()->between($session->start_time, $session->end_time),
-            'final_score' => $session->pivot->final_score,
-            'is_locked' => (bool) $session->pivot->is_locked,
+            'require_token' => (bool) $session->exam->require_token,
+            'status' => $status,
+            'final_score' => $isCompleted ? $attempt?->final_score : null,
+            'is_locked' => (bool) ($attempt?->is_locked ?? $session->pivot->is_locked),
             'total_questions' => $session->exam->questions_count,
+            'attempt_id' => $attempt?->id,
+            'attempt' => $attempt ? [
+                'id' => $attempt->id,
+                'status' => $attempt->status,
+            ] : null,
         ];
     }
 

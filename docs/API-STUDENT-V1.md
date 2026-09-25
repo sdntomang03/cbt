@@ -266,11 +266,17 @@ Response hanya berisi exam/session yang diikuti siswa.
             "end_time": "2026-09-24T12:00:00.000000Z",
             "duration_minutes": 90,
             "show_explanation": true,
+            "require_token": false,
             "status": "not_started",
             "is_open": true,
             "final_score": null,
             "is_locked": false,
-            "total_questions": 40
+            "total_questions": 40,
+            "attempt_id": 123,
+            "attempt": {
+                "id": 123,
+                "status": "not_started"
+            }
         }
     ]
 }
@@ -309,7 +315,12 @@ Response:
         "show_explanation": true,
         "status": "not_started",
         "is_locked": false,
-        "total_questions": 40
+        "total_questions": 40,
+        "attempt_id": 123,
+        "attempt": {
+            "id": 123,
+            "status": "not_started"
+        }
     }
 }
 ```
