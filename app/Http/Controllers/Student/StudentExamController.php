@@ -294,7 +294,9 @@ class StudentExamController extends Controller
             ? $scoring->resultMode($exam->scoringProfile)
             : ($sectionResults->first()['result_mode'] ?? 'average');
 
-        return view('student.exams.result', compact('exam', 'attempt', 'sectionResults', 'averageScore', 'resultMode'));
+        $detailNilai = $attempt->detailNilai()->orderBy('section_id')->get();
+
+        return view('student.exams.result', compact('exam', 'attempt', 'sectionResults', 'averageScore', 'resultMode', 'detailNilai'));
     }
 
     public function recordViolation(Request $request)

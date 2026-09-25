@@ -245,19 +245,40 @@ class StudentExamApiController extends Controller
         return $this->success('Hasil ujian berhasil diambil.', $this->resultData($attempt));
     }
 
-    public function sections(Request $request, ExamAttempt $attempt)
+    public function detailNilai(Request $request, ExamAttempt $attempt)
     {
         $attempt = $this->ownedAttempt($request, $attempt);
 
         if ($attempt->status !== 'completed') {
-            return $this->error('Detail skor per section belum tersedia karena ujian belum selesai.', 400);
+            return $this->error('Detail nilai per section belum tersedia karena ujian belum selesai.', 400);
         }
 
-        return $this->success('Detail nilai per section berhasil diambil.', $this->sectionBreakdown($attempt));
+        $payload = $this->sectionBreakdown($attempt);
+        $payload['detail_nilai'] = $this->detailNilaiRecords($attempt);
+
+        return $this->success('Detail nilai per section berhasil diambil.', $payload);
     }
 
-    public function discussion(Request $request, ExamAttempt $attempt)    {
-        $attempt = $this->ownedAttempt($request, $attempt);
+    public function examDetailNilai(Request $request, Exam $exam)
+    {
+        $session = $this->studentSession($request, $exam)->load('exam');
+        $attempt = $this->attemptForSession($session, $request->user()->id);
+
+        if (! $attempt) {
+            return $this->error('Attempt ujian tidak ditemukan untuk siswa ini.', 404);
+        }
+
+        if ($attempt->status !== 'completed') {
+            return $this->error('Detail nilai per section belum tersedia karena ujian belum selesai.', 400);
+        }
+
+        $payload = $this->sectionBreakdown($attempt);
+        $payload['detail_nilai'] = $this->detailNilaiRecords($attempt);
+
+        return $this->success('Detail nilai ujian per section berhasil diambil.', $payload);
+    }
+
+    public function discussion(Request $request, ExamAttempt $attempt)    {        $attempt = $this->ownedAttempt($request, $attempt);
         if ($attempt->status !== 'completed') {
             return $this->error('Pembahasan belum tersedia karena ujian belum selesai.', 400);
         }
@@ -434,6 +455,7 @@ class StudentExamApiController extends Controller
             'is_point_based' => $mode === 'total',
             'scoring_profile' => $breakdown['scoring_profile'],
             'score' => (float) $attempt->final_score,
+            'detail_nilai' => $this->detailNilaiRecords($attempt),
             'sections' => $breakdown['sections']->values()->all(),
         ];
     }
@@ -478,6 +500,7 @@ class StudentExamApiController extends Controller
             'score_display_mode' => $this->scoreDisplayMode($mode),
             'is_point_based' => $mode === 'total',
             'scoring_profile' => $this->scoringProfileMeta($profile),
+            'detail_nilai' => $this->detailNilaiRecords($attempt),
             'sections' => $sectionDetails,
         ];
     }
@@ -504,6 +527,32 @@ class StudentExamApiController extends Controller
     private function scoreDisplayMode(string $mode): string
     {
         return $mode === 'total' ? 'points' : 'percentage';
+    }
+
+    private function detailNilaiRecords(ExamAttempt $attempt): array
+    {
+        $attempt->loadMissing(['detailNilai.section.section']);
+
+        return $attempt->detailNilai()->orderBy('section_id')->get()->map(function ($record) {
+            return [
+                'id' => $record->id,
+                'user_id' => $record->user_id,
+                'exam_attempt_id' => $record->exam_attempt_id,
+                'section_id' => $record->section_id,
+                'section_name' => $record->section?->section?->name ?? $record->section?->name ?? 'Sesi Utama',
+                'result_mode' => $record->result_mode,
+                'nilai' => round((float) $record->nilai, 2),
+                'benar' => (int) $record->benar,
+                'salah' => (int) $record->salah,
+                'tidak_dijawab' => (int) $record->tidak_dijawab,
+                'earned' => round((float) $record->earned, 2),
+                'maximum' => round((float) $record->maximum, 2),
+                'display_score' => round((float) $record->display_score, 2),
+                'is_point_based' => (bool) $record->is_point_based,
+                'score_label' => $record->score_label,
+                'metadata' => $record->metadata ?? [],
+            ];
+        })->values()->all();
     }
 
     private function orderedQuestions(Exam $exam)

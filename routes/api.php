@@ -27,7 +27,9 @@ Route::prefix('v1/student')->group(function () {
         Route::post('/attempts/{attempt}/violation', [StudentExamApiController::class, 'violation']);
         Route::post('/attempts/{attempt}/submit', [StudentExamApiController::class, 'submit']);
         Route::get('/attempts/{attempt}/result', [StudentExamApiController::class, 'result']);
-        Route::get('/attempts/{attempt}/sections', [StudentExamApiController::class, 'sections']);
+        Route::get('/attempts/{attempt}/detail-nilai', [StudentExamApiController::class, 'detailNilai']);
+        Route::get('/attempts/{attempt}/sections', [StudentExamApiController::class, 'detailNilai']);
+        Route::get('/exams/{exam}/detail-nilai', [StudentExamApiController::class, 'examDetailNilai']);
         Route::get('/attempts/{attempt}/discussion', [StudentExamApiController::class, 'discussion']);
     });
 });

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\DetailNilai;
 use App\Models\ExamAttempt;
 use App\Models\Question;
 use App\Models\ScoringProfile;
@@ -46,6 +47,8 @@ class AttemptScoringService
         // Use the same section aggregation shown on the result page. This
         // keeps the final score consistent when an exam has multiple sections.
         $sectionResults = $this->sectionResults($attempt);
+        $this->persistSectionDetails($attempt, $sectionResults);
+
         $rawScore = (float) $sectionResults->sum('earned');
         $maximumScore = (float) $sectionResults->sum('maximum');
         $firstResultMode = $sectionResults->first()['result_mode'] ?? null;
@@ -155,6 +158,77 @@ class AttemptScoringService
             'score' => $empty ? $emptyScore : ($isCorrect ? $correct : $wrong),
             'maximum' => max($correct, $emptyScore, 0),
         ];
+    }
+
+    private function persistSectionDetails(ExamAttempt $attempt, Collection $sectionResults): void
+    {
+        $attempt->loadMissing(['session.exam', 'answers.question']);
+        $exam = $attempt->session->exam;
+        $answers = $attempt->answers->keyBy('question_id');
+
+        $sectionQuestions = $exam->sections()
+            ->with(['section', 'questions' => fn ($query) => $query->with(['options', 'matches'])])
+            ->orderBy('order')
+            ->orderBy('id')
+            ->get()
+            ->mapWithKeys(fn ($section) => [$section->id => $section->questions]);
+
+        foreach ($sectionResults as $sectionResult) {
+            $sectionId = $sectionResult['id'];
+            $questions = $sectionQuestions->get($sectionId, collect());
+            $profile = $exam->sections()->whereKey($sectionId)->first()?->scoringProfile ?? $exam->scoringProfile;
+            $benar = 0;
+            $salah = 0;
+            $tidakDijawab = 0;
+
+            foreach ($questions as $question) {
+                $answer = $answers->get($question->id)?->answer;
+                $normalised = $this->normaliseAnswer($answer);
+
+                if ($answer === null || $answer === '' || $answer === []) {
+                    $tidakDijawab++;
+                    continue;
+                }
+
+                if ($this->isCorrect($question, $normalised)) {
+                    $benar++;
+                } else {
+                    $salah++;
+                }
+            }
+
+            $resultMode = $sectionResult['result_mode'] ?? ($profile ? $this->resultMode($profile) : 'average');
+            $sectionScore = (float) ($sectionResult['display_score'] ?? $sectionResult['score'] ?? 0);
+
+            DetailNilai::updateOrCreate(
+                [
+                    'user_id' => $attempt->user_id,
+                    'exam_attempt_id' => $attempt->id,
+                    'section_id' => $sectionId,
+                ],
+                [
+                    'exam_session_id' => $attempt->exam_session_id,
+                    'exam_id' => $exam->id,
+                    'section_id' => $sectionId,
+                    'scoring_profile_id' => $profile?->id,
+                    'result_mode' => $resultMode,
+                    'nilai' => round($sectionScore, 2),
+                    'benar' => $benar,
+                    'salah' => $salah,
+                    'tidak_dijawab' => $tidakDijawab,
+                    'earned' => round((float) ($sectionResult['earned'] ?? 0), 2),
+                    'maximum' => round((float) ($sectionResult['maximum'] ?? 0), 2),
+                    'display_score' => round((float) ($sectionResult['display_score'] ?? $sectionResult['score'] ?? 0), 2),
+                    'is_point_based' => $resultMode === 'total',
+                    'score_label' => $resultMode === 'total' ? 'Point' : 'Nilai 100',
+                    'metadata' => [
+                        'section_name' => $sectionResult['name'] ?? 'Sesi Utama',
+                        'question_count' => (int) ($sectionResult['question_count'] ?? 0),
+                        'score_display_mode' => $resultMode === 'total' ? 'points' : 'percentage',
+                    ],
+                ]
+            );
+        }
     }
 
     private function isCorrect(Question $question, mixed $answer): bool

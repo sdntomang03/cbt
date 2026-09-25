@@ -54,4 +54,9 @@ class ExamAttempt extends Model
     {
         return $this->hasMany(StudentAnswer::class, 'exam_attempt_id');
     }
+
+    public function detailNilai(): HasMany
+    {
+        return $this->hasMany(DetailNilai::class, 'exam_attempt_id');
+    }
 }
