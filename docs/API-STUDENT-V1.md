@@ -600,7 +600,8 @@ Response:
         "attempt_id": 123,
         "exam": {
             "id": "jR3k",
-            "title": "TKA Matematika"
+            "title": "TKA Matematika",
+            "show_explanation": true
         },
         "status": "completed",
         "average_score": 85,
@@ -615,7 +616,7 @@ Result sebelum ujian selesai mengembalikan HTTP `400`.
 
 ## 15. Pembahasan Soal
 
-Pembahasan hanya dapat diambil setelah attempt berstatus `completed` dan hanya oleh siswa pemilik attempt.
+Pembahasan hanya dapat diambil setelah attempt berstatus `completed`, hanya oleh siswa pemilik attempt, dan hanya jika `show_explanation` pada exam bernilai `true`.
 
 ```http
 GET {{base_url}}/attempts/{{attempt_id}}/discussion

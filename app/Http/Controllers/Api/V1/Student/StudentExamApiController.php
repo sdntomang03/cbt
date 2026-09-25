@@ -256,6 +256,9 @@ class StudentExamApiController extends Controller
         if ($attempt->status !== 'completed') {
             return $this->error('Pembahasan belum tersedia karena ujian belum selesai.', 400);
         }
+        if (! $attempt->session->exam->show_explanation) {
+            return $this->error('Pembahasan belum diaktifkan untuk ujian ini.', 403);
+        }
 
         $scoring = app(AttemptScoringService::class);
         $attempt->loadMissing(['session.exam.sections.section', 'answers']);
@@ -302,6 +305,7 @@ class StudentExamApiController extends Controller
             'exam' => [
                 'id' => $attempt->session->exam->hashid,
                 'title' => $attempt->session->exam->title,
+                'show_explanation' => true,
             ],
             'status' => $attempt->status,
             'questions' => $data,
