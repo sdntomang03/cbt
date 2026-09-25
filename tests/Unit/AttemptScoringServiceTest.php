@@ -74,6 +74,9 @@ class AttemptScoringServiceTest extends TestCase
         $this->assertSame('total', $service->resultMode(
             new ScoringProfile(['rules' => ['result_mode' => 'total']])
         ));
+        $this->assertSame('total', $service->resultMode(
+            new ScoringProfile(['rules' => ['type' => 'weighted']])
+        ));
     }
 
     private function singleChoiceQuestion(): Question

@@ -512,14 +512,17 @@ class StudentExamApiController extends Controller
         }
 
         $rules = is_array($profile->rules) ? $profile->rules : [];
+        $resultMode = $rules['result_mode'] ?? 'average';
+        $type = strtolower((string) ($rules['type'] ?? $rules['scoring_type'] ?? 'standard'));
+        $isPointBased = $resultMode === 'total' || $type === 'weighted';
 
         return [
             'id' => $profile->id,
             'name' => $profile->name,
             'code' => $profile->code,
             'type' => $rules['type'] ?? 'standard',
-            'result_mode' => $rules['result_mode'] ?? 'average',
-            'is_point_based' => ($rules['result_mode'] ?? 'average') === 'total',
+            'result_mode' => $resultMode,
+            'is_point_based' => $isPointBased,
             'rules' => $rules,
         ];
     }
@@ -527,6 +530,18 @@ class StudentExamApiController extends Controller
     private function scoreDisplayMode(string $mode): string
     {
         return $mode === 'total' ? 'points' : 'percentage';
+    }
+
+    private function isPointBased(string $resultMode, ?ScoringProfile $profile = null): bool
+    {
+        if ($resultMode === 'total') {
+            return true;
+        }
+
+        $rules = $profile?->rules ?? [];
+        $type = strtolower((string) ($rules['type'] ?? $rules['scoring_type'] ?? ''));
+
+        return $type === 'weighted';
     }
 
     private function detailNilaiRecords(ExamAttempt $attempt): array

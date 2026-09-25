@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\ButirSoalExport;
+use App\Models\DetailNilai;
 use App\Models\Exam;
 use App\Models\ExamSession;
 use App\Models\ExamSessionUser;
@@ -361,9 +362,19 @@ class ProctorController extends Controller
             ->where('user_id', $student->id)
             ->firstOrFail();
 
+        $attemptIds = ExamAttempt::where('exam_session_id', $examSession->id)
+            ->where('user_id', $student->id)
+            ->pluck('id');
+
         // Hapus semua jawaban siswa untuk sesi ini
         StudentAnswer::where('exam_attempt_id', $examUser->id)
             ->delete();
+
+        if ($attemptIds->isNotEmpty()) {
+            DetailNilai::whereIn('exam_attempt_id', $attemptIds)
+                ->where('user_id', $student->id)
+                ->delete();
+        }
 
         // Kembalikan status ke belum mulai
         $examUser->update([

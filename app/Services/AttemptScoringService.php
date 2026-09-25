@@ -124,7 +124,13 @@ class AttemptScoringService
 
     public function resultMode(?ScoringProfile $profile): string
     {
-        return ($profile?->rules['result_mode'] ?? 'average') === 'total'
+        $rules = $profile?->rules ?? [];
+
+        if (($rules['result_mode'] ?? null) === 'total') {
+            return 'total';
+        }
+
+        return strtolower((string) ($rules['type'] ?? $rules['scoring_type'] ?? '')) === 'weighted'
             ? 'total'
             : 'average';
     }
