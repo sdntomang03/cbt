@@ -136,6 +136,7 @@ Gunakan nilai tersebut pada endpoint berikut:
 | POST | `/attempts/{attempt}/violation` | Ya | Catat pelanggaran |
 | POST | `/attempts/{attempt}/submit` | Ya | Selesaikan dan score ujian |
 | GET | `/attempts/{attempt}/result` | Ya | Ambil hasil ujian |
+| GET | `/attempts/{attempt}/discussion` | Ya | Ambil pembahasan soal |
 
 ## 1. Login
 
@@ -609,7 +610,65 @@ Response:
 
 Result sebelum ujian selesai mengembalikan HTTP `400`.
 
-## 15. Status Exam
+## 15. Pembahasan Soal
+
+Pembahasan hanya dapat diambil setelah attempt berstatus `completed` dan hanya oleh siswa pemilik attempt.
+
+```http
+GET {{base_url}}/attempts/{{attempt_id}}/discussion
+```
+
+Response mencakup soal, jawaban siswa, kunci jawaban, pembahasan, status benar/salah, dan nilai per soal. Jenis soal yang didukung adalah `single_choice`, `complex_choice`, `true_false`, `true_false_multi`, `matching`, `essay`, dan `tkp`.
+
+```json
+{
+    "success": true,
+    "message": "Pembahasan soal berhasil diambil.",
+    "data": {
+        "attempt_id": 123,
+        "exam": {
+            "id": "jR3k",
+            "title": "TKA Matematika"
+        },
+        "status": "completed",
+        "questions": [
+            {
+                "id": 12,
+                "type": "single_choice",
+                "content": "<p>Isi soal...</p>",
+                "explanation": "<p>Langkah pembahasan...</p>",
+                "section": "Sesi Utama",
+                "answer": 101,
+                "is_doubtful": false,
+                "is_correct": true,
+                "score": 1,
+                "maximum_score": 1,
+                "options": [
+                    {
+                        "id": 101,
+                        "option_text": "Jawaban A",
+                        "is_correct": true,
+                        "score_weight": null
+                    }
+                ],
+                "matches": []
+            }
+        ]
+    }
+}
+```
+
+Field `answer` mengikuti bentuk jawaban saat disimpan:
+
+- `single_choice` dan `tkp`: ID option.
+- `complex_choice`: array ID option.
+- `true_false` dan `true_false_multi`: object dengan key ID option dan nilai `benar`/`salah`.
+- `matching`: object dengan key ID match dan value ID target yang dipilih.
+- `essay`: teks jawaban siswa.
+
+Untuk `matching`, `correct_target_id` menunjukkan pasangan benar. Untuk `tkp`, `score_weight` menunjukkan bobot option yang digunakan dalam scoring.
+
+## 16. Status Exam
 
 ```http
 GET {{base_url}}/exams/{{exam_id}}/status

@@ -248,6 +248,64 @@ class StudentExamApiController extends Controller
         return $this->success('Hasil ujian berhasil diambil.', $this->resultData($attempt));
     }
 
+    public function discussion(Request $request, ExamAttempt $attempt)
+    {
+        $attempt = $this->ownedAttempt($request, $attempt);
+        if ($attempt->status !== 'completed') {
+            return $this->error('Pembahasan belum tersedia karena ujian belum selesai.', 400);
+        }
+
+        $scoring = app(AttemptScoringService::class);
+        $attempt->loadMissing(['session.exam.sections.section', 'answers']);
+        $answers = $attempt->answers->keyBy('question_id');
+        $questions = $attempt->session->exam->questions()
+            ->with(['options', 'matches', 'section.section'])
+            ->orderBy('questions.id')
+            ->get();
+
+        $data = $questions->map(function ($question) use ($answers, $scoring, $attempt) {
+            $answer = $answers->get($question->id);
+            $userAnswer = $this->normaliseDiscussionAnswer($answer?->answer);
+            $profile = $question->section?->scoringProfile ?? $attempt->session->exam->scoringProfile;
+            $score = $scoring->scoreQuestion($question, $userAnswer, $profile);
+
+            return [
+                'id' => $question->id,
+                'type' => $question->type,
+                'content' => $question->content,
+                'explanation' => $question->explanation,
+                'section' => $question->section?->section?->name,
+                'answer' => $userAnswer,
+                'is_doubtful' => (bool) ($answer?->is_doubtful ?? false),
+                'is_correct' => $this->discussionIsCorrect($question, $userAnswer),
+                'score' => $score['score'],
+                'maximum_score' => $score['maximum'],
+                'options' => $question->options->map(fn ($option) => [
+                    'id' => $option->id,
+                    'option_text' => $option->option_text,
+                    'is_correct' => (bool) $option->is_correct,
+                    'score_weight' => $question->type === 'tkp' ? $option->score_weight : null,
+                ])->values(),
+                'matches' => $question->matches->map(fn ($match) => [
+                    'id' => $match->id,
+                    'premise_text' => $match->premise_text,
+                    'target_text' => $match->target_text,
+                    'correct_target_id' => $match->id,
+                ])->values(),
+            ];
+        })->values();
+
+        return $this->success('Pembahasan soal berhasil diambil.', [
+            'attempt_id' => $attempt->id,
+            'exam' => [
+                'id' => $attempt->session->exam->hashid,
+                'title' => $attempt->session->exam->title,
+            ],
+            'status' => $attempt->status,
+            'questions' => $data,
+        ]);
+    }
+
     public function status(Request $request, Exam $exam)
     {
         $session = $this->studentSession($request, $exam);
@@ -357,6 +415,68 @@ class StudentExamApiController extends Controller
             'score' => (float) $attempt->final_score,
             'sections' => $sections->values(),
         ];
+    }
+
+    private function normaliseDiscussionAnswer(mixed $answer): mixed
+    {
+        if (! is_string($answer)) {
+            return $answer;
+        }
+
+        $decoded = json_decode($answer, true);
+
+        return json_last_error() === JSON_ERROR_NONE ? $decoded : $answer;
+    }
+
+    private function discussionIsCorrect($question, mixed $answer): bool
+    {
+        if ($answer === null || $answer === '' || $answer === []) {
+            return false;
+        }
+
+        if ($question->type === 'single_choice') {
+            return (int) $answer === (int) optional($question->options->firstWhere('is_correct', true))->id;
+        }
+
+        if ($question->type === 'complex_choice') {
+            $expected = $question->options->where('is_correct', true)->pluck('id')->map(fn ($id) => (int) $id)->sort()->values()->all();
+            $actual = collect(is_array($answer) ? $answer : [$answer])->map(fn ($id) => (int) $id)->sort()->values()->all();
+
+            return $expected === $actual;
+        }
+
+        if (in_array($question->type, ['true_false', 'true_false_multi'], true)) {
+            $answers = is_array($answer) ? $answer : [];
+
+            return $question->options->isNotEmpty() && $question->options->every(function ($option) use ($answers) {
+                $value = strtolower(trim((string) ($answers[$option->id] ?? '')));
+                if (in_array($value, ['1', 'true'], true)) {
+                    $value = 'benar';
+                } elseif (in_array($value, ['0', 'false'], true)) {
+                    $value = 'salah';
+                }
+
+                return $value === ($option->is_correct ? 'benar' : 'salah');
+            });
+        }
+
+        if ($question->type === 'matching') {
+            $answers = is_array($answer) ? $answer : [];
+
+            return $question->matches->isNotEmpty() && $question->matches->every(
+                fn ($match) => (int) ($answers[$match->id] ?? 0) === (int) $match->id
+            );
+        }
+
+        if ($question->type === 'essay') {
+            $actual = mb_strtolower(trim(strip_tags((string) $answer)));
+
+            return $actual !== '' && $question->options->contains(
+                fn ($option) => mb_strtolower(trim(strip_tags((string) $option->option_text))) === $actual
+            );
+        }
+
+        return false;
     }
 
     private function sessionData($session): array
