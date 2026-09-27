@@ -121,6 +121,8 @@ Gunakan nilai tersebut pada endpoint berikut:
 
 | Method | Endpoint | Auth | Fungsi |
 |---|---|---:|---|
+| POST | `/register` | Tidak | Daftarkan akun siswa dan kirim email verifikasi |
+| POST | `/email/verification-notification` | Tidak | Kirim ulang link aktivasi secara aman |
 | POST | `/login` | Tidak | Login siswa |
 | POST | `/logout` | Ya | Logout token aktif |
 | GET | `/profile` | Ya | Profil siswa |
@@ -138,7 +140,67 @@ Gunakan nilai tersebut pada endpoint berikut:
 | GET | `/attempts/{attempt}/result` | Ya | Ambil hasil ujian |
 | GET | `/attempts/{attempt}/discussion` | Ya | Ambil pembahasan soal |
 
-## 1. Login
+## Pendaftaran Siswa
+
+```http
+POST {{base_url}}/register
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+    "name": "Nama Siswa",
+    "username": "siswa123",
+    "email": "siswa@example.com",
+    "password": "password123",
+    "password_confirmation": "password123",
+    "sekolah": "SMA Contoh"
+}
+```
+
+`username` dan `sekolah` boleh tidak dikirim. Jika `username` tidak dikirim,
+server membuat username unik dari email. Email dan username yang dikirim harus
+belum digunakan. Pendaftaran membuat akun dengan role `siswa`, mengirim email
+verifikasi, dan tidak memberikan token sebelum email diaktifkan.
+
+Response HTTP `201`:
+
+```json
+{
+    "success": true,
+    "message": "Pendaftaran berhasil. Silakan aktifkan akun melalui tautan verifikasi yang dikirim ke email Anda.",
+    "data": {
+        "email": "siswa@example.com",
+        "email_verified": false
+    }
+}
+```
+
+Siswa dapat meminta email verifikasi dikirim ulang:
+
+```http
+POST {{base_url}}/email/verification-notification
+Content-Type: application/json
+```
+
+```json
+{
+    "email": "siswa@example.com"
+}
+```
+
+Endpoint resend selalu memberi pesan umum untuk mencegah enumerasi email.
+Login API untuk akun yang belum diverifikasi mengembalikan HTTP `403` dan tidak
+menerbitkan token. Semua endpoint API yang memerlukan autentikasi juga menolak
+akun yang belum diverifikasi. Email verifikasi dapat dibuka di browser; jika
+siswa belum login ke web, login dengan akun tersebut untuk menyelesaikan
+verifikasi, lalu kembali ke aplikasi.
+
+Jika validasi gagal, API mengembalikan HTTP `422` beserta detail error validasi.
+
+## Login
 
 ```http
 POST {{base_url}}/login

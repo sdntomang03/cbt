@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -26,6 +27,14 @@ class ApiAuthController extends Controller
             throw ValidationException::withMessages([
                 'login_id' => ['Kredensial yang diberikan salah.'],
             ]);
+        }
+
+        if (! $user->hasVerifiedEmail()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Email belum diverifikasi. Silakan aktifkan akun melalui tautan yang dikirim ke email Anda.',
+                'data' => ['email_verified' => false],
+            ], 403);
         }
 
         $user->tokens()->delete();
@@ -59,7 +68,8 @@ class ApiAuthController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users,username',
-            'email' => 'nullable|string|email|max:255|unique:users,email',
+            'email' => 'required|string|email|max:255|unique:users,email',
+            'sekolah' => 'nullable|string|max:255',
             'asal_sekolah_public' => 'nullable|string|max:255',
             'password' => 'required|string|min:8|confirmed', // 'confirmed' akan otomatis mengecek 'password_confirmation'
         ]);
@@ -69,7 +79,7 @@ class ApiAuthController extends Controller
             'name' => $request->name,
             'username' => $request->username,
             'email' => $request->email,
-            'asal_sekolah_public' => $request->asal_sekolah_public,
+            'sekolah' => $request->input('sekolah', $request->input('asal_sekolah_public')),
             'password' => Hash::make($request->password),
         ]);
 
@@ -78,23 +88,12 @@ class ApiAuthController extends Controller
             $user->assignRole('siswa');
         }
 
-        // 3. Buatkan Token (Agar langsung login)
-        $token = $user->createToken('flutter_mobile_app')->plainTextToken;
+        event(new Registered($user));
 
-        // 4. Kembalikan Response format JSON persis seperti fungsi Login
         return response()->json([
             'status' => 'success',
-            'message' => 'Registrasi Berhasil',
-            'data' => [
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role' => 'siswa', // Default role
-                ],
-                'access_token' => $token,
-                'token_type' => 'Bearer',
-            ],
+            'message' => 'Registrasi berhasil. Silakan aktifkan akun melalui tautan verifikasi yang dikirim ke email Anda.',
+            'data' => ['email' => $user->email, 'email_verified' => false],
         ], 201); // 201 adalah status code HTTP untuk "Created"
     }
 

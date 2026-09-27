@@ -10,9 +10,12 @@ use App\Http\Controllers\SubscriptionController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1/student')->group(function () {
+    Route::post('/register', [StudentAuthApiController::class, 'register']);
     Route::post('/login', [StudentAuthApiController::class, 'login']);
+    Route::post('/email/verification-notification', [StudentAuthApiController::class, 'resendVerification'])
+        ->middleware('throttle:6,1');
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/logout', [StudentAuthApiController::class, 'logout']);
         Route::get('/profile', [StudentAuthApiController::class, 'profile']);
         Route::get('/dashboard', [StudentExamApiController::class, 'dashboard']);
@@ -39,6 +42,8 @@ Route::prefix('v1/student')->group(function () {
 // =========================================================
 Route::post('/login', [ApiAuthController::class, 'login']);
 Route::post('/register', [ApiAuthController::class, 'register']);
+Route::post('/email/verification-notification', [\App\Http\Controllers\Api\V1\Student\StudentAuthApiController::class, 'resendVerification'])
+    ->middleware('throttle:6,1');
 // =========================================================
 // RUTE UJIAN PUBLIK (Tanpa Login Sanctum, via Session Token)
 // =========================================================
@@ -64,7 +69,7 @@ Route::prefix('public/exams')->group(function () {
 // =========================================================
 // RUTE TERLINDUNGI (Siswa wajib kirim Bearer Token)
 // =========================================================
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
     // Auth
     Route::post('/logout', [ApiAuthController::class, 'logout']);
@@ -101,13 +106,13 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Rute yang butuh Login (Dari Aplikasi)
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::post('/subscription/checkout', [SubscriptionController::class, 'checkout']);
     Route::get('/subscription/status', [SubscriptionController::class, 'status']);
     Route::post('/subscription/cancel/{orderId}', [SubscriptionController::class, 'cancelPending']);
 });
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/student/history', [ApiPublicExamController::class, 'history']);
 });
 
