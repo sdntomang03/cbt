@@ -2,6 +2,12 @@
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
+    @if (session('email_verified_success'))
+        <div role="status" class="mb-4 rounded-md bg-green-50 p-4 text-sm font-medium text-green-800">
+            Email Anda berhasil diverifikasi. Silakan login.
+        </div>
+    @endif
+
     <form method="POST" action="{{ route('login') }}">
         @csrf
 
