@@ -6,7 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class Transaction extends Model
 {
-    protected $fillable = ['user_id', 'order_id', 'plan_name', 'amount', 'status', 'snap_token'];
+    protected $fillable = [
+        'user_id',
+        'order_id',
+        'plan_code',
+        'plan_name',
+        'duration_months',
+        'amount',
+        'status',
+        'snap_token',
+    ];
 
     public function user()
     {

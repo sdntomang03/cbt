@@ -107,6 +107,12 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
 // Rute yang butuh Login (Dari Aplikasi)
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
+    Route::get('/v1/student/premium/plans', [SubscriptionController::class, 'plans']);
+    Route::get('/v1/student/premium/status', [SubscriptionController::class, 'premiumStatus']);
+    Route::get('/v1/student/premium/transactions', [SubscriptionController::class, 'transactions']);
+    Route::post('/v1/student/premium/checkout', [SubscriptionController::class, 'apiCheckout']);
+    Route::post('/v1/student/premium/transactions/{orderId}/cancel', [SubscriptionController::class, 'apiCancelPending']);
+
     Route::post('/subscription/checkout', [SubscriptionController::class, 'checkout']);
     Route::get('/subscription/status', [SubscriptionController::class, 'status']);
     Route::post('/subscription/cancel/{orderId}', [SubscriptionController::class, 'cancelPending']);
