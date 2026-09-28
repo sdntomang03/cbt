@@ -32,6 +32,9 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'premium_until' => 'datetime',
+            'legacy_premium_until' => 'datetime',
+            'revenuecat_premium_until' => 'datetime',
+            'revenuecat_premium_permanent' => 'boolean',
         ];
     }
 
@@ -70,7 +73,22 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function getIsPremiumAttribute(): bool
     {
-        // Jika premium_until ada isinya DAN waktunya belum lewat dari hari ini
-        return $this->premium_until && now()->lessThanOrEqualTo($this->premium_until);
+        return (bool) $this->revenuecat_premium_permanent
+            || ($this->premium_until && now()->lessThanOrEqualTo($this->premium_until))
+            || ($this->legacy_premium_until && now()->lessThanOrEqualTo($this->legacy_premium_until))
+            || ($this->revenuecat_premium_until && now()->lessThanOrEqualTo($this->revenuecat_premium_until));
+    }
+
+    public function effectivePremiumUntil(): ?\Illuminate\Support\Carbon
+    {
+        $expirations = collect([
+            $this->legacy_premium_until,
+            $this->revenuecat_premium_until,
+            $this->premium_until,
+        ])->filter(fn ($expiration) => $expiration !== null);
+
+        return $expirations->isEmpty()
+            ? null
+            : $expirations->sortByDesc(fn ($expiration) => $expiration->getTimestamp())->first();
     }
 }

@@ -64,7 +64,7 @@ class StudentModuleController extends Controller
             // Kita gunakan auth('sanctum') karena ini biasanya standar untuk otentikasi API Laravel
             $user = auth('sanctum')->user();
 
-            if (! $user || empty($user->premium_until) || Carbon::parse($user->premium_until)->isPast()) {
+            if (! $user || ! $user->is_premium) {
                 return response()->json([
                     'status' => 'forbidden',
                     'message' => 'Akses ditolak. Modul ini eksklusif untuk member Premium yang aktif.',

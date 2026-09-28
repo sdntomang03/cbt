@@ -40,6 +40,18 @@ return [
         'client_key' => env('MIDTRANS_CLIENT_KEY'),
         'is_production' => env('MIDTRANS_IS_PRODUCTION', false),
     ],
+    'revenuecat' => [
+        'secret_api_key' => env('REVENUECAT_SECRET_API_KEY'),
+        'webhook_authorization' => env('REVENUECAT_WEBHOOK_AUTHORIZATION'),
+        'entitlement_id' => env('REVENUECAT_PREMIUM_ENTITLEMENT', 'premium'),
+        'app_id' => env('REVENUECAT_APP_ID'),
+        'products' => [
+            'monthly' => env('REVENUECAT_PRODUCT_MONTHLY'),
+            'six_months' => env('REVENUECAT_PRODUCT_SIX_MONTHS'),
+            'lifetime' => env('REVENUECAT_PRODUCT_LIFETIME'),
+        ],
+        'api_url' => 'https://api.revenuecat.com/v1',
+    ],
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),
     ],

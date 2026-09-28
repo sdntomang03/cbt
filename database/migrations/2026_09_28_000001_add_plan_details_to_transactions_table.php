@@ -12,6 +12,7 @@ return new class extends Migration
             $table->string('plan_code')->nullable()->after('order_id');
             $table->unsignedSmallInteger('duration_months')->nullable()->after('plan_name');
         });
+
     }
 
     public function down(): void
@@ -19,5 +20,6 @@ return new class extends Migration
         Schema::table('transactions', function (Blueprint $table) {
             $table->dropColumn(['plan_code', 'duration_months']);
         });
+
     }
 };

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -29,30 +30,124 @@ class SubscriptionController extends Controller
             ->map(fn (array $plan, string $code) => [
                 'code' => $code,
                 'name' => $plan['name'],
-                'amount' => $plan['amount'],
-                'currency' => 'IDR',
-                'duration_months' => $plan['duration_months'],
-                'available' => is_numeric($plan['amount']) && (int) $plan['amount'] > 0,
+                'product_id' => config('services.revenuecat.products.'.$code),
+                'available' => is_string(config('services.revenuecat.products.'.$code))
+                    && config('services.revenuecat.products.'.$code) !== '',
             ])->values();
 
         return $this->apiResponse('Daftar paket premium berhasil diambil.', [
             'plans' => $plans,
+            'entitlement_id' => config('services.revenuecat.entitlement_id'),
         ]);
     }
 
     public function premiumStatus(Request $request)
     {
         $user = $request->user();
-        $premiumUntil = $user->premium_until;
+        $premiumUntil = $user->effectivePremiumUntil();
         $isActive = (bool) $user->is_premium;
 
         return $this->apiResponse('Status premium berhasil diambil.', [
             'is_premium' => $isActive,
-            'status' => $isActive ? 'active' : ($premiumUntil ? 'expired' : 'inactive'),
+            'status' => $isActive
+                ? 'active'
+                : ($user->premium_until || $user->legacy_premium_until || $user->revenuecat_premium_until ? 'expired' : 'inactive'),
             'premium_until' => $premiumUntil?->toISOString(),
-            'remaining_days' => $isActive ? max(0, now()->diffInDays($premiumUntil, false)) : 0,
+            'is_permanent' => (bool) $user->revenuecat_premium_permanent,
+            'remaining_days' => $premiumUntil
+                ? max(0, now()->diffInDays($premiumUntil, false))
+                : null,
+            'provider' => $user->revenuecat_premium_permanent || $user->revenuecat_premium_until
+                ? 'revenuecat'
+                : ($user->legacy_premium_until ? 'legacy' : null),
+            'product_id' => $user->revenuecat_product_id,
+            'store' => $user->revenuecat_store,
+            'environment' => $user->revenuecat_environment,
             'total_poin' => (int) $user->total_poin,
         ]);
+    }
+
+    public function syncRevenueCat(Request $request)
+    {
+        $user = $request->user();
+
+        try {
+            $subscriber = $this->revenueCatSubscriber((string) $user->id);
+            $state = $this->extractRevenueCatEntitlement($subscriber);
+            $this->syncUserPremium($user, $state);
+
+            return $this->apiResponse('Status langganan berhasil disinkronkan.', [
+                'is_premium' => (bool) $user->fresh()->is_premium,
+                'premium_until' => $user->fresh()->effectivePremiumUntil()?->toISOString(),
+                'is_permanent' => (bool) $user->fresh()->revenuecat_premium_permanent,
+                'product_id' => $state['product_id'],
+                'store' => $state['store'],
+                'environment' => $state['environment'],
+            ]);
+        } catch (\Throwable $exception) {
+            Log::error('Gagal sinkronisasi status RevenueCat.', [
+                'user_id' => $user->id,
+                'exception' => $exception->getMessage(),
+            ]);
+
+            return $this->apiError('Status langganan belum dapat diverifikasi. Coba lagi nanti.', 502);
+        }
+    }
+
+    public function revenueCatWebhook(Request $request)
+    {
+        $expectedAuthorization = config('services.revenuecat.webhook_authorization');
+        if (! is_string($expectedAuthorization) || $expectedAuthorization === ''
+            || ! hash_equals($expectedAuthorization, (string) $request->header('Authorization'))) {
+            return response()->json(['message' => 'Unauthorized webhook.'], 401);
+        }
+
+        $event = $request->input('event');
+        if (! is_array($event) || empty($event['type'])) {
+            return response()->json(['message' => 'Invalid RevenueCat event.'], 400);
+        }
+
+        if ($event['type'] === 'TEST') {
+            return response()->json(['message' => 'OK']);
+        }
+
+        $configuredAppId = config('services.revenuecat.app_id');
+        if ($configuredAppId && ($event['app_id'] ?? null) !== $configuredAppId) {
+            return response()->json(['message' => 'Unexpected RevenueCat app.'], 403);
+        }
+
+        $appUserId = (string) ($event['app_user_id'] ?? '');
+        if (! ctype_digit($appUserId)) {
+            Log::warning('RevenueCat webhook app_user_id is not a local user id.', [
+                'event_id' => $event['id'] ?? null,
+                'app_user_id' => $appUserId,
+            ]);
+
+            return response()->json(['message' => 'Unknown customer.'], 404);
+        }
+
+        $user = User::find((int) $appUserId);
+        if (! $user) {
+            return response()->json(['message' => 'Unknown customer.'], 404);
+        }
+
+        try {
+            $subscriber = $this->revenueCatSubscriber($appUserId);
+            $state = $this->extractRevenueCatEntitlement($subscriber);
+            $state['store'] = $event['store'] ?? $state['store'];
+            $state['environment'] = $event['environment'] ?? $state['environment'];
+            $this->syncUserPremium($user, $state);
+        } catch (\Throwable $exception) {
+            Log::error('Gagal memproses webhook RevenueCat.', [
+                'event_id' => $event['id'] ?? null,
+                'user_id' => $user->id,
+                'exception' => $exception->getMessage(),
+            ]);
+
+            return response()->json(['message' => 'Subscription status could not be synchronized.'], 503);
+        }
+
+        return response()->json(['message' => 'OK']);
     }
 
     public function transactions(Request $request)
@@ -185,12 +280,13 @@ class SubscriptionController extends Controller
                 && ($status !== 'capture' || ($notification->fraud_status ?? 'accept') === 'accept')) {
                 $user = User::whereKey($transaction->user_id)->lockForUpdate()->firstOrFail();
                 $months = (int) ($transaction->duration_months ?: $this->legacyDurationMonths($transaction->plan_name));
-                $currentExpiry = $user->premium_until;
+                $currentExpiry = $user->legacy_premium_until ?? $user->premium_until;
                 $baseDate = $currentExpiry && $currentExpiry->isFuture() ? $currentExpiry : now();
 
                 $user->update([
-                    'premium_until' => $baseDate->copy()->addMonths($months),
+                    'legacy_premium_until' => $baseDate->copy()->addMonths($months),
                 ]);
+                $this->refreshAggregatePremiumUntil($user->fresh());
                 $transaction->update(['status' => 'success']);
             } elseif (in_array($status, ['cancel', 'deny', 'expire'], true)) {
                 $transaction->update(['status' => 'failed']);
@@ -211,6 +307,82 @@ class SubscriptionController extends Controller
         }
 
         return response()->json(['message' => 'OK']);
+    }
+
+    private function revenueCatSubscriber(string $appUserId): array
+    {
+        $secretApiKey = config('services.revenuecat.secret_api_key');
+        if (! is_string($secretApiKey) || $secretApiKey === '') {
+            throw new \RuntimeException('RevenueCat secret API key is not configured.');
+        }
+
+        $response = Http::withToken($secretApiKey)
+            ->acceptJson()
+            ->timeout(10)
+            ->get(
+                rtrim(config('services.revenuecat.api_url'), '/').'/subscribers/'.rawurlencode($appUserId)
+            );
+
+        if (! $response->successful()) {
+            throw new \RuntimeException('RevenueCat subscriber API returned HTTP '.$response->status().'.');
+        }
+
+        $subscriber = $response->json('subscriber');
+        if (! is_array($subscriber)) {
+            throw new \RuntimeException('RevenueCat subscriber response is invalid.');
+        }
+
+        return $subscriber;
+    }
+
+    private function extractRevenueCatEntitlement(array $subscriber): array
+    {
+        $entitlementId = (string) config('services.revenuecat.entitlement_id');
+        $entitlement = $subscriber['entitlements'][$entitlementId] ?? null;
+        $expiration = is_array($entitlement) ? ($entitlement['expires_date'] ?? null) : null;
+        $expirationDate = $expiration ? \Illuminate\Support\Carbon::parse($expiration) : null;
+        $isPermanent = is_array($entitlement) && $expirationDate === null;
+        $isActive = is_array($entitlement)
+            && ($isPermanent || $expirationDate->isFuture());
+
+        return [
+            'active' => $isActive,
+            'premium_until' => $isActive ? $expirationDate : null,
+            'is_permanent' => $isActive && $isPermanent,
+            'product_id' => $isActive ? ($entitlement['product_identifier'] ?? null) : null,
+            'store' => $isActive ? ($entitlement['store'] ?? null) : null,
+            'environment' => null,
+        ];
+    }
+
+    private function syncUserPremium(User $user, array $state): void
+    {
+        DB::transaction(function () use ($user, $state) {
+            $lockedUser = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $lockedUser->update([
+                'revenuecat_premium_until' => $state['premium_until'],
+                'revenuecat_premium_permanent' => $state['is_permanent'],
+                'revenuecat_product_id' => $state['product_id'],
+                'revenuecat_store' => $state['store'],
+                'revenuecat_environment' => $state['environment'],
+            ]);
+
+            $this->refreshAggregatePremiumUntil($lockedUser->fresh());
+        });
+    }
+
+    private function refreshAggregatePremiumUntil(User $user): void
+    {
+        $expirations = collect([
+            $user->legacy_premium_until,
+            $user->revenuecat_premium_until,
+        ])->filter(fn ($expiration) => $expiration !== null);
+
+        $user->update([
+            'premium_until' => $expirations->isEmpty()
+                ? null
+                : $expirations->sortByDesc(fn ($expiration) => $expiration->getTimestamp())->first(),
+        ]);
     }
 
     public function status(Request $request)

@@ -127,8 +127,7 @@
                         @else
                         @php
                         $isPremiumLocked = $exam->is_premium && (!auth()->check() ||
-                        empty(auth()->user()->premium_until) ||
-                        \Carbon\Carbon::parse(auth()->user()->premium_until)->isPast());
+                        !auth()->user()->is_premium);
                         @endphp
 
                         @if($isPremiumLocked)

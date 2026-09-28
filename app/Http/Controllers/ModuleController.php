@@ -187,7 +187,7 @@ class ModuleController extends Controller
 
         // Cegatan Premium (Sama seperti CBT)
         if ($module->is_premium) {
-            if (! auth()->check() || empty(auth()->user()->premium_until) || Carbon::parse(auth()->user()->premium_until)->isPast()) {
+            if (! auth()->check() || ! auth()->user()->is_premium) {
                 return redirect()->route('public.modules.index')
                     ->with('error', 'Akses ditolak. Modul ini eksklusif untuk member Premium.');
             }

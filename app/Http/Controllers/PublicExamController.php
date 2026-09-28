@@ -62,7 +62,7 @@ class PublicExamController extends Controller
 
         // Proteksi Lapis Ketiga (Jika user bypass URL verifikasi)
         if ($exam->is_premium) {
-            if (! auth()->check() || empty(auth()->user()->premium_until) || Carbon::parse(auth()->user()->premium_until)->isPast()) {
+            if (! auth()->check() || ! auth()->user()->is_premium) {
                 session()->forget('public_user_'.$exam->id);
 
                 return redirect()->route('public.exams.index')
@@ -453,7 +453,7 @@ class PublicExamController extends Controller
 
             // 2. Jika sudah login, tapi masa aktif premium habis/null
             $user = auth()->user();
-            if (empty($user->premium_until) || Carbon::parse($user->premium_until)->isPast()) {
+            if (! $user->is_premium) {
                 return redirect()->route('public.exams.index')
                     ->with('error', 'Akses ditolak. Masa aktif Premium Anda telah habis atau Anda belum berlangganan.');
             }
@@ -476,7 +476,7 @@ class PublicExamController extends Controller
 
         // Proteksi Ganda di proses POST
         if ($exam->is_premium) {
-            if (! auth()->check() || empty(auth()->user()->premium_until) || Carbon::parse(auth()->user()->premium_until)->isPast()) {
+            if (! auth()->check() || ! auth()->user()->is_premium) {
                 return redirect()->route('public.exams.index')
                     ->with('error', 'Akses ditolak. Masa aktif Premium Anda tidak valid.');
             }

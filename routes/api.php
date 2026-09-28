@@ -109,8 +109,8 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/v1/student/premium/plans', [SubscriptionController::class, 'plans']);
     Route::get('/v1/student/premium/status', [SubscriptionController::class, 'premiumStatus']);
+    Route::post('/v1/student/premium/revenuecat/sync', [SubscriptionController::class, 'syncRevenueCat']);
     Route::get('/v1/student/premium/transactions', [SubscriptionController::class, 'transactions']);
-    Route::post('/v1/student/premium/checkout', [SubscriptionController::class, 'apiCheckout']);
     Route::post('/v1/student/premium/transactions/{orderId}/cancel', [SubscriptionController::class, 'apiCancelPending']);
 
     Route::post('/subscription/checkout', [SubscriptionController::class, 'checkout']);
@@ -122,5 +122,6 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/student/history', [ApiPublicExamController::class, 'history']);
 });
 
-// Rute Webhook (TIDAK BOLEH dikunci Auth, karena dipanggil oleh Server Midtrans)
+// Payment-provider webhooks authenticate themselves using provider credentials.
 Route::post('/webhook/midtrans', [SubscriptionController::class, 'webhook']);
+Route::post('/webhook/revenuecat', [SubscriptionController::class, 'revenueCatWebhook']);
