@@ -39,7 +39,8 @@ class SoalController extends Controller
             ->when($sectionId, function ($query) use ($sectionId, $sections) {
                 $query->whereIn('exam_section_id', $sections->where('id', $sectionId)->pluck('id'));
             })
-            ->latest()
+            ->orderBy('questions.created_at')
+            ->orderBy('questions.id')
             ->paginate($perPage)
             ->withQueryString();
 
