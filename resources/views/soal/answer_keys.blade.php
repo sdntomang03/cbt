@@ -54,10 +54,10 @@
                         </span>
                     </div>
 
-                    <div class="p-5">
-                        <p class="text-sm leading-6 text-slate-700 mb-5">
-                            {{ \Illuminate\Support\Str::limit(trim(strip_tags($question->content)), 350) ?: 'Soal tanpa teks.' }}
-                        </p>
+                    <div class="answer-key-content p-5">
+                        <div class="prose-custom max-w-none text-sm leading-6 text-slate-700 mb-5">
+                            {!! $question->content ?: 'Soal tanpa teks.' !!}
+                        </div>
 
                         @if($question->type === 'single_choice')
                             <fieldset class="space-y-2">
@@ -66,7 +66,7 @@
                                     <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-indigo-300 cursor-pointer transition">
                                         <input type="radio" name="answer-{{ $question->id }}" value="{{ $option->id }}"
                                             @checked($option->is_correct) class="text-emerald-600 focus:ring-emerald-500">
-                                        <span class="text-sm text-slate-700">{{ trim(strip_tags($option->option_text)) ?: 'Opsi tanpa teks' }}</span>
+                                        <div class="prose-custom min-w-0 text-sm text-slate-700">{!! $option->option_text ?: 'Opsi tanpa teks' !!}</div>
                                     </label>
                                 @empty
                                     <p class="text-sm text-amber-700 bg-amber-50 rounded-lg p-3">Soal ini belum memiliki opsi jawaban.</p>
@@ -81,7 +81,7 @@
                                     <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-indigo-300 cursor-pointer transition">
                                         <input type="checkbox" name="answer-{{ $question->id }}" value="{{ $option->id }}"
                                             @checked($option->is_correct) class="rounded text-emerald-600 focus:ring-emerald-500">
-                                        <span class="text-sm text-slate-700">{{ trim(strip_tags($option->option_text)) ?: 'Opsi tanpa teks' }}</span>
+                                        <div class="prose-custom min-w-0 text-sm text-slate-700">{!! $option->option_text ?: 'Opsi tanpa teks' !!}</div>
                                     </label>
                                 @empty
                                     <p class="text-sm text-amber-700 bg-amber-50 rounded-lg p-3">Soal ini belum memiliki opsi jawaban.</p>
@@ -92,7 +92,7 @@
                                 <p class="text-xs font-black uppercase tracking-wide text-slate-500">Tentukan kunci untuk setiap pernyataan</p>
                                 @forelse($question->options as $option)
                                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl border border-slate-200">
-                                        <span class="text-sm text-slate-700">{{ trim(strip_tags($option->option_text)) ?: 'Pernyataan tanpa teks' }}</span>
+                                        <div class="prose-custom min-w-0 text-sm text-slate-700">{!! $option->option_text ?: 'Pernyataan tanpa teks' !!}</div>
                                         <div class="flex items-center gap-4 shrink-0">
                                             <label class="inline-flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
                                                 <input type="radio" name="answer-{{ $question->id }}-{{ $option->id }}" value="1"
@@ -115,7 +115,7 @@
                                 <p class="text-xs font-black uppercase tracking-wide text-slate-500">Atur bobot nilai setiap opsi</p>
                                 @forelse($question->options as $option)
                                     <label class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl border border-slate-200">
-                                        <span class="text-sm text-slate-700">{{ trim(strip_tags($option->option_text)) ?: 'Opsi tanpa teks' }}</span>
+                                        <div class="prose-custom min-w-0 text-sm text-slate-700">{!! $option->option_text ?: 'Opsi tanpa teks' !!}</div>
                                         <span class="flex items-center gap-2 text-sm font-bold text-slate-500">
                                             Bobot
                                             <input type="number" min="0" max="999999.99" step="0.01" value="{{ $option->score_weight }}"
@@ -132,9 +132,9 @@
                                 <p class="text-xs font-black uppercase tracking-wide text-slate-500">Pasangan berikut adalah kunci menjodohkannya</p>
                                 @forelse($question->matches as $match)
                                     <div class="flex flex-col sm:flex-row sm:items-center gap-2 p-3 rounded-xl border border-slate-200 text-sm text-slate-700">
-                                        <span class="flex-1">{{ trim(strip_tags($match->premise_text)) ?: 'Pernyataan kosong' }}</span>
+                                        <div class="prose-custom min-w-0 flex-1">{!! $match->premise_text ?: 'Pernyataan kosong' !!}</div>
                                         <i class="fas fa-arrow-right text-indigo-400"></i>
-                                        <span class="flex-1">{{ trim(strip_tags($match->target_text)) ?: 'Pasangan kosong' }}</span>
+                                        <div class="prose-custom min-w-0 flex-1">{!! $match->target_text ?: 'Pasangan kosong' !!}</div>
                                     </div>
                                 @empty
                                     <p class="text-sm text-amber-700 bg-amber-50 rounded-lg p-3">Soal ini belum memiliki pasangan.</p>
@@ -160,6 +160,31 @@
         </div>
     </div>
 
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.answer-key-content .ql-formula').forEach(element => {
+                const formula = element.getAttribute('data-value');
+                if (formula) {
+                    window.katex.render(formula, element, { throwOnError: false });
+                }
+            });
+
+            document.querySelectorAll('.answer-key-content').forEach(container => {
+                window.renderMathInElement(container, {
+                    delimiters: [
+                        { left: '$$', right: '$$', display: true },
+                        { left: '$', right: '$', display: false },
+                        { left: '\\(', right: '\\)', display: false },
+                        { left: '\\[', right: '\\]', display: true }
+                    ],
+                    throwOnError: false
+                });
+            });
+        });
+    </script>
     <script>
         (() => {
             const saveTimers = new WeakMap();
