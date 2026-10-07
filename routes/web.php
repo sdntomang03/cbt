@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ClassroomController;
+use App\Http\Controllers\Admin\AcademicYearController;
 use App\Http\Controllers\Admin\DashboardController; // <-- Pastikan ini di-import
 use App\Http\Controllers\Admin\ExamSessionController;
 use App\Http\Controllers\Admin\ItemAnalysisController;
@@ -84,6 +85,8 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
             Route::delete('/schools/bulk-delete', [SchoolController::class, 'bulkDelete'])->name('schools.bulk-delete');
             Route::resource('schools', SchoolController::class)->except(['create', 'show', 'edit']);
             Route::get('schools/{school}/details', [SchoolController::class, 'showDetails'])->name('schools.details');
+            Route::resource('academic-years', AcademicYearController::class)
+                ->only(['index', 'store', 'update', 'destroy']);
 
             // Pengaturan Registrasi
             Route::get('settings/registration', [RegistrationSettingController::class, 'edit'])->name('settings.registration');

@@ -40,6 +40,11 @@
         <i class="fas fa-school w-6 text-center text-lg"></i>
         <span>Data Sekolah</span>
     </a>
+    <a href="{{ route('admin.academic-years.index') }}"
+        class="{{ $navClass }} {{ request()->routeIs('admin.academic-years.*') ? $activeClass : $inactiveClass }}">
+        <i class="fas fa-calendar-alt w-6 text-center text-lg"></i>
+        <span>Tahun Pelajaran</span>
+    </a>
     @endcan
 
     @can('view users')
