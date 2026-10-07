@@ -14,6 +14,7 @@ class QuestionTemplateExport implements FromArray, ShouldAutoSize, WithStyles
     public function array(): array
     {
         return [[
+            'jenis_soal',
             'narasi_soal',
             'pembahasan',
             'opsi_a',
@@ -22,12 +23,33 @@ class QuestionTemplateExport implements FromArray, ShouldAutoSize, WithStyles
             'opsi_d',
             'opsi_e',
             'kunci_jawaban',
+            'jawaban_a',
+            'jawaban_b',
+            'jawaban_c',
+            'jawaban_d',
+            'jawaban_e',
+            'bobot_a',
+            'bobot_b',
+            'bobot_c',
+            'bobot_d',
+            'bobot_e',
+            'pasangan_kiri_a',
+            'pasangan_kanan_a',
+            'pasangan_kiri_b',
+            'pasangan_kanan_b',
+            'pasangan_kiri_c',
+            'pasangan_kanan_c',
+            'pasangan_kiri_d',
+            'pasangan_kanan_d',
+            'pasangan_kiri_e',
+            'pasangan_kanan_e',
         ]];
     }
 
     public function styles(Worksheet $sheet): array
     {
-        $sheet->getStyle('A1:H1')->applyFromArray([
+        $lastColumn = $sheet->getHighestColumn();
+        $sheet->getStyle('A1:'.$lastColumn.'1')->applyFromArray([
             'font' => [
                 'bold' => true,
                 'color' => ['argb' => 'FFFFFFFF'],
@@ -39,13 +61,13 @@ class QuestionTemplateExport implements FromArray, ShouldAutoSize, WithStyles
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,
                 'vertical' => Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
             ],
         ]);
 
         $sheet->freezePane('A2');
-        $sheet->getColumnDimension('A')->setWidth(45);
-        $sheet->getColumnDimension('B')->setWidth(45);
-        $sheet->getColumnDimension('H')->setWidth(20);
+        $sheet->getColumnDimension('B')->setWidth(60);
+        $sheet->getColumnDimension('C')->setWidth(45);
 
         return [];
     }

@@ -3,97 +3,223 @@
 namespace App\Imports;
 
 use App\Models\Question;
-use App\Models\QuestionOption;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
 class QuestionImport implements ToCollection, WithHeadingRow
 {
-    protected $examId;
+    public function __construct(
+        protected int $examId,
+        protected int $sectionId,
+        protected int $userId,
+        protected ?int $schoolId,
+        protected ?array $selectedIndexes = null
+    ) {}
 
-    protected $sectionId;
-
-    protected $userId;
-
-    protected $schoolId;
-
-    protected $selectedIndexes;
-
-    public function __construct($examId, $sectionId, $userId, $schoolId, ?array $selectedIndexes = null)
-    {
-        $this->examId = $examId;
-        $this->sectionId = $sectionId;
-        $this->userId = $userId;
-        $this->schoolId = $schoolId;
-        $this->selectedIndexes = $selectedIndexes;
-    }
-
-    public function collection(Collection $rows)
+    public function collection(Collection $rows): void
     {
         DB::transaction(function () use ($rows) {
             foreach ($rows as $index => $row) {
                 if ($this->selectedIndexes !== null && ! in_array($index, $this->selectedIndexes, true)) {
                     continue;
                 }
-                // Lewati baris jika narasi soal kosong
-                if (! isset($row['narasi_soal']) || empty(trim($row['narasi_soal']))) {
+
+                $content = $this->value($row, 'narasi_soal');
+                if ($content === null) {
                     continue;
                 }
 
-                // Tentukan tipe soal (Default: Pilihan Ganda / single_choice)
-                // Jika Opsi A kosong, kita asumsikan ini adalah soal Essay
-                $type = empty($row['opsi_a']) ? 'essay' : 'single_choice';
-
-                // 1. Simpan Pertanyaan Utama
+                $type = $this->questionType($row);
                 $question = Question::create([
                     'exam_section_id' => $this->sectionId,
                     'user_id' => $this->userId,
                     'school_id' => $this->schoolId,
                     'type' => $type,
-                    'content' => $row['narasi_soal'],
-                    'explanation' => $row['pembahasan'] ?? $row['explanation'] ?? null,
-                    // Abaikan subject_id & level_id saat import agar fleksibel,
-                    // atau tambahkan kolom di Excel jika memang diperlukan.
+                    'content' => $content,
+                    'explanation' => $this->value($row, 'pembahasan') ?? $this->value($row, 'explanation'),
                     'subject_id' => null,
                     'level_id' => null,
                 ]);
 
-                // 2. Simpan Opsi Jawaban
-                if ($type === 'single_choice') {
-                    $kunci = strtoupper(trim($row['kunci_jawaban'])); // Misal: "A", "B"
+                if ($type === 'matching') {
+                    $this->saveMatches($question, $row, $index);
 
-                    $opsiData = [
-                        'A' => $row['opsi_a'],
-                        'B' => $row['opsi_b'],
-                        'C' => $row['opsi_c'],
-                        'D' => $row['opsi_d'],
-                        'E' => $row['opsi_e'] ?? null, // Opsional
-                    ];
-
-                    foreach ($opsiData as $abjad => $teksOpsi) {
-                        if (! empty($teksOpsi)) {
-                            QuestionOption::create([
-                                'question_id' => $question->id,
-                                'school_id' => $this->schoolId,
-                                'option_text' => $teksOpsi,
-                                'is_correct' => ($abjad === $kunci) ? 1 : 0,
-                            ]);
-                        }
-                    }
-                } elseif ($type === 'essay') {
-                    // Jika Essay, 'kunci_jawaban' di Excel dianggap sebagai jawaban yang benar
-                    if (! empty($row['kunci_jawaban'])) {
-                        QuestionOption::create([
-                            'question_id' => $question->id,
-                            'school_id' => $this->schoolId,
-                            'option_text' => $row['kunci_jawaban'],
-                            'is_correct' => 1,
-                        ]);
-                    }
+                    continue;
                 }
+
+                $this->saveOptions($question, $row, $type, $index);
             }
         });
+    }
+
+    private function questionType(Collection $row): string
+    {
+        $rawType = $this->value($row, 'jenis_soal') ?? $this->value($row, 'type');
+        if ($rawType === null) {
+            return $this->value($row, 'opsi_a') === null ? 'essay' : 'single_choice';
+        }
+
+        $type = str_replace([' ', '-'], '_', strtolower(trim($rawType)));
+        $types = [
+            'single_choice' => 'single_choice',
+            'pilihan_ganda' => 'single_choice',
+            'pilgan' => 'single_choice',
+            'complex_choice' => 'complex_choice',
+            'pilihan_ganda_kompleks' => 'complex_choice',
+            'pg_kompleks' => 'complex_choice',
+            'essay' => 'essay',
+            'isian_singkat' => 'essay',
+            'matching' => 'matching',
+            'menjodohkan' => 'matching',
+            'true_false' => 'true_false',
+            'benar_salah' => 'true_false',
+            'tkp' => 'tkp',
+            'tkp_berbobot' => 'tkp',
+        ];
+
+        if (! isset($types[$type])) {
+            throw new InvalidArgumentException('Jenis soal tidak dikenal: '.$rawType);
+        }
+
+        return $types[$type];
+    }
+
+    private function saveOptions(Question $question, Collection $row, string $type, int $rowIndex): void
+    {
+        $rawAnswer = $this->value($row, 'kunci_jawaban');
+        $answerKeys = $this->answerKeys($rawAnswer);
+        if (in_array($type, ['single_choice', 'complex_choice'], true)) {
+            $tokens = preg_split('/[;,\\s]+/', strtoupper((string) $rawAnswer), -1, PREG_SPLIT_NO_EMPTY);
+            if ($rawAnswer === null || $tokens !== $answerKeys) {
+                throw new InvalidArgumentException('Kunci jawaban tidak valid pada baris '.($rowIndex + 2).'. Gunakan huruf opsi A-Z.');
+            }
+        }
+
+        $count = 0;
+        $correctCount = 0;
+
+        foreach (range('A', 'Z') as $letter) {
+            $optionText = $this->value($row, 'opsi_'.strtolower($letter));
+            if ($optionText === null) {
+                continue;
+            }
+
+            $isCorrect = match ($type) {
+                'true_false' => $this->trueFalseValue($this->value($row, 'jawaban_'.strtolower($letter))),
+                'essay' => $answerKeys === [] || in_array($letter, $answerKeys, true),
+                default => in_array($letter, $answerKeys, true),
+            };
+            $weight = $this->value($row, 'bobot_'.strtolower($letter));
+            if ($type === 'tkp' && $weight !== null && (! is_numeric($weight) || (float) $weight < 0 || (float) $weight > 999999.99)) {
+                throw new InvalidArgumentException('Bobot TKP tidak valid pada baris '.($rowIndex + 2).'.');
+            }
+
+            $question->options()->create([
+                'school_id' => $this->schoolId,
+                'option_text' => $optionText,
+                'is_correct' => $isCorrect,
+                'score_weight' => $type === 'tkp'
+                    ? (float) ($weight ?? 0)
+                    : 0,
+            ]);
+            $count++;
+            $correctCount += $isCorrect ? 1 : 0;
+        }
+
+        if ($count === 0 && $type === 'essay' && ($answer = $this->value($row, 'kunci_jawaban')) !== null) {
+            $question->options()->create([
+                'school_id' => $this->schoolId,
+                'option_text' => $answer,
+                'is_correct' => true,
+                'score_weight' => 0,
+            ]);
+            $count++;
+        }
+
+        if ($count === 0) {
+            throw new InvalidArgumentException('Soal pada baris '.($rowIndex + 2).' tidak memiliki opsi atau pasangan jawaban.');
+        }
+
+        if (in_array($type, ['single_choice', 'complex_choice'], true)) {
+            $availableKeys = array_map(
+                fn (int $index) => chr(65 + $index),
+                array_keys(array_filter(range('A', 'Z'), fn ($letter) => $this->value($row, 'opsi_'.strtolower($letter)) !== null))
+            );
+            if (array_diff($answerKeys, $availableKeys) !== [] || $correctCount === 0) {
+                throw new InvalidArgumentException('Kunci jawaban tidak sesuai dengan opsi pada baris '.($rowIndex + 2).'.');
+            }
+        }
+    }
+
+    private function saveMatches(Question $question, Collection $row, int $rowIndex): void
+    {
+        $count = 0;
+        foreach (range('A', 'Z') as $letter) {
+            $suffix = strtolower($letter);
+            $premise = $this->value($row, 'pasangan_kiri_'.$suffix);
+            $target = $this->value($row, 'pasangan_kanan_'.$suffix);
+
+            if ($premise === null && $target === null) {
+                continue;
+            }
+
+            if ($premise === null || $target === null) {
+                throw new InvalidArgumentException('Pasangan menjodohkan tidak lengkap pada baris '.($rowIndex + 2).'.');
+            }
+
+            $question->matches()->create([
+                'school_id' => $this->schoolId,
+                'premise_text' => $premise,
+                'target_text' => $target,
+            ]);
+            $count++;
+        }
+
+        if ($count === 0) {
+            throw new InvalidArgumentException('Soal menjodohkan pada baris '.($rowIndex + 2).' tidak memiliki pasangan.');
+        }
+    }
+
+    private function answerKeys(?string $value): array
+    {
+        if ($value === null) {
+            return [];
+        }
+
+        return collect(preg_split('/[;,\\s]+/', strtoupper($value), -1, PREG_SPLIT_NO_EMPTY))
+            ->filter(fn (string $key) => in_array($key, range('A', 'Z'), true))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function trueFalseValue(?string $value): bool
+    {
+        $answer = strtolower(trim((string) $value));
+
+        if (in_array($answer, ['benar', 'true', '1', 'ya'], true)) {
+            return true;
+        }
+
+        if (in_array($answer, ['salah', 'false', '0', 'tidak'], true)) {
+            return false;
+        }
+
+        throw new InvalidArgumentException('Jawaban benar/salah harus diisi BENAR atau SALAH.');
+    }
+
+    private function value(Collection $row, string $key): ?string
+    {
+        $value = $row->get($key);
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
     }
 }

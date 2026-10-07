@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Imports\QuestionImport;
 use App\Imports\QuestionPreviewImport;
+use App\Exports\QuestionExport;
 use App\Exports\QuestionTemplateExport;
 use App\Models\Exam;
 use App\Models\Level;
@@ -302,6 +303,11 @@ class SoalController extends Controller
         return Excel::download(new QuestionTemplateExport(), 'template_import_soal.xlsx');
     }
 
+    public function export(Exam $exam)
+    {
+        return Excel::download(new QuestionExport($exam->id), 'soal_'.Str::slug($exam->title).'.xlsx');
+    }
+
     /**
      * Proses Import file Excel
      */
@@ -313,7 +319,7 @@ class SoalController extends Controller
 
         try {
             $section = $this->ensureExamSections($exam)->first();
-            Excel::import(new QuestionImport($exam, $section->id, Auth::id(), Auth::user()->school_id), $request->file('file_excel'));
+            Excel::import(new QuestionImport($exam->id, $section->id, Auth::id(), Auth::user()->school_id), $request->file('file_excel'));
 
             return redirect()->back()->with('success', 'Soal berhasil diimport dari Excel!');
         } catch (Exception $e) {

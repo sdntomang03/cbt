@@ -87,6 +87,12 @@
                     <span class="hidden md:inline">Template</span>
                 </a>
 
+                <a href="{{ route('admin.exams.soal.export', $exam) }}" title="Download Soal Excel"
+                    class="inline-flex items-center gap-2 px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 font-semibold text-sm transition-all shadow-sm">
+                    <i class="fas fa-download text-indigo-500 text-xs"></i>
+                    <span class="hidden md:inline">Download Soal</span>
+                </a>
+
                 <button type="button" onclick="document.getElementById('fileExcel').click()" title="Import dari Excel"
                     class="inline-flex items-center gap-2 px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-semibold text-sm transition-all shadow-sm">
                     <i class="fas fa-file-excel text-emerald-500 text-xs"></i>

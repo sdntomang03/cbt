@@ -29,13 +29,38 @@
                     @php
                         $content = $row['narasi_soal'] ?? '';
                         $explanation = $row['pembahasan'] ?? $row['explanation'] ?? '';
-                        $options = array_filter([
-                            'A' => $row['opsi_a'] ?? null,
-                            'B' => $row['opsi_b'] ?? null,
-                            'C' => $row['opsi_c'] ?? null,
-                            'D' => $row['opsi_d'] ?? null,
-                            'E' => $row['opsi_e'] ?? null,
-                        ]);
+                        $options = [];
+                        foreach (range('A', 'Z') as $letter) {
+                            $value = $row['opsi_'.strtolower($letter)] ?? null;
+                            if (!empty($value)) {
+                                $options[$letter] = $value;
+                            }
+                        }
+                        $type = strtolower(trim($row['jenis_soal'] ?? $row['type'] ?? (empty($options) ? 'essay' : 'single_choice')));
+                        $typeLabels = [
+                            'single_choice' => 'Pilihan Ganda',
+                            'pilihan_ganda' => 'Pilihan Ganda',
+                            'pilgan' => 'Pilihan Ganda',
+                            'complex_choice' => 'Pilihan Ganda Kompleks',
+                            'pilihan_ganda_kompleks' => 'Pilihan Ganda Kompleks',
+                            'pg_kompleks' => 'Pilihan Ganda Kompleks',
+                            'true_false' => 'Benar/Salah',
+                            'benar_salah' => 'Benar/Salah',
+                            'matching' => 'Menjodohkan',
+                            'menjodohkan' => 'Menjodohkan',
+                            'essay' => 'Isian Singkat',
+                            'isian_singkat' => 'Isian Singkat',
+                            'tkp' => 'TKP Berbobot',
+                            'tkp_berbobot' => 'TKP Berbobot',
+                        ];
+                        $matches = [];
+                        foreach (range('A', 'Z') as $letter) {
+                            $left = $row['pasangan_kiri_'.strtolower($letter)] ?? null;
+                            $right = $row['pasangan_kanan_'.strtolower($letter)] ?? null;
+                            if (!empty($left) || !empty($right)) {
+                                $matches[$letter] = [$left, $right];
+                            }
+                        }
                     @endphp
                     <label class="block p-5 hover:bg-indigo-50/30 cursor-pointer">
                         <div class="flex gap-4">
@@ -45,14 +70,27 @@
                                 <div class="flex items-center gap-2 mb-2">
                                     <span class="text-xs font-black text-indigo-600">Soal {{ $index + 1 }}</span>
                                     <span class="text-[10px] uppercase font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded">
-                                        {{ empty($options) ? 'Essay' : 'Pilihan Ganda' }}
+                                        {{ $typeLabels[$type] ?? $type }}
                                     </span>
                                 </div>
                                 <div class="prose prose-sm max-w-none text-slate-800">{!! $content !!}</div>
-                                @if($options)
+                                @if($type === 'matching' && $matches)
+                                <div class="mt-3 grid gap-1 text-sm text-slate-600">
+                                    @foreach($matches as $letter => [$left, $right])
+                                    <div><strong>{{ $letter }}.</strong> {!! $left !!} &rarr; {!! $right !!}</div>
+                                    @endforeach
+                                </div>
+                                @elseif($options)
                                 <div class="mt-3 grid gap-1 text-sm text-slate-600">
                                     @foreach($options as $letter => $option)
-                                    <div><strong>{{ $letter }}.</strong> {!! $option !!}</div>
+                                    <div>
+                                        <strong>{{ $letter }}.</strong> {!! $option !!}
+                                        @if($type === 'true_false')
+                                            <span class="font-bold">{{ $row['jawaban_'.strtolower($letter)] ?? '' }}</span>
+                                        @elseif($type === 'tkp' && isset($row['bobot_'.strtolower($letter)]))
+                                            <span class="font-bold">(Bobot: {{ $row['bobot_'.strtolower($letter)] }})</span>
+                                        @endif
+                                    </div>
                                     @endforeach
                                 </div>
                                 @endif

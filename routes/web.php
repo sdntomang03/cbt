@@ -120,6 +120,7 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
 
         // Import/Export Soal
         Route::get('/soal/download-template', [SoalController::class, 'downloadTemplate'])->name('soal.template');
+        Route::get('/exams/{exam}/soal/export', [SoalController::class, 'export'])->name('exams.soal.export');
         Route::post('/exams/{exam}/soal/import', [SoalController::class, 'import'])->name('exams.soal.import');
         Route::post('/exams/{exam}/soal/import/preview', [SoalController::class, 'previewImportExcel'])->name('exams.soal.import.preview');
         Route::post('/exams/{exam}/soal/import/store', [SoalController::class, 'storeImportExcel'])->name('exams.soal.import.store');
