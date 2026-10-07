@@ -49,9 +49,17 @@
                                 @endif
                             </div>
                         </div>
-                        <span id="key-status-{{ $question->id }}" class="text-xs font-bold text-slate-400" aria-live="polite">
-                            {{ $question->type === 'matching' ? 'Kunci mengikuti pasangan' : 'Belum ada perubahan' }}
-                        </span>
+                        <div class="flex items-center gap-3">
+                            <span id="key-status-{{ $question->id }}" class="text-xs font-bold text-slate-400" aria-live="polite">
+                                {{ $question->type === 'matching' ? 'Kunci mengikuti pasangan' : 'Belum ada perubahan' }}
+                            </span>
+                            <a href="{{ route('admin.exams.soal.edit', [$exam, $question]) }}" target="_blank" rel="noopener noreferrer"
+                                class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 text-xs font-bold transition"
+                                aria-label="Edit soal #{{ $questions->firstItem() + $loop->index }}">
+                                <i class="fas fa-pen"></i>
+                                <span>Edit</span>
+                            </a>
+                        </div>
                     </div>
 
                     <div class="answer-key-content p-5">
