@@ -31,4 +31,22 @@ class QuestionImportTest extends TestCase
             'narasi_soal' => $latex,
         ]), 'narasi_soal'));
     }
+
+    public function test_import_stores_quill_formula_as_latex_source_without_rendered_katex_markup(): void
+    {
+        $import = new QuestionImport(1, 1, 1, null);
+        $method = new \ReflectionMethod($import, 'value');
+        $formula = '120\\% - 3 + 2 \\times 0.75 + \\frac{2}{3} = \\ldots';
+        $html = '<p>Hitung <span class="ql-formula" data-value="'.$formula.'">'
+            .'<span contenteditable="false"><span class="katex"><math><annotation encoding="application/x-tex">'
+            .$formula.'</annotation></math></span></span></span>.</p>';
+
+        $stored = $method->invoke($import, collect(['narasi_soal' => $html]), 'narasi_soal');
+
+        $this->assertStringContainsString('class="ql-formula"', $stored);
+        $this->assertStringContainsString('data-value="'.$formula.'"', $stored);
+        $this->assertStringNotContainsString('katex', $stored);
+        $this->assertStringNotContainsString('application/x-tex', $stored);
+        $this->assertStringContainsString('<p>Hitung ', $stored);
+    }
 }

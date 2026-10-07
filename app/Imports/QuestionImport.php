@@ -3,6 +3,8 @@
 namespace App\Imports;
 
 use App\Models\Question;
+use DOMDocument;
+use DOMXPath;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -228,6 +230,57 @@ class QuestionImport implements ToCollection, WithHeadingRow
 
         $value = (string) $value;
 
-        return trim($value) === '' ? null : $value;
+        return trim($value) === '' ? null : $this->normalizeLatexMarkup($value);
+    }
+
+    private function normalizeLatexMarkup(string $html): string
+    {
+        if (! str_contains($html, 'ql-formula')) {
+            return $html;
+        }
+
+        $document = new DOMDocument('1.0', 'UTF-8');
+        $previousErrorMode = libxml_use_internal_errors(true);
+
+        try {
+            $loaded = $document->loadHTML(
+                '<?xml encoding="UTF-8"><div id="question-import-root">'.$html.'</div>',
+                LIBXML_HTML_NODEFDTD | LIBXML_NONET
+            );
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previousErrorMode);
+        }
+
+        if (! $loaded) {
+            throw new InvalidArgumentException('Konten soal dengan rumus LaTeX tidak dapat dibaca.');
+        }
+
+        $xpath = new DOMXPath($document);
+        $formulaNodes = $xpath->query(
+            '//*[@id="question-import-root"]//span[contains(concat(" ", normalize-space(@class), " "), " ql-formula ") and @data-value]'
+        );
+
+        if ($formulaNodes === false) {
+            throw new InvalidArgumentException('Elemen rumus LaTeX pada konten soal tidak dapat dibaca.');
+        }
+
+        foreach ($formulaNodes as $formulaNode) {
+            while ($formulaNode->firstChild !== null) {
+                $formulaNode->removeChild($formulaNode->firstChild);
+            }
+        }
+
+        $root = $document->getElementById('question-import-root');
+        if ($root === null) {
+            throw new InvalidArgumentException('Konten soal LaTeX tidak dapat diproses.');
+        }
+
+        $normalized = '';
+        foreach ($root->childNodes as $child) {
+            $normalized .= $document->saveHTML($child);
+        }
+
+        return $normalized;
     }
 }
