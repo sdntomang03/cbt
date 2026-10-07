@@ -109,6 +109,10 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         Route::get('/chart-generator', [SoalController::class, 'chartGenerator'])
             ->name('soal.chart.generator');
 
+        Route::get('/exams/{exam}/soal/kunci-jawaban', [SoalController::class, 'answerKeys'])
+            ->name('exams.soal.answer-keys');
+        Route::put('/exams/{exam}/soal/{soal}/kunci-jawaban', [SoalController::class, 'updateAnswerKey'])
+            ->name('exams.soal.answer-keys.update');
         Route::resource('exams.soal', SoalController::class)->except(['show']);
 
         // Import/Export Soal

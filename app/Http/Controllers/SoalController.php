@@ -47,6 +47,104 @@ class SoalController extends Controller
         return view('soal.index', compact('exam', 'questions', 'sections'));
     }
 
+    public function answerKeys(Exam $exam)
+    {
+        $questions = $exam->questions()
+            ->with(['options', 'matches', 'section.section'])
+            ->orderBy('questions.created_at')
+            ->orderBy('questions.id')
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('soal.answer_keys', compact('exam', 'questions'));
+    }
+
+    public function updateAnswerKey(Request $request, Exam $exam, Question $soal)
+    {
+        $this->ensureQuestionBelongsToExam($exam, $soal);
+
+        if ($soal->type === 'single_choice') {
+            $data = $request->validate([
+                'correct_option_id' => ['required', 'integer'],
+            ]);
+            $correctOption = $soal->options()->findOrFail($data['correct_option_id']);
+
+            DB::transaction(function () use ($soal, $correctOption) {
+                $soal->options()->update(['is_correct' => false]);
+                $correctOption->update(['is_correct' => true]);
+            });
+        } elseif (in_array($soal->type, ['complex_choice', 'essay'], true)) {
+            $data = $request->validate([
+                'correct_option_ids' => ['present', 'array'],
+                'correct_option_ids.*' => ['integer', 'distinct'],
+            ]);
+            $optionIds = collect($data['correct_option_ids'])->map(fn ($id) => (int) $id);
+            abort_unless(
+                $soal->options()->whereIn('id', $optionIds)->count() === $optionIds->count(),
+                422,
+                'Pilihan jawaban tidak valid.'
+            );
+
+            DB::transaction(function () use ($soal, $optionIds) {
+                $soal->options()->update(['is_correct' => false]);
+                $soal->options()->whereIn('id', $optionIds)->update(['is_correct' => true]);
+            });
+        } elseif ($soal->type === 'true_false') {
+            $data = $request->validate([
+                'answers' => ['required', 'array', 'min:1'],
+                'answers.*.option_id' => ['required', 'integer', 'distinct'],
+                'answers.*.is_correct' => ['required', 'boolean'],
+            ]);
+            $answers = collect($data['answers']);
+            $optionIds = $answers->pluck('option_id')->map(fn ($id) => (int) $id);
+            abort_unless(
+                $optionIds->count() === $soal->options()->count()
+                    && $soal->options()->whereIn('id', $optionIds)->count() === $optionIds->count(),
+                422,
+                'Daftar pernyataan tidak valid.'
+            );
+
+            DB::transaction(function () use ($soal, $answers) {
+                foreach ($answers as $answer) {
+                    $soal->options()->whereKey($answer['option_id'])->update([
+                        'is_correct' => filter_var($answer['is_correct'], FILTER_VALIDATE_BOOLEAN),
+                    ]);
+                }
+            });
+        } elseif ($soal->type === 'tkp') {
+            $data = $request->validate([
+                'weights' => ['required', 'array', 'min:1'],
+                'weights.*.option_id' => ['required', 'integer', 'distinct'],
+                'weights.*.score_weight' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:999999.99'],
+            ]);
+            $weights = collect($data['weights']);
+            $optionIds = $weights->pluck('option_id')->map(fn ($id) => (int) $id);
+            abort_unless(
+                $optionIds->count() === $soal->options()->count()
+                    && $soal->options()->whereIn('id', $optionIds)->count() === $optionIds->count(),
+                422,
+                'Daftar pilihan jawaban tidak valid.'
+            );
+
+            DB::transaction(function () use ($soal, $weights) {
+                foreach ($weights as $weight) {
+                    $soal->options()->whereKey($weight['option_id'])->update([
+                        'score_weight' => $weight['score_weight'],
+                    ]);
+                }
+            });
+        } elseif ($soal->type !== 'matching') {
+            abort(422, 'Jenis soal tidak didukung.');
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $soal->type === 'matching'
+                ? 'Kunci menjodohkan tersimpan pada pasangan yang ditampilkan.'
+                : 'Kunci jawaban berhasil disimpan.',
+        ]);
+    }
+
     public function create(Request $request, Exam $exam)
     {
         $subjects = Subject::all();

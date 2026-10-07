@@ -99,6 +99,12 @@
                     <span class="hidden md:inline">Bank Soal</span>
                 </a>
 
+                <a href="{{ route('admin.exams.soal.answer-keys', $exam) }}"
+                    class="inline-flex items-center gap-2 px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-semibold text-sm transition-all shadow-sm">
+                    <i class="fas fa-key text-emerald-500 text-xs"></i>
+                    <span class="hidden md:inline">Kunci Jawaban</span>
+                </a>
+
                 <a href="{{ route('admin.soal.import_json_view', $exam) }}"
                     class="inline-flex items-center gap-2 px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 font-semibold text-sm transition-all shadow-sm">
                     <i class="fas fa-file-code text-amber-500 text-xs"></i>
