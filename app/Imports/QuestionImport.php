@@ -226,8 +226,8 @@ class QuestionImport implements ToCollection, WithHeadingRow
             return null;
         }
 
-        $value = trim((string) $value);
+        $value = (string) $value;
 
-        return $value === '' ? null : $value;
+        return trim($value) === '' ? null : $value;
     }
 }

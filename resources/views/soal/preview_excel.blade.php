@@ -1,4 +1,5 @@
 <x-app-layout>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css">
     <div class="w-full px-4 sm:px-6 lg:px-8 py-8">
         <div class="mb-6 flex items-center justify-between">
             <div>
@@ -113,7 +114,23 @@
             </div>
         </form>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js"></script>
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof renderMathInElement === 'function') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        { left: '$$', right: '$$', display: true },
+                        { left: '$', right: '$', display: false },
+                        { left: '\\(', right: '\\)', display: false },
+                        { left: '\\[', right: '\\]', display: true }
+                    ],
+                    throwOnError: false
+                });
+            }
+        });
+
         const all = document.getElementById('checkAll');
         const checks = () => [...document.querySelectorAll('.question-check')];
         const count = document.getElementById('selectedCount');

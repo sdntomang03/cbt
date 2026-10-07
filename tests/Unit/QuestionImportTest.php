@@ -20,4 +20,15 @@ class QuestionImportTest extends TestCase
             ['narasi_soal' => 'Contoh soal', 'jenis_soal' => 'not_a_type'],
         ]));
     }
+
+    public function test_import_preserves_latex_source_and_surrounding_whitespace(): void
+    {
+        $import = new QuestionImport(1, 1, 1, null);
+        $method = new \ReflectionMethod($import, 'value');
+        $latex = '  $\\frac{a}{b} + \\sqrt{x}$  ';
+
+        $this->assertSame($latex, $method->invoke($import, collect([
+            'narasi_soal' => $latex,
+        ]), 'narasi_soal'));
+    }
 }
