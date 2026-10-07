@@ -27,6 +27,14 @@ class QuestionImport implements ToCollection, WithHeadingRow
                     continue;
                 }
 
+                if (is_array($row)) {
+                    $row = collect($row);
+                }
+
+                if (! $row instanceof Collection) {
+                    throw new InvalidArgumentException('Format baris soal Excel tidak valid pada baris '.($index + 2).'.');
+                }
+
                 $content = $this->value($row, 'narasi_soal');
                 if ($content === null) {
                     continue;
