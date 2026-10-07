@@ -136,7 +136,9 @@
                                         :class="opt.is_correct ? 'border-emerald-400 bg-emerald-50/30' : 'border-slate-200'">
                                         <div class="pt-2 shrink-0" x-show="form.type !== 'tkp'">
                                             <input :type="form.type === 'single_choice' ? 'radio' : 'checkbox'"
-                                                :checked="opt.is_correct" @change="toggleCorrect(index)"
+                                                :checked="Boolean(opt.is_correct)"
+                                                @click="form.type === 'single_choice' && setCorrect(index)"
+                                                @change="form.type === 'complex_choice' ? toggleCorrect(index) : setCorrect(index)"
                                                 name="correct_ans"
                                                 class="w-5 h-5 text-emerald-500 border-slate-300 focus:ring-emerald-500 cursor-pointer">
                                         </div>

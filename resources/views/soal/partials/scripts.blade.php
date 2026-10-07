@@ -770,8 +770,14 @@ quill.setSelection(cursor + latexText.length - 2);
                 if (this.form.type === 'complex_choice') {
                     this.form.options[index].is_correct = !this.form.options[index].is_correct;
                 } else if (this.form.type !== 'true_false') {
-                    this.form.options.forEach((o, i) => { o.is_correct = i === index ? 1 : 0; });
+                    this.setCorrect(index);
                 }
+            },
+
+            setCorrect(index) {
+                this.form.options.forEach((option, i) => {
+                    option.is_correct = i === index;
+                });
             },
 
             saveQuestion() {
