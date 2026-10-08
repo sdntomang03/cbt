@@ -1,4 +1,38 @@
 <x-app-layout>
+    @push('styles')
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    @endpush
+
+    @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.ql-formula').forEach(function (element) {
+                const formula = element.getAttribute('data-value');
+                if (!formula) return;
+
+                const decoded = formula.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
+                try {
+                    window.katex.render(decoded, element, { throwOnError: false });
+                } catch (error) {
+                    console.error('KaTeX Error:', error);
+                }
+            });
+
+            renderMathInElement(document.body, {
+                delimiters: [
+                    { left: '$$', right: '$$', display: true },
+                    { left: '$', right: '$', display: false },
+                    { left: '\\(', right: '\\)', display: false },
+                    { left: '\\[', right: '\\]', display: true }
+                ],
+                throwOnError: false
+            });
+        });
+    </script>
+    @endpush
+
     <div class="min-h-screen py-10 bg-slate-50 font-nunito">
         <div class="max-w-5xl mx-auto px-4 sm:px-6">
 
