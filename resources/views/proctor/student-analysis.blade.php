@@ -30,7 +30,9 @@
                 </div>
             </div>
 
-            @php($hasTkp = $answers->contains(fn ($answer) => $answer->question?->type === 'tkp'))
+            @php
+            $hasTkp = $answers->contains(fn ($answer) => $answer->question?->type === 'tkp');
+            @endphp
             <!-- Legenda -->
             <div class="flex gap-4 mb-6 px-2">
                 @if($hasTkp)
@@ -102,7 +104,9 @@
                             $selectedTkpId = is_array($studentAns) ? null : (int) $studentAns;
                             @endphp
                             @foreach($q->options as $opt)
-                            @php($isSelectedTkp = $selectedTkpId === (int) $opt->id)
+                            @php
+                            $isSelectedTkp = $selectedTkpId === (int) $opt->id;
+                            @endphp
                             <div class="relative p-4 rounded-xl border-2 flex gap-4 items-center {{ $isSelectedTkp ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500' : 'border-slate-200 bg-white' }}">
                                 <div class="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm shrink-0 {{ $isSelectedTkp ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500' }}">
                                     {{ $abjad[$loop->index] ?? '*' }}
