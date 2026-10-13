@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Exports\ButirSoalExport;
 use App\Models\DetailNilai;
-use App\Models\Exam;
 use App\Models\ExamSession;
 use App\Models\ExamSessionUser;
 use App\Models\ExamAttempt;
@@ -14,6 +13,7 @@ use App\Models\User;
 use App\Services\AttemptScoringService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -109,103 +109,18 @@ class ProctorController extends Controller
             ->where('user_id', $student->id)
             ->first();
 
-        if ($attempt && $attempt->status !== 'completed') {
-            app(AttemptScoringService::class)->scoreAttempt($attempt);
+        if ($attempt) {
+            $this->completeAttempt($attempt);
+        }
+    }
+
+    private function completeAttempt(ExamAttempt $attempt): array
+    {
+        if ($attempt->status === 'completed') {
+            return ['finalScore' => (float) $attempt->final_score];
         }
 
-        return;
-
-        $examUser = ExamSessionUser::where('exam_session_id', $examSession->id)
-            ->where('user_id', $student->id)
-            ->first();
-        if ($examUser && $examUser->status !== 'completed') {
-
-            $answers = StudentAnswer::where('exam_session_id', $examSession->id)
-                ->where('user_id', $student->id)
-                ->with(['question.options', 'question.matches'])
-                ->get();
-
-            $totalScore = 0;
-            $totalQuestions = Exam::find($examSession->exam_id)->questions()->count();
-
-            foreach ($answers as $ans) {
-                $q = $ans->question;
-                $poin = 0;
-                $studentAns = $ans->answer;
-
-                // Decode JSON untuk jawaban array
-                if (is_string($studentAns) && in_array($q->type, ['complex_choice', 'matching', 'true_false', 'true_false_multi'])) {
-                    $decoded = json_decode($studentAns, true);
-                    if (json_last_error() === JSON_ERROR_NONE) {
-                        $studentAns = $decoded;
-                    }
-                }
-
-                // LOGIKA SKORING
-                if ($q->type === 'single_choice') {
-                    $correctOption = $q->options->where('is_correct', true)->first();
-                    if ($correctOption && $studentAns == $correctOption->id) {
-                        $poin = 1;
-                    }
-                } elseif ($q->type === 'complex_choice') {
-                    $correctIds = $q->options->where('is_correct', true)->pluck('id')->sort()->values()->toArray();
-                    $studentIds = is_array($studentAns) ? $studentAns : [];
-                    sort($studentIds);
-                    if ($correctIds == $studentIds) {
-                        $poin = 1;
-                    }
-                } elseif (in_array($q->type, ['true_false', 'true_false_multi'])) {
-                    $correctCount = 0;
-                    $totalOptions = $q->options->count();
-                    $userAnswers = is_array($studentAns) ? $studentAns : [];
-                    foreach ($q->options as $opt) {
-                        $expectedKey = $opt->is_correct ? 'benar' : 'salah';
-                        $userValue = isset($userAnswers[$opt->id]) ? strtolower($userAnswers[$opt->id]) : null;
-                        if ($userValue === $expectedKey) {
-                            $correctCount++;
-                        }
-                    }
-                    if ($totalOptions > 0) {
-                        $poin = $correctCount / $totalOptions;
-                    }
-                } elseif ($q->type === 'matching') {
-                    $matches = is_array($studentAns) ? $studentAns : [];
-                    $totalPairs = $q->matches->count();
-                    $correctPairs = 0;
-                    if ($totalPairs > 0) {
-                        foreach ($matches as $premiseId => $targetId) {
-                            if ($premiseId == $targetId) {
-                                $correctPairs++;
-                            }
-                        }
-                        $poin = $correctPairs / $totalPairs;
-                    }
-                } elseif ($q->type === 'essay') {
-                    $correctRaw = $q->options->first()->option_text ?? '';
-                    $cleanCorrect = trim(strip_tags(html_entity_decode($correctRaw)));
-                    $cleanUser = trim(strip_tags($studentAns));
-                    if (strcasecmp($cleanCorrect, $cleanUser) === 0) {
-                        $poin = 1;
-                    } elseif (is_numeric($cleanCorrect) && is_numeric($cleanUser)) {
-                        if ((float) $cleanCorrect === (float) $cleanUser) {
-                            $poin = 1;
-                        }
-                    }
-                }
-
-                $ans->update(['score' => $poin]);
-                $totalScore += $poin;
-            }
-
-            $finalScore = ($totalQuestions > 0) ? ($totalScore / $totalQuestions) * 100 : 0;
-
-            // Perbarui status menjadi completed
-            $examUser->update([
-                'status' => 'completed',
-                'finished_at' => Carbon::now('Asia/Jakarta'),
-                'score' => round($finalScore, 2),
-            ]);
-        }
+        return app(AttemptScoringService::class)->scoreAttempt($attempt);
     }
 
     /**
@@ -231,125 +146,36 @@ class ProctorController extends Controller
      */
     public function forceFinish(Request $request, ExamSession $examSession, User $student)
     {
-        // Cari data ujian siswa di sesi ini
-        $examUser = ExamSessionUser::where('exam_session_id', $examSession->id)
+        $attempt = ExamAttempt::where('exam_session_id', $examSession->id)
             ->where('user_id', $student->id)
             ->firstOrFail();
 
-        if ($examUser->status !== 'completed') {
-            $result = app(AttemptScoringService::class)->scoreAttempt($examUser);
-        } else {
-            $result = ['finalScore' => (float) $examUser->final_score];
-        }
+        $result = $this->completeAttempt($attempt);
 
         return response()->json([
             'success' => true,
             'message' => "Ujian siswa {$student->name} diselesaikan. Nilai akhir: {$result['finalScore']}",
         ]);
+    }
 
-        // Jika status belum completed, kita hitung nilainya dan selesaikan
-        if ($examUser->status !== 'completed') {
-
-            // 1. Ambil semua jawaban yang sudah dijawab siswa sejauh ini
-            $answers = StudentAnswer::where('exam_session_id', $examSession->id)
-                ->where('user_id', $student->id)
-                ->with(['question.options', 'question.matches'])
+    public function forceFinishAll(Request $request, ExamSession $examSession)
+    {
+        $completedCount = DB::transaction(function () use ($examSession) {
+            $attempts = ExamAttempt::where('exam_session_id', $examSession->id)
+                ->where('status', '!=', 'completed')
                 ->get();
 
-            $totalScore = 0;
-            // 2. Hitung total soal pada ujian ini
-            $totalQuestions = Exam::find($examSession->exam_id)->questions()->count();
-
-            // ATAU jika model ExamSession kamu sudah punya relasi public function exam(), bisa lebih singkat:
-            // $totalQuestions = $examSession->exam->questions()->count();
-
-            // 3. Looping untuk mengoreksi jawaban satu per satu
-            foreach ($answers as $ans) {
-                $q = $ans->question;
-                $poin = 0;
-
-                // Decode JSON jika tipe soal membutuhkan array/json
-                $studentAns = $ans->answer;
-                if (is_string($studentAns) && in_array($q->type, ['complex_choice', 'matching', 'true_false', 'true_false_multi'])) {
-                    $decoded = json_decode($studentAns, true);
-                    if (json_last_error() === JSON_ERROR_NONE) {
-                        $studentAns = $decoded;
-                    }
-                }
-
-                // --- LOGIKA SKORING ---
-                if ($q->type === 'single_choice') {
-                    $correctOption = $q->options->where('is_correct', true)->first();
-                    if ($correctOption && $studentAns == $correctOption->id) {
-                        $poin = 1;
-                    }
-                } elseif ($q->type === 'complex_choice') {
-                    $correctIds = $q->options->where('is_correct', true)->pluck('id')->sort()->values()->toArray();
-                    $studentIds = is_array($studentAns) ? $studentAns : [];
-                    sort($studentIds);
-                    if ($correctIds == $studentIds) {
-                        $poin = 1;
-                    }
-                } elseif (in_array($q->type, ['true_false', 'true_false_multi'])) {
-                    $correctCount = 0;
-                    $totalOptions = $q->options->count();
-                    $userAnswers = is_array($studentAns) ? $studentAns : [];
-                    foreach ($q->options as $opt) {
-                        $expectedKey = $opt->is_correct ? 'benar' : 'salah';
-                        $userValue = isset($userAnswers[$opt->id]) ? strtolower($userAnswers[$opt->id]) : null;
-                        if ($userValue === $expectedKey) {
-                            $correctCount++;
-                        }
-                    }
-                    if ($totalOptions > 0) {
-                        $poin = $correctCount / $totalOptions;
-                    }
-                } elseif ($q->type === 'matching') {
-                    $matches = is_array($studentAns) ? $studentAns : [];
-                    $totalPairs = $q->matches->count();
-                    $correctPairs = 0;
-                    if ($totalPairs > 0) {
-                        foreach ($matches as $premiseId => $targetId) {
-                            if ($premiseId == $targetId) {
-                                $correctPairs++;
-                            }
-                        }
-                        $poin = $correctPairs / $totalPairs;
-                    }
-                } elseif ($q->type === 'essay') {
-                    $correctRaw = $q->options->first()->option_text ?? '';
-                    $cleanCorrect = trim(strip_tags(html_entity_decode($correctRaw)));
-                    $cleanUser = trim(strip_tags($studentAns));
-                    if (strcasecmp($cleanCorrect, $cleanUser) === 0) {
-                        $poin = 1;
-                    } elseif (is_numeric($cleanCorrect) && is_numeric($cleanUser)) {
-                        if ((float) $cleanCorrect === (float) $cleanUser) {
-                            $poin = 1;
-                        }
-                    }
-                }
-
-                // Simpan skor parsial ke database (per jawaban)
-                $ans->update(['score' => $poin]);
-                $totalScore += $poin;
+            foreach ($attempts as $attempt) {
+                $this->completeAttempt($attempt);
             }
 
-            // 4. Kalkulasi persentase nilai akhir (skala 100)
-            $finalScore = ($totalQuestions > 0) ? ($totalScore / $totalQuestions) * 100 : 0;
-            $finalScore = round($finalScore, 2);
+            return $attempts->count();
+        });
 
-            // 5. Perbarui status ujian siswa dan simpan nilainya
-            $examUser->update([
-                'status' => 'completed',
-                'finished_at' => now(),
-                'score' => $finalScore,
-            ]);
-        }
-
-        // Kembalikan response JSON untuk halaman Monitor (Ajax)
         return response()->json([
             'success' => true,
-            'message' => "Ujian siswa {$student->name} diselesaikan. Nilai akhir: {$examUser->score}",
+            'message' => "{$completedCount} peserta berhasil diselesaikan. Nilai akhir sudah dihitung.",
+            'completed' => $completedCount,
         ]);
     }
 

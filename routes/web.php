@@ -187,6 +187,7 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
         Route::get('/sessions', [ProctorController::class, 'index'])->name('index');
         Route::get('/sessions/{exam_session}/monitor', [ProctorController::class, 'show'])->name('monitor');
         Route::post('/sessions/{exam_session}/unlock/{student}', [ProctorController::class, 'unlock'])->name('unlock');
+        Route::post('/sessions/{exam_session}/force-finish-all', [ProctorController::class, 'forceFinishAll'])->name('force-finish-all');
         Route::post('/sessions/{exam_session}/force-finish/{student}', [ProctorController::class, 'forceFinish'])->name('force-finish');
         Route::post('/sessions/{exam_session}/reset/{student}', [ProctorController::class, 'reset'])->name('reset');
         Route::get('/sessions/{exam_session}/export-analysis', [ProctorController::class, 'exportAnalysis'])->name('sessions.export-analysis');

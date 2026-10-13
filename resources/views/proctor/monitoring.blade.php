@@ -130,6 +130,12 @@
                             <i class="fas fa-file-code text-[10px]"></i>
                             <span>JSON</span>
                         </button>
+
+                        <button @click="forceFinishAll"
+                            class="bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-200/50 px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap active:scale-95 w-full sm:w-auto">
+                            <i class="fas fa-stop-circle text-[10px]"></i>
+                            <span>Selesaikan Semua</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -232,7 +238,7 @@
                                                 <i class="fas fa-unlock"></i>
                                             </button>
                                             <button
-                                                x-show="student.pivot.status === 'ongoing' && !student.pivot.is_locked"
+                                                x-show="student.pivot.status !== 'completed'"
                                                 @click="handleAction('forceFinish', student.id)"
                                                 class="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs font-black hover:bg-amber-600 transition shadow-sm"
                                                 title="Selesaikan Paksa">
@@ -374,15 +380,57 @@
                         if (result.isConfirmed) {
                             // 3. Tambahkan CSRF Token untuk keamanan ekstra agar tidak ditolak (Error 419)
                             axios.post(url, {}, {
-                                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
-                            }).then(() => {
-                                Swal.fire({icon: 'success', title: 'Berhasil!', timer: 1500, showConfirmButton: false});
+                                headers: {
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                    'Accept': 'application/json'
+                                }
+                            }).then(res => {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil!',
+                                    text: res.data.message,
+                                    timer: 2500,
+                                    showConfirmButton: true
+                                });
                                 this.fetchData();
                             }).catch(err => {
                                 console.error(err);
-                                Swal.fire('Gagal', 'Terjadi kesalahan sistem.', 'error');
+                                Swal.fire('Gagal', err.response?.data?.message || 'Terjadi kesalahan sistem.', 'error');
                             });
                         }
+                    });
+                },
+
+                forceFinishAll() {
+                    const unfinishedCount = this.students.filter(student => student.pivot.status !== 'completed').length;
+                    if (unfinishedCount === 0) {
+                        Swal.fire('Tidak ada peserta', 'Semua peserta sudah menyelesaikan ujian.', 'info');
+                        return;
+                    }
+
+                    Swal.fire({
+                        title: 'Selesaikan semua peserta?',
+                        text: `${unfinishedCount} peserta yang belum selesai, termasuk yang belum mulai, akan ditutup dan nilainya langsung dihitung.`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Ya, Selesaikan Semua',
+                        cancelButtonText: 'Batal',
+                        confirmButtonColor: '#e11d48'
+                    }).then(result => {
+                        if (!result.isConfirmed) return;
+
+                        axios.post(`/proctor/sessions/{{ $examSession->id }}/force-finish-all`, {}, {
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            }
+                        }).then(res => {
+                            Swal.fire('Berhasil!', res.data.message, 'success');
+                            this.fetchData();
+                        }).catch(err => {
+                            console.error(err);
+                            Swal.fire('Gagal', err.response?.data?.message || 'Terjadi kesalahan sistem.', 'error');
+                        });
                     });
                 }
             }
