@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Student;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\SingleLoginManager;
 use Illuminate\Http\Request;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Hash;
@@ -43,7 +44,7 @@ class StudentAuthApiController extends Controller
         ], 201);
     }
 
-    public function login(Request $request)
+    public function login(Request $request, SingleLoginManager $singleLoginManager)
     {
         $validated = $request->validate([
             'username' => ['required', 'string'],
@@ -66,8 +67,7 @@ class StudentAuthApiController extends Controller
             ], 403);
         }
 
-        $user->tokens()->delete();
-        $token = $user->createToken('student-mobile')->plainTextToken;
+        $token = $singleLoginManager->createApiToken($user, 'student-mobile');
 
         return response()->json([
             'success' => true,
@@ -98,12 +98,15 @@ class StudentAuthApiController extends Controller
         ]);
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request, SingleLoginManager $singleLoginManager)
     {
-        $token = $request->user()->currentAccessToken();
+        $user = $request->user();
+        $loginId = $user->active_login_id;
+        $token = $user->currentAccessToken();
         if ($token && method_exists($token, 'delete')) {
             $token->delete();
         }
+        $singleLoginManager->endLogin($user, $loginId);
 
         return response()->json([
             'success' => true,

@@ -46,6 +46,11 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 
 Token diperoleh dari endpoint login dan tidak boleh dikirimkan sebagai parameter URL.
 
+Satu akun hanya dapat memiliki satu login aktif pada satu waktu. Login melalui
+web Laravel atau API akan menggantikan login sebelumnya, termasuk token API
+yang lama. Request dari sesi/token yang sudah digantikan mendapat HTTP `401`;
+aplikasi harus menghapus token lokal dan meminta pengguna login kembali.
+
 ## Postman Environment
 
 Buat environment dengan variable berikut:

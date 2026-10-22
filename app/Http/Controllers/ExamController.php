@@ -8,8 +8,8 @@ use App\Models\Exam; // Pastikan Enum sudah dibuat sebelumnya
 use App\Models\ExamType;
 use App\Models\Level;
 use App\Models\School;
-use App\Models\Section;
 use App\Models\ScoringProfile;
+use App\Models\Section;
 use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -24,14 +24,15 @@ class ExamController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
+        $isAdmin = $user->hasRole('admin');
         $schoolId = $user->school_id;
 
-        $examTypes = ExamType::where('school_id', $schoolId)->get();
-        $levels = Level::where('school_id', $schoolId)->get();
-        $subjects = Subject::where('school_id', $schoolId)->get();
+        $examTypes = ExamType::when(! $isAdmin, fn ($query) => $query->where('school_id', $schoolId))->get();
+        $levels = Level::when(! $isAdmin, fn ($query) => $query->where('school_id', $schoolId))->get();
+        $subjects = Subject::when(! $isAdmin, fn ($query) => $query->where('school_id', $schoolId))->get();
 
         // 1. TAMBAHAN: Ambil daftar guru di sekolah yang sama (Kecuali diri sendiri)
-        $teachers = User::where('school_id', $schoolId)
+        $teachers = User::when(! $isAdmin, fn ($query) => $query->where('school_id', $schoolId))
             ->where('id', '!=', $user->id)
             ->role('guru') // <-- Tambahkan baris ini untuk memfilter berdasarkan role
             ->orderBy('name', 'asc') // Opsional: agar daftar guru berurutan sesuai abjad
@@ -41,14 +42,17 @@ class ExamController extends Controller
 
         // 2. TAMBAHAN: Masukkan 'invitedTeachers' ke dalam eager loading with()
         $query = Exam::with(['examType', 'level', 'subject', 'invitedTeachers'])
-            ->withCount('questions')
-            ->where('school_id', $schoolId);
+            ->withCount('questions');
+
+        if (! $isAdmin) {
+            $query->where('school_id', $schoolId);
+        }
 
         if ($activeTypeId) {
             $query->where('exam_type_id', $activeTypeId);
         }
 
-        if (! $user->hasRole('admin')) {
+        if (! $isAdmin) {
             $query->where(function ($q) use ($user) {
                 $q->where('teacher_id', $user->id)
                     ->orWhereHas('invitedTeachers', function ($subQuery) use ($user) {
@@ -58,7 +62,7 @@ class ExamController extends Controller
         }
 
         $exams = $query->latest()->paginate(10)->withQueryString();
-        $schools = $user->hasRole('admin') ? School::all() : [];
+        $schools = $isAdmin ? School::all() : [];
 
         // 3. TAMBAHAN: Jangan lupa passing variabel $teachers ke compact()
         return view('exams.index', compact('exams', 'examTypes', 'activeTypeId', 'schools', 'levels', 'subjects', 'teachers'));

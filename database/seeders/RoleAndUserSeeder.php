@@ -24,23 +24,11 @@ class RoleAndUserSeeder extends Seeder
         ]);
         // 2. Buat Role
         // Pastikan guard_name 'web' (default laravel) atau sesuaikan jika pakai API
-        $roleAdmin = Role::create(['name' => 'admin']);
         $roleGuru = Role::create(['name' => 'guru']);
         $roleSiswa = Role::create(['name' => 'siswa']);
         $roleOperator = Role::create(['name' => 'operator']);
 
-        // 3. Buat User: ADMIN
-        $admin = User::create([
-            'name' => 'Administrator',
-            'email' => 'admin@cbt.com',
-            'school_id' => $school->id, // Pastikan ada sekolah dengan ID 1 atau sesuaikan
-            'username' => 'admin', // Tambahkan username untuk admin
-            'password' => Hash::make('password'), // password default
-            'email_verified_at' => now(),
-        ]);
-        $admin->assignRole($roleAdmin);
-
-        // 4. Buat User: GURU (Pak Budi)
+        // 3. Buat User: GURU (Pak Budi)
         $guru = User::create([
             'name' => 'Pak Budi Santoso',
             'email' => 'guru@cbt.com',
@@ -51,7 +39,7 @@ class RoleAndUserSeeder extends Seeder
         ]);
         $guru->assignRole($roleGuru);
 
-        // 5. Buat User: SISWA (Andi)
+        // 4. Buat User: SISWA (Andi)
         $operator = User::create([
             'name' => 'Andi Pratama',
             'email' => 'operator@cbt.com',
@@ -62,7 +50,7 @@ class RoleAndUserSeeder extends Seeder
         ]);
         $operator->assignRole($roleOperator);
 
-        // 6. Opsional: Buat 10 Siswa Dummy Tambahan untuk test Pagination
+        // 5. Opsional: Buat 10 Siswa Dummy Tambahan untuk test Pagination
         $faker = Faker::create('id_ID');
 
         // 2. Loop pembuatan user dummy

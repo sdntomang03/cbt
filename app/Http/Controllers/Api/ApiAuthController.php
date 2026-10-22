@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\SingleLoginManager;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -12,7 +13,7 @@ use Spatie\Permission\Models\Role;
 
 class ApiAuthController extends Controller
 {
-    public function login(Request $request)
+    public function login(Request $request, SingleLoginManager $singleLoginManager)
     {
         $request->validate([
             'login_id' => 'required|string',
@@ -37,9 +38,7 @@ class ApiAuthController extends Controller
             ], 403);
         }
 
-        $user->tokens()->delete();
-
-        $token = $user->createToken('flutter_mobile_app')->plainTextToken;
+        $token = $singleLoginManager->createApiToken($user, 'flutter_mobile_app');
 
         return response()->json([
             'status' => 'success',
@@ -97,9 +96,15 @@ class ApiAuthController extends Controller
         ], 201); // 201 adalah status code HTTP untuk "Created"
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request, SingleLoginManager $singleLoginManager)
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
+        $loginId = $user->active_login_id;
+        $token = $user->currentAccessToken();
+        if ($token && method_exists($token, 'delete')) {
+            $token->delete();
+        }
+        $singleLoginManager->endLogin($user, $loginId);
 
         return response()->json([
             'status' => 'success',

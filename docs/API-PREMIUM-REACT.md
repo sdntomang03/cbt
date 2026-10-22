@@ -97,6 +97,10 @@ dapat memilih ID user lain atau mengirim klaim status.
 ## Alur React/Capacitor
 
 1. Login user melalui API Laravel.
+   Setiap akun hanya memiliki satu login aktif. Login dari web Laravel atau
+   API menggantikan sesi/token sebelumnya. Jika API membalas HTTP `401` karena
+   login telah digantikan, hapus token yang tersimpan dan minta pengguna login
+   kembali.
 2. Setelah login, identifikasi RevenueCat dengan ID user Laravel yang stabil
    (contoh konseptual: `Purchases.logIn(String(user.id))`). Jangan gunakan
    anonymous ID untuk purchase user login.
