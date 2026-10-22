@@ -14,6 +14,12 @@ class EnsureSingleLogin
     public function handle(Request $request, Closure $next): Response
     {
         $isApi = $request->is('api/*');
+        $isLoginRequest = $request->isMethod('post')
+            && in_array($request->path(), [
+                'login',
+                'api/login',
+                'api/v1/student/login',
+            ], true);
         $accessToken = null;
 
         if ($isApi && $request->bearerToken()) {
@@ -67,6 +73,10 @@ class EnsureSingleLogin
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
+        }
+
+        if ($isLoginRequest) {
+            return $next($request);
         }
 
         if ($request->expectsJson() || $isApi) {

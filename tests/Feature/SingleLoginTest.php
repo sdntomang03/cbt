@@ -75,4 +75,42 @@ class SingleLoginTest extends TestCase
 
         $this->assertSame(0, $user->tokens()->count());
     }
+
+    public function test_web_login_can_replace_a_stale_authenticated_session(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user)
+            ->withSession([SingleLoginManager::SESSION_KEY => (string) Str::uuid()])
+            ->post('/login', [
+                'email' => $user->email,
+                'password' => 'password',
+            ])
+            ->assertRedirect(route('dashboard', absolute: false));
+
+        $this->assertAuthenticatedAs($user);
+        $this->assertSame(
+            $user->fresh()->active_login_id,
+            session(SingleLoginManager::SESSION_KEY)
+        );
+    }
+
+    public function test_api_login_can_replace_a_stale_bearer_token(): void
+    {
+        $user = User::factory()->create([
+            'email_verified_at' => now(),
+            'active_login_id' => (string) Str::uuid(),
+        ]);
+        $oldToken = $user->createToken('old-device')->plainTextToken;
+
+        $response = $this->withToken($oldToken)
+            ->postJson('/api/v1/student/login', [
+                'username' => $user->username,
+                'password' => 'password',
+            ])
+            ->assertOk();
+
+        $this->assertNotSame($oldToken, $response->json('data.token'));
+        $this->assertSame(1, $user->tokens()->count());
+        $this->assertNotNull($user->fresh()->active_login_id);
+    }
 }
