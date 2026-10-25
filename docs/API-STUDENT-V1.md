@@ -145,6 +145,10 @@ Gunakan nilai tersebut pada endpoint berikut:
 | GET | `/attempts/{attempt}/result` | Ya | Ambil hasil ujian |
 | GET | `/attempts/{attempt}/discussion` | Ya | Ambil pembahasan soal |
 
+## Load Test dengan k6
+
+Skrip load test baca-saja untuk endpoint profile, dashboard, dan daftar ujian tersedia di [docs/K6-LOAD-TEST.md](K6-LOAD-TEST.md). Skrip menggunakan token akun khusus pengujian dan tidak menjalankan login atau mengubah data ujian.
+
 ## Pendaftaran Siswa
 
 ```http
