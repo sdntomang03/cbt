@@ -387,7 +387,10 @@ class SoalController extends Controller
 
     public function showImportJson(Exam $exam)
     {
-        return view('soal.import_json', compact('exam'));
+        $sections = $this->ensureExamSections($exam);
+        $defaultSectionId = $sections->first()->id ?? null;
+
+        return view('soal.import_json', compact('exam', 'sections', 'defaultSectionId'));
     }
 
     // Method untuk memproses file/teks dan menampilkan layar Preview
@@ -395,14 +398,21 @@ class SoalController extends Controller
     {
         // Validasi, pastikan file_json dan text_json boleh kosong (nullable),
         // tapi kita akan cek manual di bawah agar minimal salah satu diisi.
-        $request->validate([
+        $data = $request->validate([
             'file_json' => 'nullable|file|mimetypes:application/json,text/plain',
             'text_json' => 'nullable|string',
+            'exam_section_id' => [
+                'required',
+                'integer',
+                Rule::exists('exam_sections', 'id')->where('exam_id', $exam->id),
+            ],
         ]);
 
         // Jika dua-duanya kosong
         if (! $request->hasFile('file_json') && empty($request->text_json)) {
-            return back()->withErrors(['error' => 'Harap unggah file JSON atau paste teks JSON di kolom yang disediakan.']);
+            return back()
+                ->withErrors(['error' => 'Harap unggah file JSON atau paste teks JSON di kolom yang disediakan.'])
+                ->withInput(['exam_section_id' => $data['exam_section_id']]);
         }
 
         // Ambil string JSON dari File (jika ada) atau dari Teks Paste (jika file kosong)
@@ -420,7 +430,9 @@ class SoalController extends Controller
 
         // Cek validitas format JSON
         if (json_last_error() !== JSON_ERROR_NONE || ! is_array($soals)) {
-            return back()->withErrors(['error' => 'Format JSON tidak valid atau rusak. Error: '.json_last_error_msg()]);
+            return back()
+                ->withErrors(['error' => 'Format JSON tidak valid atau rusak. Error: '.json_last_error_msg()])
+                ->withInput(['exam_section_id' => $data['exam_section_id']]);
         }
 
         // Antisipasi jika root array JSON berada di dalam property 'data'
@@ -429,11 +441,18 @@ class SoalController extends Controller
         }
 
         $soals = $this->normalizeTkpQuestionTypes($soals);
+        $targetSection = $exam->sections()->with('section')->findOrFail($data['exam_section_id']);
 
         // Enkripsi seluruh data JSON menjadi teks base64 untuk disisipkan ke form Preview (Stateless)
         $jsonDataEncoded = base64_encode(json_encode($soals));
 
-        return view('soal.preview_json', compact('exam', 'soals', 'jsonDataEncoded'));
+        return view('soal.preview_json', [
+            'exam' => $exam,
+            'soals' => $soals,
+            'jsonDataEncoded' => $jsonDataEncoded,
+            'examSectionId' => $targetSection->id,
+            'targetSection' => $targetSection,
+        ]);
     }
 
     // Method untuk menyimpan data yang dicentang (Final)

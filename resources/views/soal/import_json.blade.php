@@ -30,6 +30,21 @@
                 enctype="multipart/form-data" class="flex flex-col gap-5">
                 @csrf
 
+                <div class="w-full">
+                    <label for="exam_section_id"
+                        class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Seksi Ujian</label>
+                    <select id="exam_section_id" name="exam_section_id" required
+                        class="block w-full rounded-xl border-2 border-slate-100 bg-slate-50 p-3 font-bold text-slate-700 focus:border-indigo-300 focus:outline-none">
+                        @foreach($sections as $section)
+                        <option value="{{ $section->id }}"
+                            {{ old('exam_section_id', $defaultSectionId) == $section->id ? 'selected' : '' }}>
+                            {{ $section->section?->abbreviation }} - {{ $section->section?->name }}
+                        </option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-[10px] text-slate-400">Soal yang diimpor akan dimasukkan ke seksi yang dipilih.</p>
+                </div>
+
                 {{-- Opsi 1: Upload File --}}
                 <div class="w-full">
                     <label class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3">1. Unggah File

@@ -45,10 +45,15 @@ class JsonQuestionImportTest extends TestCase
             'slug' => 'import-json-cpns',
         ]);
 
-        $section = Section::create(['abbreviation' => 'TKP', 'name' => 'Tes Karakteristik Pribadi']);
-        $this->examSectionId = $this->exam->sections()->create([
-            'section_id' => $section->id,
+        $defaultSection = Section::create(['abbreviation' => 'TWK', 'name' => 'Tes Wawasan Kebangsaan']);
+        $this->exam->sections()->create([
+            'section_id' => $defaultSection->id,
             'order' => 1,
+        ]);
+        $tkpSection = Section::create(['abbreviation' => 'TKP', 'name' => 'Tes Karakteristik Pribadi']);
+        $this->examSectionId = $this->exam->sections()->create([
+            'section_id' => $tkpSection->id,
+            'order' => 2,
         ])->id;
     }
 
@@ -67,22 +72,34 @@ class JsonQuestionImportTest extends TestCase
             ],
         ]];
 
+        $this->actingAs($this->admin)
+            ->get(route('admin.soal.import_json_view', $this->exam))
+            ->assertOk()
+            ->assertSee('Seksi Ujian')
+            ->assertSee('TWK - Tes Wawasan Kebangsaan')
+            ->assertSee('TKP - Tes Karakteristik Pribadi');
+
         $previewResponse = $this->actingAs($this->admin)
             ->post(route('admin.soal.import_json_preview', $this->exam), [
+                'exam_section_id' => $this->examSectionId,
                 'text_json' => json_encode($questions),
             ])
             ->assertOk()
             ->assertSee('tkp')
-            ->assertSee('Bobot 5');
+            ->assertSee('Bobot 5')
+            ->assertSee('Soal akan ditambahkan ke seksi TKP - Tes Karakteristik Pribadi.');
 
         preg_match('/name="json_data" value="([^"]+)"/', $previewResponse->getContent(), $matches);
+        preg_match('/name="exam_section_id" value="(\d+)"/', $previewResponse->getContent(), $sectionMatches);
 
         $this->assertNotEmpty($matches[1] ?? null, 'Preview should submit the normalized question JSON.');
+        $this->assertSame((string) $this->examSectionId, $sectionMatches[1] ?? null);
 
         $this->actingAs($this->admin)
             ->post(route('admin.soal.import_json_store', $this->exam), [
                 'json_data' => $matches[1],
                 'selected_indexes' => [0],
+                'exam_section_id' => $sectionMatches[1],
             ])
             ->assertRedirect(route('admin.exams.soal.index', [
                 'exam' => $this->exam,
@@ -91,6 +108,7 @@ class JsonQuestionImportTest extends TestCase
 
         $question = Question::where('content', $questions[0]['content'])->firstOrFail();
         $this->assertSame('tkp', $question->type);
+        $this->assertSame($this->examSectionId, $question->exam_section_id);
         $this->assertSame(
             [1.0, 2.0, 3.0, 4.0, 5.0],
             $question->options()->orderBy('id')->pluck('score_weight')->all()
