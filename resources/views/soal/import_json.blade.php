@@ -79,11 +79,10 @@
             </div>
 
             <div class="p-6">
-                <p class="text-sm text-slate-400 mb-4">Pastikan struktur JSON sesuai dengan parameter yang diproses oleh
-                    sistem Anda. Properti <code
-                        class="bg-slate-800 px-1.5 py-0.5 rounded text-indigo-300">options</code> harus disesuaikan
-                    dengan format yang bisa dibaca oleh method <code
-                        class="bg-slate-800 px-1.5 py-0.5 rounded text-emerald-300">saveQuestionDetails()</code>.</p>
+                <p class="text-sm text-slate-400 mb-4">Pastikan setiap soal memiliki tipe dan opsi sesuai formatnya.
+                    Untuk TKP, isi properti <code
+                        class="bg-slate-800 px-1.5 py-0.5 rounded text-indigo-300">score_weight</code> pada setiap
+                    opsi agar bobot penilaian ikut tersimpan.</p>
 
                 <div class="relative group">
                     {{-- Tombol Copy Melayang --}}
@@ -161,6 +160,20 @@
                 <span class="text-emerald-400">"premise_text"</span>: <span class="text-amber-300">"Malaysia"</span>,
                 <span class="text-emerald-400">"target_text"</span>: <span class="text-amber-300">"Kuala Lumpur"</span>
             }
+        ]
+    },
+
+    <span class="text-slate-500">// 6. TKP Berbobot (contoh skala bobot 1-5)</span>
+    {
+        <span class="text-emerald-400">"type"</span>: <span class="text-amber-300">"tkp"</span>,
+        <span class="text-emerald-400">"content"</span>: <span class="text-amber-300">"&lt;p&gt;Seorang warga menyampaikan keluhan tentang layanan yang terlambat. Apa yang Anda lakukan?&lt;/p&gt;"</span>,
+        <span class="text-emerald-400">"explanation"</span>: <span class="text-amber-300">"&lt;p&gt;Respons terbaik adalah mendengarkan, memeriksa masalah, dan menindaklanjuti secara profesional.&lt;/p&gt;"</span>,
+        <span class="text-emerald-400">"options"</span>: [
+            { <span class="text-emerald-400">"option_text"</span>: <span class="text-amber-300">"Mengabaikan keluhan karena sedang sibuk."</span>, <span class="text-emerald-400">"score_weight"</span>: <span class="text-indigo-400">1</span> },
+            { <span class="text-emerald-400">"option_text"</span>: <span class="text-amber-300">"Meminta warga kembali di lain waktu."</span>, <span class="text-emerald-400">"score_weight"</span>: <span class="text-indigo-400">2</span> },
+            { <span class="text-emerald-400">"option_text"</span>: <span class="text-amber-300">"Meneruskan keluhan tanpa memeriksa detailnya."</span>, <span class="text-emerald-400">"score_weight"</span>: <span class="text-indigo-400">3</span> },
+            { <span class="text-emerald-400">"option_text"</span>: <span class="text-amber-300">"Mendengarkan dan memeriksa penyebab keterlambatan."</span>, <span class="text-emerald-400">"score_weight"</span>: <span class="text-indigo-400">4</span> },
+            { <span class="text-emerald-400">"option_text"</span>: <span class="text-amber-300">"Mendengarkan, memeriksa, lalu memberi solusi dan tindak lanjut."</span>, <span class="text-emerald-400">"score_weight"</span>: <span class="text-indigo-400">5</span> }
         ]
     }
 ]</code></pre>

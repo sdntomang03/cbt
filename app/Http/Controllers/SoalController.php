@@ -428,6 +428,8 @@ class SoalController extends Controller
             $soals = $soals['data'];
         }
 
+        $soals = $this->normalizeTkpQuestionTypes($soals);
+
         // Enkripsi seluruh data JSON menjadi teks base64 untuk disisipkan ke form Preview (Stateless)
         $jsonDataEncoded = base64_encode(json_encode($soals));
 
@@ -450,6 +452,9 @@ class SoalController extends Controller
 
         // Kembalikan teks base64 menjadi array data soal
         $soals = json_decode(base64_decode($request->json_data), true);
+        if (is_array($soals)) {
+            $soals = $this->normalizeTkpQuestionTypes($soals);
+        }
         $selectedIndexes = $request->selected_indexes;
 
         DB::beginTransaction();
@@ -697,6 +702,22 @@ class SoalController extends Controller
             ->get();
     }
 
+    private function normalizeTkpQuestionTypes(array $questions): array
+    {
+        return array_values(array_map(function ($question) {
+            if (! is_array($question) || ! is_string($question['type'] ?? null)) {
+                return $question;
+            }
+
+            $type = str_replace([' ', '-'], '_', strtolower(trim($question['type'])));
+            if (in_array($type, ['tkp', 'tkp_berbobot'], true)) {
+                $question['type'] = 'tkp';
+            }
+
+            return $question;
+        }, $questions));
+    }
+
     private function ensureQuestionBelongsToExam(Exam $exam, Question $question): void
     {
         abort_unless(
@@ -836,7 +857,7 @@ class SoalController extends Controller
             $soals = $soals['data'];
         }
 
-        $soals = array_values($soals);
+        $soals = $this->normalizeTkpQuestionTypes($soals);
 
         foreach ($soals as $index => $soal) {
             if (! is_array($soal) || ($soal['type'] ?? null) !== 'tkp') {
