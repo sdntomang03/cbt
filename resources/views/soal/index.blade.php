@@ -143,6 +143,20 @@
     <div class="py-10 min-h-screen">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
+            @if(session('success'))
+            <div class="mb-6 rounded-xl border-l-4 border-emerald-500 bg-emerald-50 p-4 text-emerald-700 font-bold">
+                {{ session('success') }}
+            </div>
+            @endif
+
+            @if($errors->any())
+            <div class="mb-6 rounded-xl border-l-4 border-rose-500 bg-rose-50 p-4 text-rose-700 font-bold">
+                @foreach($errors->all() as $error)
+                <p>{{ $error }}</p>
+                @endforeach
+            </div>
+            @endif
+
             {{-- ════════ NAVIGASI TAB SEKSI (Hanya muncul jika lebih dari 1 seksi) ════════ --}}
             @if($sections->count() > 1)
             <div class="flex gap-3 overflow-x-auto pb-4 mb-2 hide-scroll">
@@ -164,6 +178,28 @@
                 </a>
                 @endforeach
             </div>
+            @endif
+
+            @if(request()->filled('section_id'))
+            <form id="bulkDeleteForm" action="{{ route('admin.exams.soal.bulk-destroy', $exam) }}" method="POST"
+                class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                onsubmit="return confirm('Hapus semua soal yang dipilih dari seksi ini?')">
+                @csrf
+                @method('DELETE')
+                <input type="hidden" name="section_id" value="{{ request('section_id') }}">
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" id="selectAllQuestions"
+                        class="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    <label for="selectAllQuestions" class="text-sm font-bold text-slate-700">
+                        Pilih semua soal di halaman ini
+                    </label>
+                    <span id="selectedQuestionCount" class="text-xs font-bold text-slate-400">0 dipilih</span>
+                </div>
+                <button id="bulkDeleteButton" type="submit" disabled
+                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-40">
+                    <i class="fas fa-trash-alt"></i> Hapus Terpilih
+                </button>
+            </form>
             @endif
 
             {{-- Toolbar Pencarian & Filter Server-Side --}}
@@ -264,6 +300,15 @@
 
                                 <div
                                     class="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300">
+                                    @if(request()->filled('section_id'))
+                                    <label class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-indigo-100 hover:text-indigo-600"
+                                        title="Pilih soal">
+                                        <input type="checkbox" name="question_ids[]" value="{{ $q->id }}"
+                                            form="bulkDeleteForm"
+                                            class="question-select h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                        <span class="sr-only">Pilih soal {{ $questions->firstItem() + $index }}</span>
+                                    </label>
+                                    @endif
                                     <a href="{{ route('admin.exams.soal.edit', [$exam, $q]) }}"
                                         class="w-10 h-10 rounded-full bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition flex items-center justify-center bounce-active shadow-sm">
                                         <i class="fas fa-pencil-alt"></i>
@@ -373,6 +418,34 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const selectAll = document.getElementById('selectAllQuestions');
+            const selectedCount = document.getElementById('selectedQuestionCount');
+            const deleteButton = document.getElementById('bulkDeleteButton');
+            const questionCheckboxes = Array.from(document.querySelectorAll('.question-select'));
+
+            if (!selectAll || !selectedCount || !deleteButton) return;
+
+            const updateSelection = () => {
+                const checkedCount = questionCheckboxes.filter(checkbox => checkbox.checked).length;
+                selectedCount.textContent = `${checkedCount} dipilih`;
+                deleteButton.disabled = checkedCount === 0;
+                selectAll.checked = checkedCount === questionCheckboxes.length && checkedCount > 0;
+                selectAll.indeterminate = checkedCount > 0 && checkedCount < questionCheckboxes.length;
+            };
+
+            selectAll.addEventListener('change', () => {
+                questionCheckboxes.forEach(checkbox => {
+                    checkbox.checked = selectAll.checked;
+                });
+                updateSelection();
+            });
+
+            questionCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateSelection);
+            });
+        });
+
         // Render Matematika
         document.addEventListener("DOMContentLoaded", function() {
             if (typeof renderMathInElement !== 'undefined') {

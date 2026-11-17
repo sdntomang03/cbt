@@ -262,6 +262,37 @@ class SoalController extends Controller
         return response()->json(['message' => 'Soal berhasil dikeluarkan dari ujian']);
     }
 
+    public function bulkDestroy(Request $request, Exam $exam)
+    {
+        $data = $request->validate([
+            'section_id' => [
+                'required',
+                'integer',
+                Rule::exists('exam_sections', 'id')->where('exam_id', $exam->id),
+            ],
+            'question_ids' => ['required', 'array', 'min:1'],
+            'question_ids.*' => ['required', 'integer', 'distinct'],
+        ]);
+
+        $section = $exam->sections()->findOrFail($data['section_id']);
+        $questions = $section->questions()
+            ->whereIn('id', $data['question_ids'])
+            ->get();
+
+        abort_unless($questions->count() === count($data['question_ids']), 404);
+
+        DB::transaction(function () use ($questions) {
+            foreach ($questions as $question) {
+                $question->delete();
+            }
+        });
+
+        return redirect()->route('admin.exams.soal.index', [
+            'exam' => $exam,
+            'section_id' => $section->id,
+        ])->with('success', count($data['question_ids']).' soal berhasil dihapus dari seksi.');
+    }
+
     private function saveQuestionDetails($question, $items, $type)
     {
         if (empty($items)) {

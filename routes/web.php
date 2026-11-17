@@ -116,6 +116,8 @@ Route::middleware(['auth', 'role:admin|operator|guru'])
             ->name('exams.soal.answer-keys');
         Route::put('/exams/{exam}/soal/{soal}/kunci-jawaban', [SoalController::class, 'updateAnswerKey'])
             ->name('exams.soal.answer-keys.update');
+        Route::delete('/exams/{exam}/soal/bulk-delete', [SoalController::class, 'bulkDestroy'])
+            ->name('exams.soal.bulk-destroy');
         Route::resource('exams.soal', SoalController::class)->except(['show']);
 
         // Import/Export Soal
