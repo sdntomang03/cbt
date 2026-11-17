@@ -37,14 +37,21 @@ class AcademicYearCrudTest extends TestCase
         $this->actingAs($this->admin)
             ->get(route('admin.academic-years.index'))
             ->assertOk()
-            ->assertSee('Tahun Pelajaran');
+            ->assertSee('Pilih sekolah terlebih dahulu.')
+            ->assertDontSee('Tahun Pelajaran Baru');
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.academic-years.index', ['school_id' => $this->school->id]))
+            ->assertOk()
+            ->assertSee('Tahun Pelajaran Baru');
 
         $this->actingAs($this->admin)
             ->post(route('admin.academic-years.store'), [
+                'school_id' => $this->school->id,
                 'name' => '2026/2027',
                 'is_active' => '1',
             ])
-            ->assertRedirect(route('admin.academic-years.index'));
+            ->assertRedirect(route('admin.academic-years.index', ['school_id' => $this->school->id]));
 
         $this->assertDatabaseHas('academic_years', [
             'school_id' => $this->school->id,
@@ -63,10 +70,11 @@ class AcademicYearCrudTest extends TestCase
 
         $this->actingAs($this->admin)
             ->post(route('admin.academic-years.store'), [
+                'school_id' => $this->school->id,
                 'name' => '2026/2027',
                 'is_active' => '1',
             ])
-            ->assertRedirect(route('admin.academic-years.index'));
+            ->assertRedirect(route('admin.academic-years.index', ['school_id' => $this->school->id]));
 
         $this->assertDatabaseHas('academic_years', ['id' => $previous->id, 'is_active' => false]);
         $this->assertDatabaseHas('academic_years', [
@@ -86,10 +94,11 @@ class AcademicYearCrudTest extends TestCase
 
         $this->actingAs($this->admin)
             ->put(route('admin.academic-years.update', $year), [
+                'school_id' => $this->school->id,
                 'name' => '2026/2027',
                 'is_active' => '1',
             ])
-            ->assertRedirect(route('admin.academic-years.index'));
+            ->assertRedirect(route('admin.academic-years.index', ['school_id' => $this->school->id]));
 
         $this->assertDatabaseHas('academic_years', [
             'id' => $year->id,
@@ -97,8 +106,8 @@ class AcademicYearCrudTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->delete(route('admin.academic-years.destroy', $year))
-            ->assertRedirect(route('admin.academic-years.index'));
+        $this->delete(route('admin.academic-years.destroy', $year), ['school_id' => $this->school->id])
+            ->assertRedirect(route('admin.academic-years.index', ['school_id' => $this->school->id]));
 
         $this->assertDatabaseMissing('academic_years', ['id' => $year->id]);
     }
@@ -114,6 +123,7 @@ class AcademicYearCrudTest extends TestCase
 
         $this->actingAs($this->admin)
             ->put(route('admin.academic-years.update', $otherYear), [
+                'school_id' => $this->school->id,
                 'name' => 'Diubah',
                 'is_active' => '1',
             ])
@@ -132,10 +142,46 @@ class AcademicYearCrudTest extends TestCase
 
         $this->actingAs($this->admin)
             ->delete(route('admin.academic-years.destroy', $year))
-            ->assertRedirect(route('admin.academic-years.index'))
+            ->assertSessionHasErrors('school_id');
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.academic-years.destroy', $year), ['school_id' => $this->school->id])
+            ->assertRedirect(route('admin.academic-years.index', ['school_id' => $this->school->id]))
             ->assertSessionHas('error');
 
         $this->assertDatabaseHas('academic_years', ['id' => $year->id]);
         $this->assertDatabaseHas('classrooms', ['id' => $classroom->id]);
+    }
+
+    public function test_admin_can_switch_schools_and_only_sees_the_selected_years(): void
+    {
+        $otherSchool = School::create(['name' => 'Sekolah Pilihan Lain']);
+        AcademicYear::create([
+            'school_id' => $this->school->id,
+            'name' => 'Tahun Sekolah Pertama',
+        ]);
+        AcademicYear::create([
+            'school_id' => $otherSchool->id,
+            'name' => 'Tahun Sekolah Kedua',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.academic-years.index', ['school_id' => $otherSchool->id]))
+            ->assertOk()
+            ->assertSee('Tahun Sekolah Kedua')
+            ->assertDontSee('Tahun Sekolah Pertama');
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.academic-years.store'), [
+                'school_id' => $otherSchool->id,
+                'name' => 'Tahun Baru Sekolah Kedua',
+                'is_active' => '0',
+            ])
+            ->assertRedirect(route('admin.academic-years.index', ['school_id' => $otherSchool->id]));
+
+        $this->assertDatabaseHas('academic_years', [
+            'school_id' => $otherSchool->id,
+            'name' => 'Tahun Baru Sekolah Kedua',
+        ]);
     }
 }

@@ -3,16 +3,42 @@
         <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
             <div>
                 <h2 class="font-black text-2xl text-slate-800 tracking-tight">Tahun Pelajaran</h2>
-                <p class="text-sm text-slate-500 font-bold">{{ $school->name }} &middot; Kelola tahun pelajaran sekolah.</p>
+                <p class="text-sm text-slate-500 font-bold">
+                    @if($school)
+                    {{ $school->name }} &middot; Kelola tahun pelajaran sekolah.
+                    @else
+                    Pilih sekolah untuk mengelola tahun pelajaran.
+                    @endif
+                </p>
             </div>
+            @if($school)
             <button type="button" onclick="openAcademicYearModal()"
                 class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700">
                 <i class="fas fa-plus"></i> Tahun Pelajaran Baru
             </button>
+            @endif
         </div>
     </x-slot>
 
     <div class="py-8 px-4 sm:px-6 lg:px-8">
+        @if(auth()->user()->hasRole('admin'))
+        <form method="GET" action="{{ route('admin.academic-years.index') }}"
+            class="mb-6 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <label for="school_id" class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3">
+                <i class="fas fa-building text-indigo-500 mr-1"></i> Pilih Sekolah
+            </label>
+            <select id="school_id" name="school_id" onchange="this.form.submit()"
+                class="block w-full rounded-xl border-slate-200 shadow-sm focus:border-indigo-500 font-bold text-slate-800 py-3 px-4 bg-slate-50">
+                <option value="">-- Pilih Sekolah --</option>
+                @foreach($schools as $schoolOption)
+                <option value="{{ $schoolOption->id }}" {{ $selectedSchoolId == $schoolOption->id ? 'selected' : '' }}>
+                    {{ $schoolOption->name }}
+                </option>
+                @endforeach
+            </select>
+        </form>
+        @endif
+
         @if(session('success'))
         <div class="mb-6 rounded-xl border-l-4 border-emerald-500 bg-emerald-50 p-4 text-emerald-700 font-bold">
             {{ session('success') }}
@@ -32,6 +58,7 @@
         </div>
         @endif
 
+        @if($school)
         <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left">
@@ -68,6 +95,7 @@
                                 <form action="{{ route('admin.academic-years.destroy', $academicYear) }}" method="POST" class="inline"
                                     onsubmit="return confirm('Hapus tahun pelajaran {{ $academicYear->name }}?')">
                                     @csrf @method('DELETE')
+                                    <input type="hidden" name="school_id" value="{{ $selectedSchoolId }}">
                                     <button class="px-3 py-2 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white"
                                         aria-label="Hapus {{ $academicYear->name }}">
                                         <i class="fas fa-trash"></i>
@@ -93,6 +121,7 @@
             </div>
             <form id="academic-year-form" method="POST" action="{{ route('admin.academic-years.store') }}" class="p-6 space-y-4">
                 @csrf
+                <input type="hidden" name="school_id" value="{{ $selectedSchoolId }}">
                 <input id="academic-year-method" type="hidden" name="_method" value="POST">
                 <input id="academic-year-id" type="hidden" name="academic_year_id" value="{{ old('academic_year_id') }}">
                 <label class="block">
@@ -163,4 +192,11 @@
             academicYearModal.classList.add('flex');
         @endif
     </script>
+        @else
+        <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center">
+            <i class="fas fa-building text-4xl mb-4 text-slate-300 block"></i>
+            <p class="font-bold text-slate-600">Pilih sekolah terlebih dahulu.</p>
+            <p class="text-sm text-slate-500 mt-1">Tahun pelajaran dan jumlah kelas akan ditampilkan sesuai sekolah yang dipilih.</p>
+        </div>
+        @endif
 </x-app-layout>

@@ -11,22 +11,38 @@ use Illuminate\Validation\Rule;
 
 class AcademicYearController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $schoolId = $this->schoolId();
-        $school = School::findOrFail($schoolId);
-        $academicYears = AcademicYear::where('school_id', $schoolId)
-            ->withCount('classrooms')
-            ->orderByDesc('is_active')
-            ->orderByDesc('name')
-            ->get();
+        $user = auth()->user();
+        $schools = $user->hasRole('admin')
+            ? School::orderBy('name')->get()
+            : collect();
+        $selectedSchoolId = $user->hasRole('admin')
+            ? $request->validate([
+                'school_id' => ['nullable', 'integer', Rule::exists('schools', 'id')],
+            ])['school_id'] ?? null
+            : $user->school_id;
 
-        return view('admin.academic-years.index', compact('academicYears', 'school'));
+        $school = $selectedSchoolId ? School::findOrFail($selectedSchoolId) : null;
+        $academicYears = $selectedSchoolId
+            ? AcademicYear::where('school_id', $selectedSchoolId)
+                ->withCount('classrooms')
+                ->orderByDesc('is_active')
+                ->orderByDesc('name')
+                ->get()
+            : collect();
+
+        return view('admin.academic-years.index', compact(
+            'academicYears',
+            'school',
+            'schools',
+            'selectedSchoolId'
+        ));
     }
 
     public function store(Request $request)
     {
-        $schoolId = $this->schoolId();
+        $schoolId = $this->schoolId($request);
         $data = $this->validated($request, $schoolId);
 
         DB::transaction(function () use ($data, $schoolId) {
@@ -43,13 +59,13 @@ class AcademicYearController extends Controller
             ]);
         });
 
-        return redirect()->route('admin.academic-years.index')
+        return redirect()->route('admin.academic-years.index', ['school_id' => $schoolId])
             ->with('success', 'Tahun pelajaran berhasil ditambahkan.');
     }
 
     public function update(Request $request, AcademicYear $academicYear)
     {
-        $schoolId = $this->schoolId();
+        $schoolId = $this->schoolId($request);
         $this->ensureBelongsToSchool($academicYear, $schoolId);
         $data = $this->validated($request, $schoolId, $academicYear);
 
@@ -65,23 +81,23 @@ class AcademicYearController extends Controller
             $academicYear->update($data);
         });
 
-        return redirect()->route('admin.academic-years.index')
+        return redirect()->route('admin.academic-years.index', ['school_id' => $schoolId])
             ->with('success', 'Tahun pelajaran berhasil diperbarui.');
     }
 
-    public function destroy(AcademicYear $academicYear)
+    public function destroy(Request $request, AcademicYear $academicYear)
     {
-        $schoolId = $this->schoolId();
+        $schoolId = $this->schoolId($request);
         $this->ensureBelongsToSchool($academicYear, $schoolId);
 
         if ($academicYear->classrooms()->exists()) {
-            return redirect()->route('admin.academic-years.index')
+            return redirect()->route('admin.academic-years.index', ['school_id' => $schoolId])
                 ->with('error', 'Tahun pelajaran tidak dapat dihapus karena masih digunakan oleh kelas.');
         }
 
         $academicYear->delete();
 
-        return redirect()->route('admin.academic-years.index')
+        return redirect()->route('admin.academic-years.index', ['school_id' => $schoolId])
             ->with('success', 'Tahun pelajaran berhasil dihapus.');
     }
 
@@ -100,9 +116,17 @@ class AcademicYearController extends Controller
         ]);
     }
 
-    private function schoolId(): int
+    private function schoolId(Request $request): int
     {
-        $schoolId = auth()->user()->school_id;
+        $user = auth()->user();
+
+        if ($user->hasRole('admin')) {
+            return (int) $request->validate([
+                'school_id' => ['required', 'integer', Rule::exists('schools', 'id')],
+            ])['school_id'];
+        }
+
+        $schoolId = $user->school_id;
         abort_if(! $schoolId, 403, 'Akun belum terhubung ke sekolah.');
 
         return (int) $schoolId;
@@ -110,6 +134,6 @@ class AcademicYearController extends Controller
 
     private function ensureBelongsToSchool(AcademicYear $academicYear, int $schoolId): void
     {
-        abort_unless($academicYear->school_id === $schoolId, 404);
+        abort_unless((int) $academicYear->school_id === $schoolId, 404);
     }
 }
