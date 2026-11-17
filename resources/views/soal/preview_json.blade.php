@@ -7,15 +7,21 @@
                 <h2 class="text-2xl font-bold text-slate-800 uppercase tracking-tight">Preview Import JSON</h2>
                 <p class="text-sm text-slate-500 mt-1">Pilih soal yang ingin disimpan ke dalam ujian.</p>
             </div>
-            <a href="{{ route('admin.exams.soal.index', $exam) }}"
+            <a href="{{ route('admin.exams.soal.index', ['exam' => $exam, 'section_id' => $examSectionId ?? null]) }}"
                 class="px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-bold shadow-sm">
                 Batal
             </a>
         </div>
+        @if(!empty($targetSection))
+        <p class="mb-6 text-sm font-bold text-indigo-700">
+            Soal akan ditambahkan ke seksi {{ $targetSection->section?->abbreviation }} - {{ $targetSection->section?->name }}.
+        </p>
+        @endif
 
         <form action="{{ route('admin.soal.import_json_store', $exam) }}" method="POST">
             @csrf
             <input type="hidden" name="json_data" value="{{ $jsonDataEncoded }}">
+            <input type="hidden" name="exam_section_id" value="{{ $examSectionId ?? '' }}">
 
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-8">
                 <div
@@ -88,16 +94,22 @@
                                 if (is_string($opsi)) {
                                 $teksJawaban = $opsi;
                                 $benar = true; // Jawaban essay dianggap sebagai alternatif benar
+                                $scoreWeight = 0;
                                 } else {
                                 $teksJawaban = $opsi['option_text'] ?? $opsi['text'] ?? '';
                                 $benar = isset($opsi['is_correct']) && filter_var($opsi['is_correct'],
                                 FILTER_VALIDATE_BOOLEAN);
+                                $scoreWeight = $opsi['score_weight'] ?? 0;
                                 }
                                 @endphp
 
                                 <li
-                                    class="flex items-start p-2 rounded {{ $benar ? 'bg-emerald-50 border border-emerald-200' : 'bg-white border border-slate-200' }}">
-                                    @if($benar)
+                                    class="flex items-start p-2 rounded {{ $item['type'] === 'tkp' ? 'bg-orange-50 border border-orange-200' : ($benar ? 'bg-emerald-50 border border-emerald-200' : 'bg-white border border-slate-200') }}">
+                                    @if($item['type'] === 'tkp')
+                                    <span class="mr-3 shrink-0 rounded bg-orange-100 px-2 py-1 text-xs font-black text-orange-800">
+                                        Bobot {{ $scoreWeight }}
+                                    </span>
+                                    @elseif($benar)
                                     <svg class="w-5 h-5 text-emerald-500 mr-2 shrink-0" fill="currentColor"
                                         viewBox="0 0 20 20">
                                         <path fill-rule="evenodd"
@@ -108,7 +120,7 @@
                                     <div class="w-5 h-5 rounded-full border-2 border-slate-300 mr-2 shrink-0"></div>
                                     @endif
                                     <span
-                                        class="text-sm {{ $benar ? 'text-emerald-800 font-bold' : 'text-slate-600' }}">{!!
+                                        class="text-sm {{ $item['type'] === 'tkp' ? 'text-orange-900 font-bold' : ($benar ? 'text-emerald-800 font-bold' : 'text-slate-600') }}">{!!
                                         $teksJawaban !!}</span>
                                 </li>
                                 @endif

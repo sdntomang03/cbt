@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Intervention\Image\Drivers\Imagick\Driver;
 use Intervention\Image\Encoders\WebpEncoder;
 use Intervention\Image\ImageManager;
@@ -438,8 +439,13 @@ class SoalController extends Controller
     public function storeImportJson(Request $request, Exam $exam)
     {
         $request->validate([
-            'json_data' => 'required',
-            'selected_indexes' => 'required|array', // Memastikan ada soal yang dicentang
+            'json_data' => ['required', 'string'],
+            'selected_indexes' => ['required', 'array'],
+            'exam_section_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('exam_sections', 'id')->where('exam_id', $exam->id),
+            ],
         ]);
 
         // Kembalikan teks base64 menjadi array data soal
@@ -451,7 +457,10 @@ class SoalController extends Controller
             $schoolId = Auth::user()->school_id ?? Auth::user()->sekolah_id;
             $userId = Auth::id();
             $jumlahDisimpan = 0;
-            $section = $this->ensureExamSections($exam)->first();
+            $sections = $this->ensureExamSections($exam);
+            $section = $request->filled('exam_section_id')
+                ? $exam->sections()->findOrFail($request->input('exam_section_id'))
+                : $sections->first();
 
             // Looping hanya untuk index soal yang dicentang oleh user
             foreach ($selectedIndexes as $index) {
@@ -512,6 +521,10 @@ class SoalController extends Controller
                                     'school_id' => $schoolId,
                                     'option_text' => $text,
                                     'is_correct' => $isCorrect,
+                                    'score_weight' => ($item['type'] ?? null) === 'tkp'
+                                        && is_array($opsi)
+                                        ? (float) ($opsi['score_weight'] ?? 0)
+                                        : 0,
                                 ]);
                             }
                         }
@@ -523,7 +536,10 @@ class SoalController extends Controller
 
             DB::commit();
 
-            return redirect()->route('admin.exams.soal.index', $exam)
+            return redirect()->route('admin.exams.soal.index', [
+                'exam' => $exam,
+                'section_id' => $section->id,
+            ])
                 ->with('success', "Berhasil menambahkan $jumlahDisimpan soal ke dalam ujian.");
 
         } catch (Exception $e) {
@@ -703,8 +719,10 @@ class SoalController extends Controller
     {
         $subjects = Subject::all();
         $levels = Level::all();
+        $sections = $this->ensureExamSections($exam);
+        $defaultSectionId = $sections->first()->id ?? null;
 
-        return view('soal.ai_generator', compact('exam', 'subjects', 'levels'));
+        return view('soal.ai_generator', compact('exam', 'subjects', 'levels', 'sections', 'defaultSectionId'));
     }
 
     public function aiGenerate(Request $request, Exam $exam)
@@ -796,8 +814,13 @@ class SoalController extends Controller
      */
     public function aiPreview(Request $request, Exam $exam)
     {
-        $request->validate([
-            'json_data' => 'required|string',
+        $data = $request->validate([
+            'json_data' => ['required', 'string'],
+            'exam_section_id' => [
+                'required',
+                'integer',
+                Rule::exists('exam_sections', 'id')->where('exam_id', $exam->id),
+            ],
         ]);
 
         // Bersihkan hasil AI dari markdown ```json ... ``` jika ada
@@ -813,10 +836,50 @@ class SoalController extends Controller
             $soals = $soals['data'];
         }
 
+        $soals = array_values($soals);
+
+        foreach ($soals as $index => $soal) {
+            if (! is_array($soal) || ($soal['type'] ?? null) !== 'tkp') {
+                continue;
+            }
+
+            $options = $soal['options'] ?? null;
+            $weights = is_array($options)
+                ? array_map(function ($option) {
+                    $weight = is_array($option) ? ($option['score_weight'] ?? null) : null;
+
+                    return is_numeric($weight) && (float) $weight === (float) (int) $weight
+                        ? (int) $weight
+                        : null;
+                }, $options)
+                : [];
+            $sortedWeights = $weights;
+            sort($sortedWeights);
+            $hasFiveOptions = is_array($options)
+                && count($options) === 5
+                && collect($options)->every(fn ($option) => is_array($option)
+                    && trim(strip_tags((string) ($option['option_text'] ?? $option['text'] ?? ''))) !== '');
+
+            if (! $hasFiveOptions || $sortedWeights !== [1, 2, 3, 4, 5]) {
+                return back()
+                    ->withErrors([
+                        'error' => 'Soal TKP ke-'.($index + 1).' harus memiliki 5 pilihan dengan bobot unik dari 1 sampai 5. Silakan generate ulang.',
+                    ])
+                    ->withInput(['exam_section_id' => $data['exam_section_id']]);
+            }
+        }
+
         // Enkripsi seluruh data JSON menjadi teks base64 untuk disisipkan ke form (Stateless)
         $jsonDataEncoded = base64_encode(json_encode($soals));
+        $section = $exam->sections()->with('section')->findOrFail($data['exam_section_id']);
 
         // Panggil view preview_json yang sudah Anda buat sebelumnya
-        return view('soal.preview_json', compact('exam', 'soals', 'jsonDataEncoded'));
+        return view('soal.preview_json', [
+            'exam' => $exam,
+            'soals' => $soals,
+            'jsonDataEncoded' => $jsonDataEncoded,
+            'examSectionId' => $section->id,
+            'targetSection' => $section,
+        ]);
     }
 }

@@ -6,7 +6,7 @@
                 <p class="text-sm text-slate-500 mt-1">Buat soal otomatis dengan AI untuk ujian: <span
                         class="font-bold text-indigo-600">{{ $exam->title }}</span></p>
             </div>
-            <a href="{{ route('admin.exams.soal.index', $exam->id) }}"
+            <a href="{{ route('admin.exams.soal.index', $exam) }}"
                 class="px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-bold shadow-sm">
                 &larr; Kembali
             </a>
@@ -44,6 +44,19 @@
                                 class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
                         </div>
 
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Seksi Ujian</label>
+                            <select id="examSectionId"
+                                class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                                @foreach($sections as $section)
+                                <option value="{{ $section->id }}" {{ old('exam_section_id', $defaultSectionId) == $section->id ? 'selected' : '' }}>
+                                    {{ $section->section?->abbreviation }} - {{ $section->section?->name }}
+                                </option>
+                                @endforeach
+                            </select>
+                            <p class="text-[10px] text-slate-400 mt-1">Soal yang disimpan akan dimasukkan ke seksi ini.</p>
+                        </div>
+
                         <!-- Tipe Soal (Checkbox) -->
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Tipe Soal (Bisa pilih >
@@ -68,6 +81,11 @@
                                     <input type="checkbox" name="tipeSoal" value="essay"
                                         class="mt-1 w-4 h-4 text-indigo-600 rounded">
                                     <span class="text-sm text-slate-700 font-medium">Isian Singkat / Essay</span>
+                                </label>
+                                <label class="flex items-start gap-2 cursor-pointer">
+                                    <input type="checkbox" name="tipeSoal" value="tkp"
+                                        class="mt-1 w-4 h-4 text-indigo-600 rounded">
+                                    <span class="text-sm text-slate-700 font-medium">TKP Berbobot (CPNS)</span>
                                 </label>
                             </div>
                         </div>
@@ -134,6 +152,7 @@
     <!-- Form Hidden untuk melempar JSON ke backend -->
     <form id="formPreview" action="{{ route('admin.exams.soal.ai_preview', $exam) }}" method="POST" class="hidden">
         @csrf
+        <input type="hidden" name="exam_section_id" id="examSectionIdInput" value="{{ old('exam_section_id', $defaultSectionId) }}">
         <textarea name="json_data" id="jsonDataInput"></textarea>
     </form>
 
@@ -154,8 +173,10 @@
         async function generateSoal() {
             const mapel = document.getElementById('mapel').value;
             const topik = document.getElementById('topik').value;
+            const examSection = document.getElementById('examSectionId');
             const jumlahSoal = document.getElementById('jumlahSoal').value;
             const promptTambahan = document.getElementById('promptTambahan').value.trim();
+            const sectionName = examSection.options[examSection.selectedIndex]?.text.trim() || '';
 
             // Ambil semua tipe soal yang dicentang
             const selectedTipeSoal = Array.from(document.querySelectorAll('input[name="tipeSoal"]:checked')).map(cb => cb.value);
@@ -181,8 +202,12 @@
             if (selectedTipeSoal.includes("essay")) {
                 strukturOpsiInstruksi += `- Untuk "type": "essay", berikan 1 jawaban pasti pada "option_text" dan set "is_correct": true.\n`;
             }
+            if (selectedTipeSoal.includes("tkp")) {
+                strukturOpsiInstruksi += `- Untuk "type": "tkp", buat soal situasional CPNS yang menguji kompetensi perilaku kerja (misalnya pelayanan publik, jejaring kerja, profesionalisme, sosial budaya, TIK, atau anti-radikalisme). Berikan tepat 5 pilihan respons yang masuk akal. Set "is_correct": false pada semua opsi dan berikan "score_weight" berupa bilangan bulat berbeda dari 1 sampai 5 (1 = respons paling tidak efektif, 5 = paling efektif). Jangan mengungkap pilihan terbaik pada teks soal.\n`;
+            }
 
             const prompt = `Anda adalah pembuat soal ujian profesional. Buatkan tepat ${jumlahSoal} soal ujian untuk mata pelajaran "${mapel}" dengan topik "${topik}".
+Seksi ujian yang dituju: "${sectionName}".
 
 Variasi Tingkat Kesulitan yang diminta: ${selectedKesulitan.join(', ')}.
 Variasi Tipe Soal yang diminta: ${selectedTipeSoal.join(', ')}.
@@ -200,8 +225,7 @@ Instruksi Output (SANGAT PENTING):
         "content": "<p>Tuliskan pertanyaan disini (Gunakan tag HTML dasar seperti <p>, <strong>, dll jika perlu)</p>",
         "explanation": "<p>Jelaskan jawaban atau pembahasan soal secara ringkas.</p>",
         "options": [
-            { "option_text": "Teks Pilihan 1", "is_correct": true_atau_false },
-            { "option_text": "Teks Pilihan 2", "is_correct": true_atau_false }
+            { "option_text": "Teks Pilihan", "is_correct": true_atau_false }
         ]
     }
 ]
@@ -233,6 +257,7 @@ ${strukturOpsiInstruksi}
 
                 // Set value ke textarea hidden form
                 document.getElementById('jsonDataInput').value = jsonResult;
+                document.getElementById('examSectionIdInput').value = examSection.value;
 
                 // Submit form otomatis
                 document.getElementById('formPreview').submit();
