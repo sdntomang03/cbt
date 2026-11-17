@@ -7,13 +7,33 @@
                 <h2 class="text-3xl font-black text-slate-800 tracking-tight mb-2">Manajemen Kelas</h2>
                 <p class="text-slate-500 font-bold text-sm">Kelola daftar kelas, wali kelas, dan tahun ajaran.</p>
             </div>
+            @if($selectedSchoolId)
             @can('manage classrooms')
             <button @click="$store.classModule.newClassroom()"
                 class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg shadow-indigo-200 transition-all flex items-center gap-2 active:scale-95">
                 <i class="fas fa-plus"></i> Tambah Kelas
             </button>
             @endcan
+            @endif
         </div>
+
+        @if(auth()->user()->hasRole('admin'))
+        <form method="GET" action="{{ route('admin.classrooms.index') }}"
+            class="mb-6 bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
+            <label for="school_id" class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3">
+                <i class="fas fa-building text-indigo-500 mr-1"></i> Pilih Sekolah
+            </label>
+            <select id="school_id" name="school_id" onchange="this.form.submit()"
+                class="block w-full rounded-xl border-slate-200 shadow-sm focus:border-indigo-500 font-bold text-slate-800 py-3 px-4 bg-slate-50">
+                <option value="">-- Pilih Sekolah --</option>
+                @foreach($schools as $school)
+                <option value="{{ $school->id }}" {{ $selectedSchoolId == $school->id ? 'selected' : '' }}>
+                    {{ $school->name }}
+                </option>
+                @endforeach
+            </select>
+        </form>
+        @endif
 
         {{-- Alert Notifikasi --}}
         @if(session('success'))
@@ -50,6 +70,7 @@
         </div>
         @endif
 
+        @if($selectedSchoolId)
         {{-- Tabel Data Kelas --}}
         <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
             <div class="overflow-x-auto">
@@ -97,7 +118,7 @@
                             </td>
                             <td class="py-4 px-6 text-center space-x-2">
                                 {{-- Tombol Atur Siswa (Tetap ke halaman lain karena kompleksitasnya tinggi) --}}
-                                <a href="{{ route('admin.classrooms.students', $classroom->id) }}"
+                                <a href="{{ route('admin.classrooms.students', ['classroom' => $classroom->id, 'school_id' => $selectedSchoolId]) }}"
                                     class="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition tooltip"
                                     title="Atur Siswa">
                                     <i class="fas fa-users-cog"></i>
@@ -115,6 +136,7 @@
                                     class="inline-block"
                                     onsubmit="return confirm('Yakin ingin menghapus kelas ini? Siswa di dalamnya tidak akan terhapus, hanya dikeluarkan dari kelas.');">
                                     @csrf @method('DELETE')
+                                    <input type="hidden" name="school_id" value="{{ $selectedSchoolId }}">
                                     <button type="submit"
                                         class="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition tooltip"
                                         title="Hapus Kelas">
@@ -160,6 +182,7 @@
 
                 <form :action="$store.classModule.actionUrl" method="POST" class="p-8 space-y-6">
                     @csrf
+                    <input type="hidden" name="school_id" value="{{ $selectedSchoolId }}">
                     {{-- Method spoofing untuk Edit --}}
                     <template x-if="$store.classModule.isEdit">
                         <input type="hidden" name="_method" value="PUT">
@@ -279,4 +302,11 @@
         });
     </script>
     @endpush
+        @else
+        <div class="bg-white rounded-[2rem] shadow-sm border border-dashed border-slate-300 p-12 text-center">
+            <i class="fas fa-building text-4xl mb-4 text-slate-300 block"></i>
+            <p class="font-bold text-slate-600">Pilih sekolah terlebih dahulu.</p>
+            <p class="text-sm text-slate-500 mt-1">Daftar kelas dan data pendukung akan ditampilkan sesuai sekolah yang dipilih.</p>
+        </div>
+        @endif
 </x-app-layout>

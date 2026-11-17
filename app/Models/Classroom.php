@@ -12,6 +12,7 @@ class Classroom extends Model
     protected $fillable = [
         'school_id',
         'academic_year_id',
+        'level_id',
         'user_id', // ID wali kelas
         'name',
     ];

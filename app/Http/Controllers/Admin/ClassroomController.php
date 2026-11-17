@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\Classroom;
 use App\Models\Level;
+use App\Models\School;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,32 +18,51 @@ class ClassroomController extends Controller
     /**
      * Tampilkan daftar kelas berserta data untuk Modal
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
-        $schoolId = $user->school_id;
+        $schools = $user->hasRole('admin')
+            ? School::orderBy('name')->get()
+            : collect();
+        $selectedSchoolId = $user->hasRole('admin')
+            ? $request->validate([
+                'school_id' => ['nullable', 'integer', Rule::exists('schools', 'id')],
+            ])['school_id'] ?? null
+            : $user->school_id;
 
-        // Ambil Data Kelas Utama
-        $query = Classroom::with(['homeroomTeacher', 'academicYear'])
-            ->withCount('students')
-            ->where('school_id', $schoolId);
+        $classrooms = collect();
+        $academicYears = collect();
+        $levels = collect();
+        $teachers = collect();
 
-        // =========================================================
-        // FILTER BERDASARKAN HAK AKSES GURU
-        // =========================================================
-        // Jika user BUKAN admin, tampilkan HANYA kelas di mana ia menjadi wali kelas
-        if (! $user->hasAnyRole(['admin', 'operator'])) {
-            $query->where('user_id', $user->id);
+        if ($selectedSchoolId) {
+            $query = Classroom::with([
+                'homeroomTeacher' => fn ($query) => $query->where('school_id', $selectedSchoolId),
+                'academicYear' => fn ($query) => $query->where('school_id', $selectedSchoolId),
+            ])
+                ->withCount([
+                    'students' => fn ($query) => $query->where('users.school_id', $selectedSchoolId),
+                ])
+                ->where('school_id', $selectedSchoolId);
+
+            if (! $user->hasAnyRole(['admin', 'operator'])) {
+                $query->where('user_id', $user->id);
+            }
+
+            $classrooms = $query->orderBy('name', 'asc')->get();
+            $academicYears = AcademicYear::where('school_id', $selectedSchoolId)->get();
+            $levels = Level::where('school_id', $selectedSchoolId)->get();
+            $teachers = User::role('guru')->where('school_id', $selectedSchoolId)->get();
         }
 
-        $classrooms = $query->orderBy('name', 'asc')->get();
-
-        // Ambil Data Pendukung untuk Dropdown Modal
-        $academicYears = AcademicYear::where('school_id', $schoolId)->get();
-        $levels = Level::where('school_id', $schoolId)->get();
-        $teachers = User::role('guru')->where('school_id', $schoolId)->get();
-
-        return view('admin.classrooms.index', compact('classrooms', 'academicYears', 'teachers', 'levels'));
+        return view('admin.classrooms.index', compact(
+            'classrooms',
+            'academicYears',
+            'teachers',
+            'levels',
+            'schools',
+            'selectedSchoolId'
+        ));
     }
 
     /**
@@ -50,13 +70,13 @@ class ClassroomController extends Controller
      */
     public function store(Request $request)
     {
-        $schoolId = Auth::user()->school_id;
+        $schoolId = $this->selectedSchoolId($request);
 
         $request->validate([
             'name' => 'required|string|max:255',
-            // Validasi nullable agar jika dikosongkan tidak error
             'academic_year_id' => ['nullable', Rule::exists('academic_years', 'id')->where('school_id', $schoolId)],
             'homeroom_teacher_id' => ['nullable', Rule::exists('users', 'id')->where('school_id', $schoolId)],
+            'level_id' => ['nullable', Rule::exists('levels', 'id')->where('school_id', $schoolId)],
         ]);
 
         Classroom::create([
@@ -67,8 +87,8 @@ class ClassroomController extends Controller
             'name' => $request->name,
         ]);
 
-        // Karena menggunakan modal, redirect ke halaman index (back)
-        return redirect()->back()->with('success', 'Kelas berhasil dibuat!');
+        return redirect()->route('admin.classrooms.index', ['school_id' => $schoolId])
+            ->with('success', 'Kelas berhasil dibuat!');
     }
 
     /**
@@ -76,12 +96,8 @@ class ClassroomController extends Controller
      */
     public function update(Request $request, Classroom $classroom)
     {
-        $schoolId = Auth::user()->school_id;
-
-        // Keamanan
-        if ($classroom->school_id !== $schoolId) {
-            abort(403);
-        }
+        $this->authorizeClassroom($classroom);
+        $schoolId = (int) $classroom->school_id;
 
         $request->validate([
             'name' => 'required|string|max:255',
@@ -97,7 +113,8 @@ class ClassroomController extends Controller
             'name' => $request->name,
         ]);
 
-        return redirect()->back()->with('success', 'Kelas berhasil diperbarui!');
+        return redirect()->route('admin.classrooms.index', ['school_id' => $schoolId])
+            ->with('success', 'Kelas berhasil diperbarui!');
     }
 
     /**
@@ -105,13 +122,12 @@ class ClassroomController extends Controller
      */
     public function destroy(Classroom $classroom)
     {
-        if ($classroom->school_id !== Auth::user()->school_id) {
-            abort(403);
-        }
+        $this->authorizeClassroom($classroom);
 
         $classroom->delete();
 
-        return redirect()->back()->with('success', 'Kelas berhasil dihapus!');
+        return redirect()->route('admin.classrooms.index', ['school_id' => $classroom->school_id])
+            ->with('success', 'Kelas berhasil dihapus!');
     }
 
     // =========================================================================
@@ -120,16 +136,13 @@ class ClassroomController extends Controller
 
     public function manageStudents(Classroom $classroom)
     {
-        $schoolId = Auth::user()->school_id;
-
-        // Keamanan: Pastikan kelas ini milik sekolah admin yang login
-        if ($classroom->school_id !== $schoolId) {
-            abort(403);
-        }
+        $this->authorizeClassroom($classroom);
+        $schoolId = (int) $classroom->school_id;
 
         // 1. Tampilkan daftar siswa yang SUDAH ADA DI KELAS INI
-        $classroom->load(['students' => function ($q) use ($classroom) {
-            $q->where('classroom_student.academic_year_id', $classroom->academic_year_id)
+        $classroom->load(['students' => function ($q) use ($classroom, $schoolId) {
+            $q->where('users.school_id', $schoolId)
+                ->where('classroom_student.academic_year_id', $classroom->academic_year_id)
                 ->orderBy('name', 'asc');
         }]);
 
@@ -161,10 +174,8 @@ class ClassroomController extends Controller
 
     public function syncStudents(Request $request, Classroom $classroom)
     {
-        $schoolId = Auth::user()->school_id;
-        if ($classroom->school_id !== $schoolId) {
-            abort(403);
-        }
+        $this->authorizeClassroom($classroom);
+        $schoolId = (int) $classroom->school_id;
 
         $request->validate([
             'student_ids' => 'nullable|array',
@@ -181,20 +192,18 @@ class ClassroomController extends Controller
 
         $classroom->students()->sync($pivotData);
 
-        return redirect()->route('admin.classrooms.index')
+        return redirect()->route('admin.classrooms.index', ['school_id' => $schoolId])
             ->with('success', 'Daftar siswa di kelas '.$classroom->name.' berhasil diperbarui!');
     }
 
     public function attachStudents(Request $request, Classroom $classroom)
     {
-        $schoolId = Auth::user()->school_id;
-        if ($classroom->school_id !== $schoolId) {
-            abort(403);
-        }
+        $this->authorizeClassroom($classroom);
+        $schoolId = (int) $classroom->school_id;
 
         $request->validate([
             'student_ids' => 'required|array',
-            'student_ids.*' => 'exists:users,id',
+            'student_ids.*' => [Rule::exists('users', 'id')->where('school_id', $schoolId)],
         ]);
 
         // Tambahkan academic_year_id saat insert siswa ke tabel pivot
@@ -205,15 +214,17 @@ class ClassroomController extends Controller
 
         $classroom->students()->syncWithoutDetaching($pivotData);
 
-        return back()->with('success', count($request->student_ids).' siswa berhasil ditambahkan ke kelas!');
+        return redirect()->route('admin.classrooms.students', [
+            'classroom' => $classroom->id,
+            'school_id' => $schoolId,
+        ])->with('success', count($request->student_ids).' siswa berhasil ditambahkan ke kelas!');
     }
 
     public function detachStudent(Classroom $classroom, User $student)
     {
-        $schoolId = Auth::user()->school_id;
-        if ($classroom->school_id !== $schoolId) {
-            abort(403);
-        }
+        $this->authorizeClassroom($classroom);
+        $schoolId = (int) $classroom->school_id;
+        abort_unless((int) $student->school_id === $schoolId, 404);
 
         // Hapus spesifik berdasarkan student, classroom, dan tahun ajaran
         // (Agar riwayat kelas siswa di tahun ajaran sebelumnya tidak ikut terhapus)
@@ -223,6 +234,34 @@ class ClassroomController extends Controller
             ->where('academic_year_id', $classroom->academic_year_id)
             ->delete();
 
-        return back()->with('success', 'Siswa '.$student->name.' berhasil dikeluarkan dari kelas.');
+        return redirect()->route('admin.classrooms.students', [
+            'classroom' => $classroom->id,
+            'school_id' => $schoolId,
+        ])->with('success', 'Siswa '.$student->name.' berhasil dikeluarkan dari kelas.');
+    }
+
+    private function selectedSchoolId(Request $request): int
+    {
+        $user = Auth::user();
+
+        if ($user->hasRole('admin')) {
+            return (int) $request->validate([
+                'school_id' => ['required', 'integer', Rule::exists('schools', 'id')],
+            ])['school_id'];
+        }
+
+        abort_unless($user->school_id, 403);
+
+        return (int) $user->school_id;
+    }
+
+    private function authorizeClassroom(Classroom $classroom): void
+    {
+        $user = Auth::user();
+
+        abort_unless(
+            $user->hasRole('admin') || (int) $classroom->school_id === (int) $user->school_id,
+            403
+        );
     }
 }

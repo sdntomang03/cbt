@@ -5,7 +5,7 @@
         {{-- Header & Tombol Kembali --}}
         <div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="flex items-center gap-4">
-                <a href="{{ route('admin.classrooms.index') }}"
+                <a href="{{ route('admin.classrooms.index', ['school_id' => $classroom->school_id]) }}"
                     class="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm border border-slate-200 text-slate-500 hover:text-indigo-600 transition shrink-0">
                     <i class="fas fa-arrow-left"></i>
                 </a>
