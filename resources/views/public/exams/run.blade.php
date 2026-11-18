@@ -4,6 +4,7 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/leader-line-new@1.1.9/leader-line.min.js"></script>
@@ -232,6 +233,14 @@
         #question-viewport img:hover {
             opacity: .9;
             box-shadow: 0 0 0 3px #4f46e5;
+        }
+
+        .question-content.ql-editor {
+            height: auto;
+            min-height: 0;
+            overflow-y: visible;
+            padding: 0;
+            white-space: normal;
         }
 
         /* Mobile Nav */
@@ -475,7 +484,7 @@
                                         class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
                                     </div>
                                     <div id="content-injector"
-                                        class="prose prose-indigo prose-lg text-lg max-w-none text-slate-700 leading-relaxed no-select __se__katex_container"
+                                        class="question-content ql-editor prose prose-indigo prose-lg text-lg max-w-none text-slate-700 leading-relaxed no-select __se__katex_container"
                                         x-html="q.content"></div>
                                 </div>
 

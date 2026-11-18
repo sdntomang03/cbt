@@ -525,8 +525,10 @@ quill.setSelection(cursor + latexText.length - 2);
             return {
                 container: [
                     [{ size: [] }],
+                    [{ header: [1, 2, false] }],
                     ['bold', 'italic', 'underline', 'strike'],
                     [{ script: 'sub' }, { script: 'super' }],
+                    [{ color: [] }, { background: [] }],
                     [{ list: 'ordered' }, { list: 'bullet' }],
                     [{ align: [] }],
                     ['blockquote'],
