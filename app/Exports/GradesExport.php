@@ -52,7 +52,11 @@ class GradesExport implements FromQuery, ShouldAutoSize, WithEvents, WithHeading
             })
             ->with(['examSessions' => function ($q) {
                 $q->where('exam_id', $this->examId);
-            }, 'school']);
+            }, 'school', 'classrooms' => function ($q) {
+                $q->whereHas('academicYear', function ($q) {
+                    $q->where('is_active', true);
+                });
+            }]);
 
         if ($this->schoolId) {
             $query->where('school_id', $this->schoolId);
@@ -77,7 +81,8 @@ class GradesExport implements FromQuery, ShouldAutoSize, WithEvents, WithHeading
             'Nama Siswa',     // Kolom B
             'Username/NISN',  // Kolom C
             'Sekolah',        // Kolom D
-            'Sesi Ujian',     // Kolom E
+            'Kelas / Keterangan', // Kolom E
+            'Sesi Ujian',     // Kolom F
         ];
 
         if ($this->sections->count() > 1) {
@@ -114,6 +119,7 @@ class GradesExport implements FromQuery, ShouldAutoSize, WithEvents, WithHeading
             $user->name,
             $user->username,
             $user->school->name ?? '-',
+            $user->classrooms->first()?->name ?: (trim((string) $user->keterangan) ?: 'Belum masuk kelas'),
             $session->session_name ?? 'Sesi Default',
         ];
 
